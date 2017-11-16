@@ -8,7 +8,7 @@ endif
 
 .PHONY: all
 all: install
-	$(MAKE) clean build
+	# $(MAKE) clean build
 
 .PHONY: install
 install:

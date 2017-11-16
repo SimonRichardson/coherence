@@ -1,0 +1,8 @@
+version: '2'
+
+services:
+  coherence:
+    image: golang:1.8-alpine
+    volumes:
+      - ./:/go/src/github.com/trussle/coherence
+    working_dir: /go/src/github.com/trussle/coherence
