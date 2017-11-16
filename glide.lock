@@ -1,0 +1,102 @@
+hash: f5d429078f5de20237a7be9ed5fd775fcfea2f4b7f3f0fcda988a18b0d6bff15
+updated: 2017-11-16T21:32:50.604835224Z
+imports:
+- name: github.com/armon/go-metrics
+  version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
+- name: github.com/beorn7/perks
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
+  subpackages:
+  - quantile
+- name: github.com/go-kit/kit
+  version: d67bb4c202e3b91377d1079b110a6c9ce23ab2f8
+  subpackages:
+  - log
+  - log/level
+- name: github.com/go-logfmt/logfmt
+  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
+- name: github.com/go-stack/stack
+  version: 7a2f19628aabfe68f0766b59e74d6315f8347d22
+- name: github.com/golang/mock
+  version: 13f360950a79f5864a972c786a10a50e44b69541
+  subpackages:
+  - gomock
+- name: github.com/golang/protobuf
+  version: 748d386b5c1ea99658fd69fe9f03991ce86a90c1
+  subpackages:
+  - proto
+- name: github.com/gorilla/mux
+  version: 24fca303ac6da784b9e8269f724ddeb0b2eea5e7
+- name: github.com/hashicorp/errwrap
+  version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
+- name: github.com/hashicorp/go-msgpack
+  version: fa3f63826f7c23912c15263591e65d54d080b458
+  subpackages:
+  - codec
+- name: github.com/hashicorp/go-multierror
+  version: 83588e72410abfbe4df460eeb6f30841ae47d4c4
+- name: github.com/hashicorp/go-sockaddr
+  version: 9b4c5fa5b10a683339a270d664474b9f4aee62fc
+- name: github.com/hashicorp/memberlist
+  version: 687988a0b5daaf7ed5051e5e374aef27f8254822
+- name: github.com/hashicorp/serf
+  version: c20a0b1b1ea9eb8168bcdec0116688fa9254e449
+  subpackages:
+  - coordinate
+  - serf
+- name: github.com/kr/logfmt
+  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
+- name: github.com/miekg/dns
+  version: a5852667e3c36e2e0b0a69ab43869e00e95aacdf
+  subpackages:
+  - internal/socket
+- name: github.com/pborman/uuid
+  version: 1b00554d822231195d1babd97ff4a781231955c9
+- name: github.com/pkg/errors
+  version: c605e284fe17294bda444b34710735b29d1a9d90
+- name: github.com/prometheus/client_golang
+  version: 94ff84a9a6ebb5e6eb9172897c221a64df3443bc
+  subpackages:
+  - prometheus
+- name: github.com/prometheus/client_model
+  version: 6f3806018612930941127f2a7c6c453ba2c527d2
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: 3e6a7635bac6573d43f49f97b47eb9bda195dba8
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: e645f4e5aaa8506fc71d6edbc5c4ff02c04c46f2
+  subpackages:
+  - xfs
+- name: github.com/prometheus/prometheus
+  version: bc2e9459d817afb763199929e615ac9ea5928cb1
+- name: github.com/sean-/seed
+  version: e2103e2c35297fb7e17febb81e49b312087a2372
+- name: github.com/SimonRichardson/betwixt
+  version: 6bf309fe8d963cc635eeabbf73d82430c72761e5
+- name: github.com/SimonRichardson/flagset
+  version: d8eb0e54974d098768a93de414d268bc2d0a334f
+- name: github.com/SimonRichardson/gexec
+  version: c3f2b6a0a84bbf048eafea7f53c393899492806b
+- name: github.com/SimonRichardson/resilience
+  version: c9b80ae73fd9af041322eb84924538df18dfa9a5
+  subpackages:
+  - breaker
+  - clock
+  - timer
+- name: github.com/trussle/fsys
+  version: 182e67f78d3ce14f6ad30c95bbf7ac09393a8c2f
+- name: github.com/trussle/harness
+  version: 2d32c1f9391a2d295c3fb6a769bf18e626251e4b
+  subpackages:
+  - generators
+- name: github.com/trussle/uuid
+  version: 23bc856a10519000ea4c17b77520ab48c3d3bbfd
+testImports: []

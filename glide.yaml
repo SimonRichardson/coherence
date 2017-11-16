@@ -1,0 +1,32 @@
+package: github.com/trussle/coherence
+import:
+  - package: github.com/pkg/errors
+  - package: github.com/go-kit/kit
+  - package: github.com/go-logfmt/logfmt
+  - package: github.com/go-stack/stack
+  - package: github.com/armon/go-metrics
+  - package: github.com/prometheus/prometheus
+  - package: github.com/prometheus/client_golang
+  - package: github.com/beorn7/perks/quantile
+  - package: github.com/golang/protobuf/proto
+  - package: github.com/prometheus/client_model/go
+  - package: github.com/prometheus/common/expfmt
+  - package: github.com/prometheus/common/model
+  - package: github.com/prometheus/procfs
+  - package: github.com/matttproud/golang_protobuf_extensions/pbutil
+  - package: github.com/pborman/uuid
+  - package: github.com/golang/mock/gomock
+  - package: github.com/SimonRichardson/gexec
+    version: c3f2b6a0a84bbf048eafea7f53c393899492806b
+  - package: github.com/SimonRichardson/betwixt
+  - package: github.com/SimonRichardson/resilience
+  - package: github.com/SimonRichardson/flagset
+    version: d8eb0e54974d098768a93de414d268bc2d0a334f
+  - package: github.com/hashicorp/go-sockaddr
+  - package: github.com/hashicorp/memberlist
+  - package: github.com/hashicorp/serf
+  - package: github.com/gorilla/mux
+  - package: github.com/trussle/fsys
+  - package: github.com/trussle/harness
+    version: 2d32c1f9391a2d295c3fb6a769bf18e626251e4b
+  - package: github.com/trussle/uuid
