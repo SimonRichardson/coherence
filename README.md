@@ -9,3 +9,4 @@ Coherence repository
 [![Go Report Card](https://goreportcard.com/badge/github.com/trussle/coherence)](https://goreportcard.com/report/github.com/trussle/coherence)
 
 ## Introduction
+
