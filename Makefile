@@ -68,11 +68,11 @@ FORCE:
 
 .PHONY: unit-tests
 unit-tests:
-	docker-compose run coherence go test -v ./cmd/... ./pkg/...
+	docker-compose run coherence go test -v ./pkg/...
 
 .PHONY: integration-tests
 integration-tests:
-	docker-compose run coherence go test -v -tags=integration ./cmd/... ./pkg/...
+	docker-compose run coherence go test -v -tags=integration ./pkg/...
 
 .PHONY: documentation
 documentation:
