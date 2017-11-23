@@ -15,6 +15,9 @@ const (
 
 	// FieldsElementType describes an element with an amount payload
 	FieldsElementType
+
+	// ChangeSetElementType describes an element with an amount payload
+	ChangeSetElementType
 )
 
 // Element combines a submitted key with the resulting values. If there was an
@@ -137,4 +140,33 @@ func FieldsFromElement(e Element) []Field {
 		return v.Fields()
 	}
 	return make([]Field, 0)
+}
+
+// ChangeSetElement defines a struct that is a container for errors.
+type ChangeSetElement struct {
+	typ ElementType
+	val ChangeSet
+}
+
+// NewChangeSetElement creates a new ChangeSetElement
+func NewChangeSetElement(val ChangeSet) *ChangeSetElement {
+	return &ChangeSetElement{ChangeSetElementType, val}
+}
+
+// Type defines the type associated with the ChangeSetElement
+func (e *ChangeSetElement) Type() ElementType { return e.typ }
+
+// ChangeSet defines the changeSet associated with the ChangeSetElement
+func (e *ChangeSetElement) ChangeSet() ChangeSet { return e.val }
+
+type changeSetElement interface {
+	ChangeSet() ChangeSet
+}
+
+// ChangeSetFromElement attempts to get an changeSet from the element if it exists.
+func ChangeSetFromElement(e Element) ChangeSet {
+	if v, ok := e.(changeSetElement); ok {
+		return v.ChangeSet()
+	}
+	return ChangeSet{}
 }

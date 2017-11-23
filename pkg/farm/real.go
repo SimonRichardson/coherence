@@ -19,18 +19,16 @@ func NewRealFarm(nodes []nodes.Node) Farm {
 	}
 }
 
-func (r *real) Insert(key selectors.Key, members []selectors.FieldScore) error {
-	_, err := r.write(func(n nodes.Node) <-chan selectors.Element {
+func (r *real) Insert(key selectors.Key, members []selectors.FieldScore) (selectors.ChangeSet, error) {
+	return r.write(func(n nodes.Node) <-chan selectors.Element {
 		return n.Insert(key, members)
 	})
-	return err
 }
 
-func (r *real) Delete(key selectors.Key, members []selectors.FieldScore) error {
-	_, err := r.write(func(n nodes.Node) <-chan selectors.Element {
+func (r *real) Delete(key selectors.Key, members []selectors.FieldScore) (selectors.ChangeSet, error) {
+	return r.write(func(n nodes.Node) <-chan selectors.Element {
 		return n.Delete(key, members)
 	})
-	return err
 }
 
 func (r *real) Keys() ([]selectors.Key, error) {
@@ -49,7 +47,7 @@ func (r *real) Repair([]selectors.KeyField) error {
 	return nil
 }
 
-func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (int, error) {
+func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (selectors.ChangeSet, error) {
 	var (
 		retrieved = 0
 		returned  = 0
@@ -69,7 +67,6 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (int, error) 
 	}
 
 	for element := range elements {
-		amount := selectors.IntFromElement(element)
 		retrieved++
 
 		if err := selectors.ErrorFromElement(element); err != nil {
@@ -78,7 +75,8 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (int, error) 
 		}
 
 		returned++
-		records.Add(amount)
+		changeSet := selectors.ChangeSetFromElement(element)
+		records.Add(changeSet)
 	}
 
 	if len(errs) > 0 {
@@ -86,7 +84,7 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (int, error) 
 	} else if err := records.Err(); err != nil {
 		return -1, errPartial{err}
 	}
-	return records.Value(), nil
+	return records.ChangeSet(), nil
 }
 
 func scatterWrites(n []nodes.Node,
@@ -119,17 +117,17 @@ func joinErrors(e []error) error {
 }
 
 type record struct {
-	value int
-	set   bool
-	err   error
+	changeSet selectors.ChangeSet
+	set       bool
+	err       error
 }
 
-func (r *record) Add(v int) {
-	if r.set && r.value != v {
+func (r *record) Add(v selectors.ChangeSet) {
+	if r.set && !r.changeSet.Equal(v) {
 		r.err = errors.New("variance detected from replication")
 		return
 	}
-	r.value = v
+	r.changeSet = v
 	r.set = true
 }
 
@@ -137,8 +135,8 @@ func (r *record) Err() error {
 	return r.err
 }
 
-func (r *record) Value() int {
-	return r.value
+func (r *record) ChangeSet() selectors.ChangeSet {
+	return r.changeSet
 }
 
 type errPartial struct {

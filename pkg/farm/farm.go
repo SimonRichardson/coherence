@@ -7,10 +7,10 @@ type Farm interface {
 
 	// Insert defines a way to insert some members into the store that's associated
 	// with the key
-	Insert(selectors.Key, []selectors.FieldScore) error
+	Insert(selectors.Key, []selectors.FieldScore) (selectors.ChangeSet, error)
 
 	// Delete removes a set of members associated with a key with in the store
-	Delete(selectors.Key, []selectors.FieldScore) error
+	Delete(selectors.Key, []selectors.FieldScore) (selectors.ChangeSet, error)
 
 	// Keys returns all the keys with in the store
 	Keys() ([]selectors.Key, error)

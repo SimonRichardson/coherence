@@ -4,15 +4,21 @@ import "github.com/trussle/coherence/pkg/selectors"
 
 type nop struct{}
 
-func (nop) Insert(selectors.Key, []selectors.FieldScore) <-chan selectors.Element {
+func (nop) Insert(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	go ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+		Success: 0,
+		Failure: len(members),
+	})
 	return ch
 }
 
-func (nop) Delete(selectors.Key, []selectors.FieldScore) <-chan selectors.Element {
+func (nop) Delete(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	go ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+		Success: 0,
+		Failure: len(members),
+	})
 	return ch
 }
 

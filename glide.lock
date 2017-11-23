@@ -1,5 +1,5 @@
-hash: f5d429078f5de20237a7be9ed5fd775fcfea2f4b7f3f0fcda988a18b0d6bff15
-updated: 2017-11-16T21:32:50.604835224Z
+hash: 1196d098a1008c5ffdd7f96eba2626358266e88060f4ea721054714c140b29c9
+updated: 2017-11-23T19:41:13.523236777Z
 imports:
 - name: github.com/armon/go-metrics
   version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
@@ -21,7 +21,7 @@ imports:
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
-  version: 748d386b5c1ea99658fd69fe9f03991ce86a90c1
+  version: 4bd1920723d7b7c925de087aa32e2187708897f7
   subpackages:
   - proto
 - name: github.com/gorilla/mux
@@ -61,6 +61,7 @@ imports:
   version: 94ff84a9a6ebb5e6eb9172897c221a64df3443bc
   subpackages:
   - prometheus
+  - prometheus/promhttp
 - name: github.com/prometheus/client_model
   version: 6f3806018612930941127f2a7c6c453ba2c527d2
   subpackages:
@@ -91,12 +92,15 @@ imports:
   - breaker
   - clock
   - timer
+- name: github.com/spaolacci/murmur3
+  version: 9f5d223c60793748f04a9d5b4b4eacddfc1f755d
 - name: github.com/trussle/fsys
   version: 182e67f78d3ce14f6ad30c95bbf7ac09393a8c2f
 - name: github.com/trussle/harness
   version: 2d32c1f9391a2d295c3fb6a769bf18e626251e4b
   subpackages:
   - generators
+  - matchers
 - name: github.com/trussle/uuid
   version: 23bc856a10519000ea4c17b77520ab48c3d3bbfd
 testImports: []

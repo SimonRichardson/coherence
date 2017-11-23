@@ -17,6 +17,10 @@ func (k *Key) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+func (k Key) Hash() uint32 {
+	return murmur3.Sum32([]byte(k))
+}
+
 func (k Key) String() string {
 	return string(k)
 }
@@ -46,4 +50,13 @@ type KeyField struct {
 type FieldScore struct {
 	Field Field   `json:"field"`
 	Score float64 `json:"score"`
+}
+
+type ChangeSet struct {
+	Success int `json:"success"`
+	Failure int `json:"failure"`
+}
+
+func (c ChangeSet) Equal(v ChangeSet) bool {
+	return c.Success == v.Success && c.Failure == v.Failure
 }

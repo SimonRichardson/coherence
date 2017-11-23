@@ -11,23 +11,24 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/farm"
 	errs "github.com/trussle/coherence/pkg/http"
 	"github.com/trussle/coherence/pkg/metrics"
-	"github.com/trussle/uuid"
+	"github.com/trussle/coherence/pkg/selectors"
 )
 
 const (
 
-	// APIPathReplication represents a way to replicate a series or records.
-	APIPathReplication = "/replicate"
+	// APIPathInsert represents a way to insert a series or records.
+	APIPathInsert = "/insert"
 
-	// APIPathIntersection represents a way to find out what records intersect.
-	APIPathIntersection = "/intersect"
+	// APIPathDelete represents a way to delete a series or records.
+	APIPathDelete = "/delete"
 )
 
 // API serves the cache API
 type API struct {
-	cache    Cache
+	farm     farm.Farm
 	logger   log.Logger
 	clients  metrics.Gauge
 	duration metrics.HistogramVec
@@ -35,13 +36,13 @@ type API struct {
 }
 
 // NewAPI creates a API with the correct dependencies.
-func NewAPI(cache Cache,
+func NewAPI(farm farm.Farm,
 	logger log.Logger,
 	clients metrics.Gauge,
 	duration metrics.HistogramVec,
 ) *API {
 	return &API{
-		cache:    cache,
+		farm:     farm,
 		logger:   logger,
 		clients:  clients,
 		duration: duration,
@@ -70,82 +71,78 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Routing table
 	method, path := r.Method, r.URL.Path
 	switch {
-	case method == "POST" && path == APIPathReplication:
-		a.handleReplication(w, r)
-	case method == "POST" && path == APIPathIntersection:
-		a.handleIntersection(w, r)
+	case method == "POST" && path == APIPathInsert:
+		a.handleInsertion(w, r)
+	case method == "POST" && path == APIPathDelete:
+		a.handleDeletion(w, r)
 	default:
 		// Nothing found
 		a.errors.NotFound(w, r)
 	}
 }
 
-func (a *API) handleReplication(w http.ResponseWriter, r *http.Request) {
+func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// useful metrics
 	begin := time.Now()
 
 	// Validate user input.
-	var qp ReplicationQueryParams
+	var qp KeyQueryParams
 	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
-	txn, err := ingestIdentifiers(r.Body)
+	members, err := ingestMembers(r.Body)
 	if err != nil {
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
-	if err := a.cache.Add(txn); err != nil {
+	changeSet, err := a.farm.Insert(qp.Key, members)
+	if err != nil {
 		a.errors.InternalServerError(w, r, err.Error())
 		return
 	}
 
 	// Make sure we collect the document for the result.
-	qr := ReplicationQueryResult{Errors: a.errors, Params: qp}
-	qr.ID, err = uuid.New()
-	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
-		return
-	}
+	qr := QueryResult{Errors: a.errors, Params: qp}
+	qr.ChangeSet = changeSet
 
 	// Finish
 	qr.Duration = time.Since(begin).String()
 	qr.EncodeTo(w)
 }
 
-func (a *API) handleIntersection(w http.ResponseWriter, r *http.Request) {
+func (a *API) handleDeletion(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	// useful metrics
 	begin := time.Now()
 
 	// Validate user input.
-	var qp IntersectionQueryParams
+	var qp KeyQueryParams
 	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
-	idents, err := ingestIdentifiers(r.Body)
+	members, err := ingestMembers(r.Body)
 	if err != nil {
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
-	union, difference, err := a.cache.Intersection(idents)
+	changeSet, err := a.farm.Delete(qp.Key, members)
 	if err != nil {
 		a.errors.InternalServerError(w, r, err.Error())
 		return
 	}
 
 	// Make sure we collect the document for the result.
-	qr := IntersectionQueryResult{Errors: a.errors, Params: qp}
-	qr.Union = union
-	qr.Difference = difference
+	qr := QueryResult{Errors: a.errors, Params: qp}
+	qr.ChangeSet = changeSet
 
 	// Finish
 	qr.Duration = time.Since(begin).String()
@@ -162,7 +159,7 @@ func (iw *interceptingWriter) WriteHeader(code int) {
 	iw.ResponseWriter.WriteHeader(code)
 }
 
-func ingestIdentifiers(reader io.ReadCloser) ([]string, error) {
+func ingestMembers(reader io.ReadCloser) ([]selectors.FieldScore, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -172,15 +169,19 @@ func ingestIdentifiers(reader io.ReadCloser) ([]string, error) {
 		return nil, errors.New("no body content")
 	}
 
-	var input IngestInput
+	var input MembersInput
 	if err = json.Unmarshal(bytes, &input); err != nil {
 		return nil, err
 	}
 
-	return input.Identifiers, nil
+	if len(input.Members) == 0 {
+		return nil, errors.New("no members")
+	}
+
+	return input.Members, nil
 }
 
-// IngestInput defines a simple type for marshalling and unmarshalling idents
-type IngestInput struct {
-	Identifiers []string `json:"idents"`
+// MembersInput defines a simple type for marshalling and unmarshalling members
+type MembersInput struct {
+	Members []selectors.FieldScore `json:"members"`
 }
