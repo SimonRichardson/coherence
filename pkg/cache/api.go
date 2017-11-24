@@ -85,6 +85,12 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.handleInsertion(w, r)
 	case method == "POST" && path == APIPathDelete:
 		a.handleDeletion(w, r)
+	case method == "GET" && path == APIPathKeys:
+		a.handleKeys(w, r)
+	case method == "GET" && path == APIPathSize:
+		a.handleSize(w, r)
+	case method == "GET" && path == APIPathMembers:
+		a.handleMembers(w, r)
 	default:
 		// Nothing found
 		a.errors.NotFound(w, r)

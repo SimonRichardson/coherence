@@ -32,15 +32,21 @@ func (r *real) Delete(key selectors.Key, members []selectors.FieldScore) (select
 }
 
 func (r *real) Keys() ([]selectors.Key, error) {
-	return nil, nil
+	return r.readKeys(func(n nodes.Node) <-chan selectors.Element {
+		return n.Keys()
+	})
 }
 
-func (r *real) Size(selectors.Key) (int, error) {
-	return -1, nil
+func (r *real) Size(key selectors.Key) (int, error) {
+	return r.readSize(func(n nodes.Node) <-chan selectors.Element {
+		return n.Size(key)
+	})
 }
 
-func (r *real) Members(selectors.Key) ([]selectors.Field, error) {
-	return nil, nil
+func (r *real) Members(key selectors.Key) ([]selectors.Field, error) {
+	return r.readMembers(func(n nodes.Node) <-chan selectors.Element {
+		return n.Members(key)
+	})
 }
 
 func (r *real) Repair([]selectors.KeyField) error {
@@ -55,15 +61,15 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (selectors.Ch
 		elements = make(chan selectors.Element, len(r.nodes))
 
 		errs    []error
-		records = &record{}
+		records = &changeSetRecords{}
 		wg      = &sync.WaitGroup{}
 	)
 
 	wg.Add(len(r.nodes))
 	go func() { wg.Wait(); close(elements) }()
 
-	if err := scatterWrites(r.nodes, fn, wg, elements); err != nil {
-		return -1, err
+	if err := scatterRequests(r.nodes, fn, wg, elements); err != nil {
+		return selectors.ChangeSet{}, err
 	}
 
 	for element := range elements {
@@ -77,17 +83,71 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (selectors.Ch
 		returned++
 		changeSet := selectors.ChangeSetFromElement(element)
 		records.Add(changeSet)
+
+		// Bail out, if there is an error
+		if err := records.Err(); err != nil {
+			return selectors.ChangeSet{}, errPartial{err}
+		}
 	}
 
 	if len(errs) > 0 {
-		return -1, errors.Wrapf(joinErrors(errs), "partial error")
-	} else if err := records.Err(); err != nil {
-		return -1, errPartial{err}
+		return selectors.ChangeSet{}, errors.Wrapf(joinErrors(errs), "partial error")
 	}
 	return records.ChangeSet(), nil
 }
 
-func scatterWrites(n []nodes.Node,
+func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Key, error) {
+	var (
+		retrieved = 0
+		returned  = 0
+
+		elements = make(chan selectors.Element, len(r.nodes))
+
+		errs    []error
+		records = &keysRecords{}
+		wg      = &sync.WaitGroup{}
+	)
+
+	wg.Add(len(r.nodes))
+	go func() { wg.Wait(); close(elements) }()
+
+	if err := scatterRequests(r.nodes, fn, wg, elements); err != nil {
+		return nil, err
+	}
+
+	for element := range elements {
+		retrieved++
+
+		if err := selectors.ErrorFromElement(element); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		returned++
+		keys := selectors.KeysFromElement(element)
+		records.Add(keys)
+
+		// Bail out, if there is an error
+		if err := records.Err(); err != nil {
+			return nil, errPartial{err}
+		}
+	}
+
+	if len(errs) > 0 {
+		return nil, errors.Wrapf(joinErrors(errs), "partial error")
+	}
+	return records.Keys(), nil
+}
+
+func (r *real) readSize(fn func(nodes.Node) <-chan selectors.Element) (int, error) {
+	return -1, nil
+}
+
+func (r *real) readMembers(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Field, error) {
+	return nil, nil
+}
+
+func scatterRequests(n []nodes.Node,
 	fn func(nodes.Node) <-chan selectors.Element,
 	wg *sync.WaitGroup,
 	dst chan selectors.Element,
@@ -114,29 +174,6 @@ func joinErrors(e []error) error {
 		buf = append(buf, v.Error())
 	}
 	return errors.New(strings.Join(buf, "; "))
-}
-
-type record struct {
-	changeSet selectors.ChangeSet
-	set       bool
-	err       error
-}
-
-func (r *record) Add(v selectors.ChangeSet) {
-	if r.set && !r.changeSet.Equal(v) {
-		r.err = errors.New("variance detected from replication")
-		return
-	}
-	r.changeSet = v
-	r.set = true
-}
-
-func (r *record) Err() error {
-	return r.err
-}
-
-func (r *record) ChangeSet() selectors.ChangeSet {
-	return r.changeSet
 }
 
 type errPartial struct {
