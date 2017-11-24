@@ -6,19 +6,23 @@ type nop struct{}
 
 func (nop) Insert(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	go ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
-		Success: 0,
-		Failure: len(members),
-	})
+	go func() {
+		ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+			Success: 0,
+			Failure: len(members),
+		})
+	}()
 	return ch
 }
 
 func (nop) Delete(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	go ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
-		Success: 0,
-		Failure: len(members),
-	})
+	go func() {
+		ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+			Success: 0,
+			Failure: len(members),
+		})
+	}()
 	return ch
 }
 

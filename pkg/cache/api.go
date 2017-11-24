@@ -24,6 +24,16 @@ const (
 
 	// APIPathDelete represents a way to delete a series or records.
 	APIPathDelete = "/delete"
+
+	// APIPathKeys represents a way to find all the keys with in the cache.
+	APIPathKeys = "/keys"
+
+	// APIPathSize represents a way to find the size of a key with in the cache.
+	APIPathSize = "/size"
+
+	// APIPathMembers represents a way to find all the members for a key with in
+	// the cache.
+	APIPathMembers = "/members"
 )
 
 // API serves the cache API

@@ -2,9 +2,15 @@ package selectors
 
 import (
 	"encoding/json"
+
+	"github.com/spaolacci/murmur3"
 )
 
 type Key string
+
+func (k Key) Equal(b Key) bool {
+	return k == b
+}
 
 func (k Key) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(k))
@@ -26,6 +32,10 @@ func (k Key) String() string {
 }
 
 type Field string
+
+func (f Field) Equal(b Field) bool {
+	return f == b
+}
 
 func (f Field) MarshalJSON() ([]byte, error) {
 	return json.Marshal(string(f))

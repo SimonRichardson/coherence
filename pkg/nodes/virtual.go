@@ -17,7 +17,7 @@ func (v *virtual) Insert(key selectors.Key, members []selectors.FieldScore) <-ch
 				changeSet.Failure++
 			}
 		}
-		ch <- selectors.NewChangeSetElement(changeset)
+		ch <- selectors.NewChangeSetElement(changeSet)
 	}()
 	return ch
 }
@@ -33,26 +33,32 @@ func (v *virtual) Delete(key selectors.Key, members []selectors.FieldScore) <-ch
 				changeSet.Failure++
 			}
 		}
-		ch <- selectors.NewChangeSetElement(changeset)
+		ch <- selectors.NewChangeSetElement(changeSet)
 	}()
 	return ch
 }
 
 func (v *virtual) Keys() <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewKeysElement(make([]selectors.Key, 0))
+	go func() {
+		ch <- selectors.NewKeysElement(v.store.Keys())
+	}()
 	return ch
 }
 
-func (v *virtual) Size(selectors.Key) <-chan selectors.Element {
+func (v *virtual) Size(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	go func() {
+		ch <- selectors.NewIntElement(v.store.Size(key))
+	}()
 	return ch
 }
 
-func (v *virtual) Members(selectors.Key) <-chan selectors.Element {
+func (v *virtual) Members(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewFieldsElement(make([]selectors.Field, 0))
+	go func() {
+		ch <- selectors.NewFieldsElement(v.store.Members(key))
+	}()
 	return ch
 }
 

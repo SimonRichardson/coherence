@@ -26,19 +26,19 @@ func (r *real) Delete(key selectors.Key, fields []selectors.FieldScore) <-chan s
 
 func (r *real) Keys() <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewKeysElement(make([]selectors.Key, 0))
+	go r.readKeys(ch)
 	return ch
 }
 
-func (r *real) Size(selectors.Key) <-chan selectors.Element {
+func (r *real) Size(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	go r.readSize(key, ch)
 	return ch
 }
 
-func (r *real) Members(selectors.Key) <-chan selectors.Element {
+func (r *real) Members(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewFieldsElement(make([]selectors.Field, 0))
+	go r.readMembers(key, ch)
 	return ch
 }
 
@@ -72,4 +72,52 @@ func (r *real) write(key selectors.Key, path string, fields []selectors.FieldSco
 	}
 
 	dst <- selectors.NewChangeSetElement(changeset)
+}
+
+func (r *real) readKeys(dst chan<- selectors.Element) {
+	res, err := r.client.Get("/keys")
+	if err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	var keys []selectors.Key
+	if err := json.Unmarshal(res, &keys); err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	dst <- selectors.NewKeysElement(keys)
+}
+
+func (r *real) readSize(key selectors.Key, dst chan<- selectors.Element) {
+	res, err := r.client.Get(fmt.Sprintf("/size?key=%s", key.String()))
+	if err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	var size int
+	if err := json.Unmarshal(res, &size); err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	dst <- selectors.NewIntElement(size)
+}
+
+func (r *real) readMembers(key selectors.Key, dst chan<- selectors.Element) {
+	res, err := r.client.Get(fmt.Sprintf("/members?key=%s", key.String()))
+	if err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	var members []selectors.Field
+	if err := json.Unmarshal(res, &members); err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	dst <- selectors.NewFieldsElement(members)
 }
