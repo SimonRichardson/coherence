@@ -24,13 +24,13 @@ build: dist/coherence
 dist/coherence:
 	go build -o dist/coherence ${PATH_COHERENCE}/cmd/coherence
 
-pkg/cache/mocks/cache.go:
-	mockgen -package=mocks -destination=pkg/cache/mocks/cache.go ${PATH_COHERENCE}/pkg/cache Cache
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/cache/mocks/cache.go
-
 pkg/cluster/mocks/peer.go:
 	mockgen -package=mocks -destination=pkg/cluster/mocks/peer.go ${PATH_COHERENCE}/pkg/cluster Peer
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
+
+pkg/farm/mocks/farm.go:
+	mockgen -package=mocks -destination=pkg/farm/mocks/farm.go ${PATH_COHERENCE}/pkg/farm Farm
+	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/farm/mocks/farm.go
 
 pkg/members/mocks/members.go:
 	mockgen -package=mocks -destination=pkg/members/mocks/members.go ${PATH_COHERENCE}/pkg/members Members,MemberList,Member
@@ -44,22 +44,28 @@ pkg/metrics/mocks/observer.go:
 	mockgen -package=mocks -destination=pkg/metrics/mocks/observer.go github.com/prometheus/client_golang/prometheus Observer
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/metrics/mocks/observer.go
 
+pkg/nodes/mocks/node.go:
+	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node
+	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/nodes/mocks/node.go
+
 .PHONY: build-mocks
 build-mocks: FORCE
 	@ $(MAKE) pkg/cluster/mocks/peer.go
+	@ $(MAKE) pkg/farm/mocks/farm.go
 	@ $(MAKE) pkg/members/mocks/members.go
-	@ $(MAKE) pkg/cache/mocks/cache.go
 	@ $(MAKE) pkg/metrics/mocks/metrics.go
 	@ $(MAKE) pkg/metrics/mocks/observer.go
+	@ $(MAKE) pkg/nodes/mocks/node.go
 	
 .PHONY: clean-mocks
 clean-mocks: FORCE
 	rm -f pkg/cluster/mocks/peer.go
+	rm -f pkg/farm/mocks/farm.go
 	rm -f pkg/members/mocks/members.go
-	rm -f pkg/cache/mocks/cache.go
 	rm -f pkg/metrics/mocks/metrics.go
 	rm -f pkg/metrics/mocks/observer.go
-	
+	rm -f pkg/nodes/mocks/node.go
+
 .PHONY: clean
 clean: FORCE
 	rm -f dist/coherence

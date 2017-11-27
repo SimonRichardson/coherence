@@ -1,6 +1,10 @@
 package farm
 
-import "github.com/trussle/coherence/pkg/selectors"
+import (
+	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/client"
+	"github.com/trussle/coherence/pkg/selectors"
+)
 
 type nop struct{}
 
@@ -15,6 +19,9 @@ func (nop) Delete(key selectors.Key, members []selectors.FieldScore) (selectors.
 		Success: make([]selectors.Field, 0),
 		Failure: extractFields(members),
 	}, nil
+}
+func (nop) Select(selectors.Key, selectors.Field) error {
+	return client.NewNotFoundError(errors.New("not found"))
 }
 func (nop) Keys() ([]selectors.Key, error)                   { return nil, nil }
 func (nop) Size(selectors.Key) (int64, error)                { return -1, nil }

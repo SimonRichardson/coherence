@@ -249,7 +249,7 @@ func TestPeer(t *testing.T) {
 				Times(1)
 
 			p := NewPeer(members, log.NewNopLogger())
-			got, err := p.Current(PeerTypeStore)
+			got, err := p.Current(PeerTypeStore, true)
 
 			if expected, actual := true, err == nil; expected != actual {
 				t.Errorf("expected: %t, actual: %t", expected, actual)

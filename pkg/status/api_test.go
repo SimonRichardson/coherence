@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
-	cacheMocks "github.com/trussle/coherence/pkg/cache/mocks"
 	metricMocks "github.com/trussle/coherence/pkg/metrics/mocks"
 	"github.com/trussle/harness/matchers"
 )
@@ -24,8 +23,7 @@ func TestAPI(t *testing.T) {
 			clients  = metricMocks.NewMockGauge(ctrl)
 			duration = metricMocks.NewMockHistogramVec(ctrl)
 			observer = metricMocks.NewMockObserver(ctrl)
-			cache    = cacheMocks.NewMockCache(ctrl)
-			api      = NewAPI(cache, log.NewNopLogger(), clients, duration)
+			api      = NewAPI(log.NewNopLogger(), clients, duration)
 			server   = httptest.NewServer(api)
 		)
 		defer server.Close()
@@ -54,8 +52,7 @@ func TestAPI(t *testing.T) {
 			clients  = metricMocks.NewMockGauge(ctrl)
 			duration = metricMocks.NewMockHistogramVec(ctrl)
 			observer = metricMocks.NewMockObserver(ctrl)
-			cache    = cacheMocks.NewMockCache(ctrl)
-			api      = NewAPI(cache, log.NewNopLogger(), clients, duration)
+			api      = NewAPI(log.NewNopLogger(), clients, duration)
 			server   = httptest.NewServer(api)
 		)
 		defer server.Close()

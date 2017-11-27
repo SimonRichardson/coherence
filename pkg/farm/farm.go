@@ -12,6 +12,9 @@ type Farm interface {
 	// Delete removes a set of members associated with a key with in the store
 	Delete(selectors.Key, []selectors.FieldScore) (selectors.ChangeSet, error)
 
+	// Select queries a set of members for an associated key, field
+	Select(selectors.Key, selectors.Field) (selectors.FieldScore, error)
+
 	// Keys returns all the keys with in the store
 	Keys() ([]selectors.Key, error)
 
@@ -27,4 +30,21 @@ type Farm interface {
 
 	// Repair attempts to repair the store depending on the elements
 	Repair([]selectors.KeyField) error
+}
+
+type errPartial struct {
+	err error
+}
+
+func (e errPartial) Error() string {
+	return e.err.Error()
+}
+
+// PartialError finds if the error passed in, is actually a partial error or not
+func PartialError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := err.(errPartial)
+	return ok
 }

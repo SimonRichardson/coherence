@@ -62,13 +62,21 @@ func (p *peer) run() {
 	ticker := time.NewTicker(defaultMembersBroadcastInterval)
 	defer ticker.Stop()
 
-	members := p.members.MemberList()
+	var (
+		state   Reason
+		members = p.members.MemberList()
+	)
 	for {
 		select {
 		case <-ticker.C:
 			// Notify the callback if below a threshold.
-			if num := members.NumMembers(); num <= defaultLowMembersThreshold {
+			num := members.NumMembers()
+			if num <= defaultLowMembersThreshold && state != ReasonAlone {
 				p.callback(ReasonAlone)
+				state = ReasonAlone
+			} else if num > defaultLowMembersThreshold && state != ReasonAccompanied {
+				p.callback(ReasonAccompanied)
+				state = ReasonAccompanied
 			}
 
 		case c := <-p.stop:
@@ -107,6 +115,11 @@ func (p *peer) Name() string {
 	return p.members.MemberList().LocalNode().Name()
 }
 
+// Address returns host:port of this peer in the cluster.
+func (p *peer) Address() string {
+	return p.members.MemberList().LocalNode().Address()
+}
+
 // ClusterSize returns the total size of the cluster from this node's
 // perspective.
 func (p *peer) ClusterSize() int {
@@ -125,8 +138,14 @@ func (p *peer) State() map[string]interface{} {
 }
 
 // Current API host:ports for the given type of node.
-func (p *peer) Current(peerType members.PeerType) (res []string, err error) {
+// IncludeLocal doesn't add the local cluster node to the resulting set.
+func (p *peer) Current(peerType members.PeerType, includeLocal bool) (res []string, err error) {
+	localName := p.Name()
 	err = p.members.Walk(func(info members.PeerInfo) error {
+		if !includeLocal && info.Name == localName {
+			return nil
+		}
+
 		if peerType == PeerTypeStore && info.Type == PeerTypeStore {
 			res = append(res, net.JoinHostPort(info.APIAddr, strconv.Itoa(info.APIPort)))
 		}

@@ -5,17 +5,18 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
 type real struct {
-	nodes          *nodes.Nodes
+	nodes          *nodes.NodeSet
 	repairStrategy *repairStrategy
 }
 
 // NewRealFarm creates a farm that talks to various nodes
-func NewRealFarm(nodes *nodes.Nodes) Farm {
+func NewRealFarm(nodes *nodes.NodeSet) Farm {
 	return &real{
 		nodes:          nodes,
 		repairStrategy: &repairStrategy{nodes},
@@ -40,6 +41,12 @@ func (r *real) Delete(key selectors.Key, members []selectors.FieldScore) (select
 		go r.Repair(mergeKeyFields(key, changeSet.Failure))
 	}
 	return changeSet, err
+}
+
+func (r *real) Select(key selectors.Key, field selectors.Field) (selectors.FieldScore, error) {
+	return r.read(key, func(n nodes.Node) <-chan selectors.Element {
+		return n.Select(key, field)
+	})
 }
 
 func (r *real) Keys() ([]selectors.Key, error) {
@@ -101,17 +108,74 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (selectors.Ch
 		returned++
 		changeSet := selectors.ChangeSetFromElement(element)
 		records.Add(changeSet)
-
-		// Bail out, if there is an error
-		if err := records.Err(); err != nil {
-			return selectors.ChangeSet{}, errPartial{err}
-		}
 	}
+
+	// Handle how we meet consensus, if there is an error and we've still met
+	// consensus, then send back a partial error so it can handle read repairs.
+	if consensus(len(nodes), returned) {
+		if len(errs) > 0 {
+			return selectors.ChangeSet{}, errPartial{errors.Wrap(joinErrors(errs), "partial")}
+		} else if err := records.Err(); err != nil {
+			return selectors.ChangeSet{}, errPartial{errors.Wrap(err, "partial")}
+		}
+		return records.ChangeSet(), nil
+	}
+
+	// No consensus met, return a total failure
+	if len(errs) > 0 {
+		return selectors.ChangeSet{}, mapErrors(errs)
+	} else if err := records.Err(); err != nil {
+		return selectors.ChangeSet{}, errors.Wrap(err, "total")
+	}
+	return selectors.ChangeSet{}, errors.New("total: invalid state")
+}
+
+func (r *real) read(key selectors.Key,
+	fn func(nodes.Node) <-chan selectors.Element,
+) (selectors.FieldScore, error) {
+	var (
+		retrieved = 0
+		returned  = 0
+
+		nodes    = r.nodes.Snapshot()
+		elements = make(chan selectors.Element, len(nodes))
+
+		errs    []error
+		results []TupleSet
+		wg      = &sync.WaitGroup{}
+	)
+
+	wg.Add(len(nodes))
+	go func() { wg.Wait(); close(elements) }()
+
+	if err := scatterRequests(nodes, fn, wg, elements); err != nil {
+		return selectors.FieldScore{}, err
+	}
+
+	for element := range elements {
+		retrieved++
+
+		if err := selectors.ErrorFromElement(element); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		returned++
+		result := selectors.FieldScoreFromElement(element)
+		results = append(results, MakeTupleSet([]selectors.FieldScore{
+			result,
+		}))
+	}
+	union, difference := UnionDifference(results)
+
+	go r.Repair(FieldScoresToKeyField(key, difference))
 
 	if len(errs) > 0 {
-		return selectors.ChangeSet{}, errors.Wrapf(joinErrors(errs), "partial error")
+		return selectors.FieldScore{}, mapErrors(errs)
+	} else if len(union) == 1 {
+		return union[0], nil
 	}
-	return records.ChangeSet(), nil
+	return selectors.FieldScore{}, errors.New("invalid results")
 }
 
 func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Key, error) {
@@ -153,7 +217,7 @@ func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selecto
 	}
 
 	if len(errs) > 0 {
-		return nil, errors.Wrapf(joinErrors(errs), "partial error")
+		return nil, mapErrors(errs)
 	}
 	return records.Keys(), nil
 }
@@ -197,7 +261,7 @@ func (r *real) readSize(fn func(nodes.Node) <-chan selectors.Element) (int64, er
 	}
 
 	if len(errs) > 0 {
-		return -1, errors.Wrapf(joinErrors(errs), "partial error")
+		return -1, mapErrors(errs)
 	}
 	return records.Int64(), nil
 }
@@ -241,7 +305,7 @@ func (r *real) readMembers(fn func(nodes.Node) <-chan selectors.Element) ([]sele
 	}
 
 	if len(errs) > 0 {
-		return nil, errors.Wrapf(joinErrors(errs), "partial error")
+		return nil, mapErrors(errs)
 	}
 	return records.Fields(), nil
 }
@@ -285,7 +349,7 @@ func (r *real) readScore(fn func(nodes.Node) <-chan selectors.Element) (selector
 	}
 
 	if len(errs) > 0 {
-		return selectors.Presence{}, errors.Wrapf(joinErrors(errs), "partial error")
+		return selectors.Presence{}, mapErrors(errs)
 	}
 	return records.Presence(), nil
 }
@@ -296,6 +360,8 @@ func scatterRequests(n []nodes.Node,
 	dst chan selectors.Element,
 ) error {
 	return tactic(n, func(k int, n nodes.Node) {
+		defer wg.Done()
+
 		for e := range fn(n) {
 			dst <- e
 		}
@@ -311,29 +377,23 @@ func tactic(n []nodes.Node, fn func(k int, n nodes.Node)) error {
 	return nil
 }
 
+func mapErrors(errs []error) error {
+	notFound := true
+	for _, v := range errs {
+		notFound = notFound && client.NotFoundError(v)
+	}
+	if notFound {
+		return client.NewNotFoundError(errors.New("not found"))
+	}
+	return errors.Wrapf(joinErrors(errs), "partial error")
+}
+
 func joinErrors(e []error) error {
 	var buf []string
 	for _, v := range e {
 		buf = append(buf, v.Error())
 	}
 	return errors.New(strings.Join(buf, "; "))
-}
-
-type errPartial struct {
-	err error
-}
-
-func (e errPartial) Error() string {
-	return e.err.Error()
-}
-
-// PartialError finds if the error passed in, is actually a partial error or not
-func PartialError(err error) bool {
-	if err == nil {
-		return false
-	}
-	_, ok := err.(errPartial)
-	return ok
 }
 
 func mergeKeyFields(key selectors.Key, fields []selectors.Field) []selectors.KeyField {
@@ -345,4 +405,8 @@ func mergeKeyFields(key selectors.Key, fields []selectors.Field) []selectors.Key
 		}
 	}
 	return res
+}
+
+func consensus(total, returned int) bool {
+	return float64(returned)/float64(total) >= .51
 }

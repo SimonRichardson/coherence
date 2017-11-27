@@ -98,6 +98,14 @@ func (c ChangeSet) Equal(v ChangeSet) bool {
 		fieldsEqual(c.Failure, v.Failure)
 }
 
+// Append a new ChangeSet to the existing ChangeSet
+func (c ChangeSet) Append(v ChangeSet) ChangeSet {
+	return ChangeSet{
+		Success: append(c.Success, v.Success...),
+		Failure: append(c.Failure, v.Failure...),
+	}
+}
+
 func fieldsEqual(a, b []Field) bool {
 	if len(a) != len(b) {
 		return false
@@ -141,6 +149,7 @@ type Clue struct {
 	Key    Key
 	Field  Field
 	Score  int64
+	Quorum bool
 }
 
 // SetKeyField allows the setting of the key and field on the clue.
@@ -152,5 +161,6 @@ func (c Clue) SetKeyField(key Key, field Field) Clue {
 		Ignore: c.Ignore,
 		Insert: c.Insert,
 		Score:  c.Score,
+		Quorum: c.Quorum,
 	}
 }

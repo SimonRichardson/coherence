@@ -1,93 +1,12 @@
-package cache
+package store
 
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
-	"strings"
 
-	"github.com/pkg/errors"
 	errs "github.com/trussle/coherence/pkg/http"
 	"github.com/trussle/coherence/pkg/selectors"
 )
-
-const (
-	defaultContentType = "application/json"
-)
-
-type KeyParams interface {
-	Key() selectors.Key
-}
-
-type FieldParams interface {
-	Field() selectors.Field
-}
-
-// KeyQueryParams defines all the dimensions of a query.
-type KeyQueryParams struct {
-	key selectors.Key
-}
-
-// Key returns the key value from the parameters
-func (qp *KeyQueryParams) Key() selectors.Key {
-	return qp.key
-}
-
-// DecodeFrom populates a KeyQueryParams from a URL.
-func (qp *KeyQueryParams) DecodeFrom(u *url.URL, h http.Header, rb queryBehavior) error {
-	if contentType := h.Get("Content-Type"); rb == queryRequired && strings.ToLower(contentType) != "application/json" {
-		return errors.Errorf("expected 'application/json' content-type, got %q", contentType)
-	}
-
-	if rb == queryRequired {
-		key := u.Query().Get("key")
-		if key == "" {
-			return errors.Errorf("expected 'key' but got %q", key)
-		}
-		qp.key = selectors.Key(key)
-	}
-
-	return nil
-}
-
-// KeyFieldQueryParams defines all the dimensions of a query.
-type KeyFieldQueryParams struct {
-	key   selectors.Key
-	field selectors.Field
-}
-
-// Key returns the key value from the parameters
-func (qp *KeyFieldQueryParams) Key() selectors.Key {
-	return qp.key
-}
-
-// Field returns the field value from the parameters
-func (qp *KeyFieldQueryParams) Field() selectors.Field {
-	return qp.field
-}
-
-// DecodeFrom populates a KeyFieldQueryParams from a URL.
-func (qp *KeyFieldQueryParams) DecodeFrom(u *url.URL, h http.Header, rb queryBehavior) error {
-	if contentType := h.Get("Content-Type"); rb == queryRequired && strings.ToLower(contentType) != "application/json" {
-		return errors.Errorf("expected 'application/json' content-type, got %q", contentType)
-	}
-
-	if rb == queryRequired {
-		key := u.Query().Get("key")
-		if key == "" {
-			return errors.Errorf("expected 'key' but got %q", key)
-		}
-		qp.Key = selectors.Key(key)
-
-		field := u.Query().Get("field")
-		if field == "" {
-			return errors.Errorf("expected 'field' but got %q", field)
-		}
-		qp.Field = selectors.Field(field)
-	}
-
-	return nil
-}
 
 // ChangeSetQueryResult contains statistics about the query.
 type ChangeSetQueryResult struct {
@@ -101,7 +20,7 @@ type ChangeSetQueryResult struct {
 func (qr *ChangeSetQueryResult) EncodeTo(w http.ResponseWriter) {
 	w.Header().Set(httpHeaderContentType, defaultContentType)
 	w.Header().Set(httpHeaderDuration, qr.Duration)
-	w.Header().Set(httpHeaderKey, qr.Params.Key.String())
+	w.Header().Set(httpHeaderKey, qr.Params.Key().String())
 
 	if err := json.NewEncoder(w).Encode(struct {
 		Records selectors.ChangeSet `json:"records"`
@@ -124,10 +43,15 @@ func (qr *KeysQueryResult) EncodeTo(w http.ResponseWriter) {
 	w.Header().Set(httpHeaderContentType, defaultContentType)
 	w.Header().Set(httpHeaderDuration, qr.Duration)
 
+	keys := qr.Keys
+	if keys == nil {
+		keys = make([]selectors.Key, 0)
+	}
+
 	if err := json.NewEncoder(w).Encode(struct {
 		Records []selectors.Key `json:"records"`
 	}{
-		Records: qr.Keys,
+		Records: keys,
 	}); err != nil {
 		qr.Errors.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -148,7 +72,7 @@ func (qr *Int64QueryResult) EncodeTo(w http.ResponseWriter) {
 	w.Header().Set(httpHeaderKey, qr.Params.Key().String())
 
 	if err := json.NewEncoder(w).Encode(struct {
-		Records int `json:"records"`
+		Records int64 `json:"records"`
 	}{
 		Records: qr.Integer,
 	}); err != nil {
@@ -168,12 +92,17 @@ type FieldsQueryResult struct {
 func (qr *FieldsQueryResult) EncodeTo(w http.ResponseWriter) {
 	w.Header().Set(httpHeaderContentType, defaultContentType)
 	w.Header().Set(httpHeaderDuration, qr.Duration)
-	w.Header().Set(httpHeaderKey, qr.Params.Key.String())
+	w.Header().Set(httpHeaderKey, qr.Params.Key().String())
+
+	fields := qr.Fields
+	if fields == nil {
+		fields = make([]selectors.Field, 0)
+	}
 
 	if err := json.NewEncoder(w).Encode(struct {
 		Records []selectors.Field `json:"records"`
 	}{
-		Records: qr.Fields,
+		Records: fields,
 	}); err != nil {
 		qr.Errors.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -191,7 +120,8 @@ type PresenceQueryResult struct {
 func (qr *PresenceQueryResult) EncodeTo(w http.ResponseWriter) {
 	w.Header().Set(httpHeaderContentType, defaultContentType)
 	w.Header().Set(httpHeaderDuration, qr.Duration)
-	w.Header().Set(httpHeaderKey, qr.Params.Key.String())
+	w.Header().Set(httpHeaderKey, qr.Params.Key().String())
+	w.Header().Set(httpHeaderField, qr.Params.Field().String())
 
 	if err := json.NewEncoder(w).Encode(struct {
 		Records selectors.Presence `json:"records"`
@@ -202,16 +132,33 @@ func (qr *PresenceQueryResult) EncodeTo(w http.ResponseWriter) {
 	}
 }
 
+// FieldScoreQueryResult contains statistics about the query.
+type FieldScoreQueryResult struct {
+	Errors     errs.Error
+	Params     KeyFieldQueryParams  `json:"query"`
+	Duration   string               `json:"duration"`
+	FieldScore selectors.FieldScore `json:"fieldscore"`
+}
+
+// EncodeTo encodes the FieldScoreQueryResult to the HTTP response writer.
+func (qr *FieldScoreQueryResult) EncodeTo(w http.ResponseWriter) {
+	w.Header().Set(httpHeaderContentType, defaultContentType)
+	w.Header().Set(httpHeaderDuration, qr.Duration)
+	w.Header().Set(httpHeaderKey, qr.Params.Key().String())
+	w.Header().Set(httpHeaderField, qr.Params.Field().String())
+
+	if err := json.NewEncoder(w).Encode(struct {
+		Records selectors.FieldScore `json:"records"`
+	}{
+		Records: qr.FieldScore,
+	}); err != nil {
+		qr.Errors.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 const (
 	httpHeaderContentType = "Content-Type"
 	httpHeaderDuration    = "X-Duration"
 	httpHeaderKey         = "X-Key"
 	httpHeaderField       = "X-Field"
-)
-
-type queryBehavior int
-
-const (
-	queryRequired queryBehavior = iota
-	queryOptional
 )

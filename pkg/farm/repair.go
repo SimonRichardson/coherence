@@ -9,7 +9,7 @@ import (
 )
 
 type repairStrategy struct {
-	nodes *nodes.Nodes
+	nodes *nodes.NodeSet
 }
 
 func (r *repairStrategy) Repair(members []selectors.KeyField) error {
@@ -23,6 +23,10 @@ func (r *repairStrategy) Repair(members []selectors.KeyField) error {
 		if err != nil {
 			continue
 		}
+		// Ignore the clue, we don't want to perform any read repairs.
+		if clue.Ignore {
+			continue
+		}
 		clues = append(clues, clue.SetKeyField(v.Key, v.Field))
 	}
 
@@ -31,7 +35,8 @@ func (r *repairStrategy) Repair(members []selectors.KeyField) error {
 		deletes = make(map[selectors.Key][]selectors.FieldScore)
 	)
 	for _, v := range clues {
-		if v.Ignore {
+		// If we've not met quorum then we shouldn't be doing anything.
+		if v.Ignore || !v.Quorum {
 			continue
 		}
 
@@ -41,7 +46,7 @@ func (r *repairStrategy) Repair(members []selectors.KeyField) error {
 				Score: v.Score + 1,
 			})
 		} else {
-			inserts[v.Key] = append(inserts[v.Key], selectors.FieldScore{
+			deletes[v.Key] = append(deletes[v.Key], selectors.FieldScore{
 				Field: v.Field,
 				Score: v.Score + 1,
 			})
@@ -105,20 +110,25 @@ func (r *repairStrategy) readScoreRepair(fn func(nodes.Node) <-chan selectors.El
 
 	// We should just send everything again, as we have no idea what the condition
 	// of the clusters are in.
-	if returned != retrieved {
+	if !consensus(len(nodes), returned) {
 		return selectors.Clue{}, errors.Errorf("unable to perform repair")
 	}
 
 	var (
+		present      = 0
 		found        = false
 		wasInserted  = false
 		highestScore = int64(0)
 	)
 	for _, presence := range presences {
-		if presence.Present && presence.Score > highestScore {
-			found = true
-			highestScore = presence.Score
-			wasInserted = wasInserted || presence.Inserted
+		if presence.Present {
+			present++
+
+			if presence.Score > highestScore {
+				found = true
+				highestScore = presence.Score
+				wasInserted = wasInserted || presence.Inserted
+			}
 		}
 	}
 
@@ -126,6 +136,7 @@ func (r *repairStrategy) readScoreRepair(fn func(nodes.Node) <-chan selectors.El
 		Ignore: !found,
 		Insert: wasInserted,
 		Score:  highestScore,
+		Quorum: consensus(len(nodes), present),
 	}, nil
 }
 

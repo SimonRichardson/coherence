@@ -1,17 +1,29 @@
 package nodes
 
-import "github.com/trussle/coherence/pkg/selectors"
+import (
+	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/trussle/coherence/pkg/store"
+)
 
 type virtual struct {
-	store Store
+	store store.Store
+}
+
+// NewVirtual creates a local storage
+func NewVirtual(store store.Store) Node {
+	return &virtual{
+		store: store,
+	}
 }
 
 func (v *virtual) Insert(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
+		defer close(ch)
+
 		var changeSet selectors.ChangeSet
 		for _, member := range members {
-			if v.store.Insert(key, member) {
+			if _, err := v.store.Insert(key, member); err == nil {
 				changeSet.Success = append(changeSet.Success, member.Field)
 			} else {
 				changeSet.Failure = append(changeSet.Failure, member.Field)
@@ -25,9 +37,11 @@ func (v *virtual) Insert(key selectors.Key, members []selectors.FieldScore) <-ch
 func (v *virtual) Delete(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
+		defer close(ch)
+
 		var changeSet selectors.ChangeSet
 		for _, member := range members {
-			if v.store.Delete(key, member) {
+			if _, err := v.store.Delete(key, member); err == nil {
 				changeSet.Success = append(changeSet.Success, member.Field)
 			} else {
 				changeSet.Failure = append(changeSet.Failure, member.Field)
@@ -38,10 +52,32 @@ func (v *virtual) Delete(key selectors.Key, members []selectors.FieldScore) <-ch
 	return ch
 }
 
+func (v *virtual) Select(key selectors.Key, field selectors.Field) <-chan selectors.Element {
+	ch := make(chan selectors.Element)
+	go func() {
+		defer close(ch)
+
+		member, err := v.store.Select(key, field)
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
+		}
+		ch <- selectors.NewFieldScoreElement(member)
+	}()
+	return ch
+}
+
 func (v *virtual) Keys() <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
-		ch <- selectors.NewKeysElement(v.store.Keys())
+		defer close(ch)
+
+		keys, err := v.store.Keys()
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
+		}
+		ch <- selectors.NewKeysElement(keys)
 	}()
 	return ch
 }
@@ -49,7 +85,14 @@ func (v *virtual) Keys() <-chan selectors.Element {
 func (v *virtual) Size(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
-		ch <- selectors.NewInt64Element(v.store.Size(key))
+		defer close(ch)
+
+		size, err := v.store.Size(key)
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
+		}
+		ch <- selectors.NewInt64Element(size)
 	}()
 	return ch
 }
@@ -57,7 +100,14 @@ func (v *virtual) Size(key selectors.Key) <-chan selectors.Element {
 func (v *virtual) Members(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
-		ch <- selectors.NewFieldsElement(v.store.Members(key))
+		defer close(ch)
+
+		members, err := v.store.Members(key)
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
+		}
+		ch <- selectors.NewFieldsElement(members)
 	}()
 	return ch
 }
@@ -65,7 +115,14 @@ func (v *virtual) Members(key selectors.Key) <-chan selectors.Element {
 func (v *virtual) Score(key selectors.Key, field selectors.Field) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
-		ch <- selectors.NewPresenceElement(v.store.Score(key, field))
+		defer close(ch)
+
+		score, err := v.store.Score(key, field)
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
+		}
+		ch <- selectors.NewPresenceElement(score)
 	}()
 	return ch
 }

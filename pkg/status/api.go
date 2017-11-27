@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/trussle/coherence/pkg/farm"
+
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/trussle/coherence/pkg/cache"
 	errs "github.com/trussle/coherence/pkg/http"
 	"github.com/trussle/coherence/pkg/metrics"
 )
@@ -21,7 +22,7 @@ const (
 
 // API serves the status API
 type API struct {
-	cache    cache.Cache
+	farm     farm.Farm
 	logger   log.Logger
 	clients  metrics.Gauge
 	duration metrics.HistogramVec
@@ -29,13 +30,13 @@ type API struct {
 }
 
 // NewAPI creates a API with the correct dependencies.
-func NewAPI(cache cache.Cache,
+func NewAPI(farm farm.Farm,
 	logger log.Logger,
 	clients metrics.Gauge,
 	duration metrics.HistogramVec,
 ) *API {
 	return &API{
-		cache:    cache,
+		farm:     farm,
 		logger:   logger,
 		clients:  clients,
 		duration: duration,
@@ -87,7 +88,11 @@ func (a *API) handleLiveness(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	w.WriteHeader(http.StatusOK)
+	if _, err := a.farm.Keys(); err == nil {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
 	if err := json.NewEncoder(w).Encode(struct{}{}); err != nil {
 		a.errors.Error(w, err.Error(), http.StatusInternalServerError)

@@ -1,7 +1,8 @@
-package cache
+package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/farm"
 	errs "github.com/trussle/coherence/pkg/http"
 	"github.com/trussle/coherence/pkg/metrics"
@@ -25,6 +27,9 @@ const (
 	// APIPathDelete represents a way to delete a series or records.
 	APIPathDelete = "/delete"
 
+	// APIPathSelect represents a way to select a record.
+	APIPathSelect = "/select"
+
 	// APIPathKeys represents a way to find all the keys with in the cache.
 	APIPathKeys = "/keys"
 
@@ -34,9 +39,6 @@ const (
 	// APIPathMembers represents a way to find all the members for a key with in
 	// the cache.
 	APIPathMembers = "/members"
-
-	// APIPathScore represents a way to find the score of a field with in a key.
-	APIPathScore = "/score"
 )
 
 // API serves the cache API
@@ -83,19 +85,20 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Routing table
 	method, path := r.Method, r.URL.Path
+	fmt.Println(method, path, r.URL.RawQuery)
 	switch {
 	case method == "POST" && path == APIPathInsert:
 		a.handleInsertion(w, r)
 	case method == "POST" && path == APIPathDelete:
 		a.handleDeletion(w, r)
+	case method == "GET" && path == APIPathSelect:
+		a.handleSelect(w, r)
 	case method == "GET" && path == APIPathKeys:
 		a.handleKeys(w, r)
 	case method == "GET" && path == APIPathSize:
 		a.handleSize(w, r)
 	case method == "GET" && path == APIPathMembers:
 		a.handleMembers(w, r)
-	case method == "GET" && path == APIPathScore:
-		a.handleScore(w, r)
 	default:
 		// Nothing found
 		a.errors.NotFound(w, r)
@@ -123,7 +126,11 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 
 	changeSet, err := a.farm.Insert(qp.Key(), members)
 	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
+		if client.NotFoundError(err) {
+			a.errors.NotFound(w, r)
+		} else {
+			a.errors.InternalServerError(w, r, err.Error())
+		}
 		return
 	}
 
@@ -157,13 +164,49 @@ func (a *API) handleDeletion(w http.ResponseWriter, r *http.Request) {
 
 	changeSet, err := a.farm.Delete(qp.Key(), members)
 	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
+		if client.NotFoundError(err) {
+			a.errors.NotFound(w, r)
+		} else {
+			a.errors.InternalServerError(w, r, err.Error())
+		}
 		return
 	}
 
 	// Make sure we collect the document for the result.
 	qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
 	qr.ChangeSet = changeSet
+
+	// Finish
+	qr.Duration = time.Since(begin).String()
+	qr.EncodeTo(w)
+}
+
+func (a *API) handleSelect(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// useful metrics
+	begin := time.Now()
+
+	// Validate user input.
+	var qp KeyFieldQueryParams
+	if err := qp.DecodeFrom(r.URL, r.Header, queryOptional); err != nil {
+		a.errors.BadRequest(w, r, err.Error())
+		return
+	}
+
+	member, err := a.farm.Select(qp.Key(), qp.Field())
+	if err != nil {
+		if client.NotFoundError(err) {
+			a.errors.NotFound(w, r)
+		} else {
+			a.errors.InternalServerError(w, r, err.Error())
+		}
+		return
+	}
+
+	// Make sure we collect the document for the result.
+	qr := FieldScoreQueryResult{Errors: a.errors, Params: qp}
+	qr.FieldScore = member
 
 	// Finish
 	qr.Duration = time.Since(begin).String()
@@ -178,7 +221,11 @@ func (a *API) handleKeys(w http.ResponseWriter, r *http.Request) {
 
 	keys, err := a.farm.Keys()
 	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
+		if client.NotFoundError(err) {
+			a.errors.NotFound(w, r)
+		} else {
+			a.errors.InternalServerError(w, r, err.Error())
+		}
 		return
 	}
 
@@ -199,14 +246,18 @@ func (a *API) handleSize(w http.ResponseWriter, r *http.Request) {
 
 	// Validate user input.
 	var qp KeyQueryParams
-	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
+	if err := qp.DecodeFrom(r.URL, r.Header, queryOptional); err != nil {
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
 	size, err := a.farm.Size(qp.Key())
 	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
+		if client.NotFoundError(err) {
+			a.errors.NotFound(w, r)
+		} else {
+			a.errors.InternalServerError(w, r, err.Error())
+		}
 		return
 	}
 
@@ -227,48 +278,24 @@ func (a *API) handleMembers(w http.ResponseWriter, r *http.Request) {
 
 	// Validate user input.
 	var qp KeyQueryParams
-	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
+	if err := qp.DecodeFrom(r.URL, r.Header, queryOptional); err != nil {
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
 	members, err := a.farm.Members(qp.Key())
 	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
+		if client.NotFoundError(err) {
+			a.errors.NotFound(w, r)
+		} else {
+			a.errors.InternalServerError(w, r, err.Error())
+		}
 		return
 	}
 
 	// Make sure we collect the document for the result.
 	qr := FieldsQueryResult{Errors: a.errors, Params: qp}
 	qr.Fields = members
-
-	// Finish
-	qr.Duration = time.Since(begin).String()
-	qr.EncodeTo(w)
-}
-
-func (a *API) handleScore(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
-
-	// useful metrics
-	begin := time.Now()
-
-	// Validate user input.
-	var qp KeyFieldQueryParams
-	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
-		a.errors.BadRequest(w, r, err.Error())
-		return
-	}
-
-	presence, err := a.farm.Score(qp.Key(), qp.Field())
-	if err != nil {
-		a.errors.InternalServerError(w, r, err.Error())
-		return
-	}
-
-	// Make sure we collect the document for the result.
-	qr := PresenceQueryResult{Errors: a.errors, Params: qp}
-	qr.Presence = presence
 
 	// Finish
 	qr.Duration = time.Since(begin).String()

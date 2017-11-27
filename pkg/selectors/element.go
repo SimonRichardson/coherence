@@ -21,6 +21,9 @@ const (
 
 	// PresenceElementType describes an element with an presence payload
 	PresenceElementType
+
+	// FieldScoreElementType describes an element with a field score payload
+	FieldScoreElementType
 )
 
 // Element combines a submitted key with the resulting values. If there was an
@@ -201,4 +204,33 @@ func PresenceFromElement(e Element) Presence {
 		return v.Presence()
 	}
 	return Presence{}
+}
+
+// FieldScoreElement defines a struct that is a container for errors.
+type FieldScoreElement struct {
+	typ ElementType
+	val FieldScore
+}
+
+// NewFieldScoreElement creates a new FieldScoreElement
+func NewFieldScoreElement(val FieldScore) *FieldScoreElement {
+	return &FieldScoreElement{FieldScoreElementType, val}
+}
+
+// Type defines the type associated with the FieldScoreElement
+func (e *FieldScoreElement) Type() ElementType { return e.typ }
+
+// FieldScore defines the fieldScore associated with the FieldScoreElement
+func (e *FieldScoreElement) FieldScore() FieldScore { return e.val }
+
+type fieldScoreElement interface {
+	FieldScore() FieldScore
+}
+
+// FieldScoreFromElement attempts to get an fieldScore from the element if it exists.
+func FieldScoreFromElement(e Element) FieldScore {
+	if v, ok := e.(fieldScoreElement); ok {
+		return v.FieldScore()
+	}
+	return FieldScore{}
 }
