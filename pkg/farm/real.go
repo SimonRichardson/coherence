@@ -140,11 +140,89 @@ func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selecto
 }
 
 func (r *real) readSize(fn func(nodes.Node) <-chan selectors.Element) (int, error) {
-	return -1, nil
+	var (
+		retrieved = 0
+		returned  = 0
+
+		elements = make(chan selectors.Element, len(r.nodes))
+
+		errs    []error
+		records = &intRecords{}
+		wg      = &sync.WaitGroup{}
+	)
+
+	wg.Add(len(r.nodes))
+	go func() { wg.Wait(); close(elements) }()
+
+	if err := scatterRequests(r.nodes, fn, wg, elements); err != nil {
+		return -1, err
+	}
+
+	for element := range elements {
+		retrieved++
+
+		if err := selectors.ErrorFromElement(element); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		returned++
+		keys := selectors.IntFromElement(element)
+		records.Add(keys)
+
+		// Bail out, if there is an error
+		if err := records.Err(); err != nil {
+			return -1, errPartial{err}
+		}
+	}
+
+	if len(errs) > 0 {
+		return -1, errors.Wrapf(joinErrors(errs), "partial error")
+	}
+	return records.Int(), nil
 }
 
 func (r *real) readMembers(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Field, error) {
-	return nil, nil
+	var (
+		retrieved = 0
+		returned  = 0
+
+		elements = make(chan selectors.Element, len(r.nodes))
+
+		errs    []error
+		records = &fieldsRecords{}
+		wg      = &sync.WaitGroup{}
+	)
+
+	wg.Add(len(r.nodes))
+	go func() { wg.Wait(); close(elements) }()
+
+	if err := scatterRequests(r.nodes, fn, wg, elements); err != nil {
+		return nil, err
+	}
+
+	for element := range elements {
+		retrieved++
+
+		if err := selectors.ErrorFromElement(element); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+
+		returned++
+		keys := selectors.FieldsFromElement(element)
+		records.Add(keys)
+
+		// Bail out, if there is an error
+		if err := records.Err(); err != nil {
+			return nil, errPartial{err}
+		}
+	}
+
+	if len(errs) > 0 {
+		return nil, errors.Wrapf(joinErrors(errs), "partial error")
+	}
+	return records.Fields(), nil
 }
 
 func scatterRequests(n []nodes.Node,

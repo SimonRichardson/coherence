@@ -123,7 +123,7 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure we collect the document for the result.
-	qr := QueryResult{Errors: a.errors, Params: qp}
+	qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
 	qr.ChangeSet = changeSet
 
 	// Finish
@@ -157,8 +157,85 @@ func (a *API) handleDeletion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure we collect the document for the result.
-	qr := QueryResult{Errors: a.errors, Params: qp}
+	qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
 	qr.ChangeSet = changeSet
+
+	// Finish
+	qr.Duration = time.Since(begin).String()
+	qr.EncodeTo(w)
+}
+
+func (a *API) handleKeys(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// useful metrics
+	begin := time.Now()
+
+	keys, err := a.farm.Keys()
+	if err != nil {
+		a.errors.InternalServerError(w, r, err.Error())
+		return
+	}
+
+	// Make sure we collect the document for the result.
+	qr := KeysQueryResult{Errors: a.errors}
+	qr.Keys = keys
+
+	// Finish
+	qr.Duration = time.Since(begin).String()
+	qr.EncodeTo(w)
+}
+
+func (a *API) handleSize(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// useful metrics
+	begin := time.Now()
+
+	// Validate user input.
+	var qp KeyQueryParams
+	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
+		a.errors.BadRequest(w, r, err.Error())
+		return
+	}
+
+	size, err := a.farm.Size(qp.Key)
+	if err != nil {
+		a.errors.InternalServerError(w, r, err.Error())
+		return
+	}
+
+	// Make sure we collect the document for the result.
+	qr := SizeQueryResult{Errors: a.errors, Params: qp}
+	qr.Size = size
+
+	// Finish
+	qr.Duration = time.Since(begin).String()
+	qr.EncodeTo(w)
+}
+
+func (a *API) handleMembers(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// useful metrics
+	begin := time.Now()
+
+	// Validate user input.
+	var qp KeyQueryParams
+	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
+		a.errors.BadRequest(w, r, err.Error())
+		return
+	}
+
+	members, err := a.farm.Members(qp.Key)
+	if err != nil {
+		a.errors.InternalServerError(w, r, err.Error())
+		return
+	}
+
+	// Make sure we collect the document for the result.
+	qr := FieldsQueryResult{Errors: a.errors, Params: qp}
+	qr.Fields = members
 
 	// Finish
 	qr.Duration = time.Since(begin).String()

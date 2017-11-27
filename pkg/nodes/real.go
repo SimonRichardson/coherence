@@ -65,13 +65,15 @@ func (r *real) write(key selectors.Key, path string, fields []selectors.FieldSco
 		return
 	}
 
-	var changeset selectors.ChangeSet
+	var changeset struct {
+		Records selectors.ChangeSet `json:"records"`
+	}
 	if err := json.Unmarshal(res, &changeset); err != nil {
 		dst <- selectors.NewErrorElement(err)
 		return
 	}
 
-	dst <- selectors.NewChangeSetElement(changeset)
+	dst <- selectors.NewChangeSetElement(changeset.Records)
 }
 
 func (r *real) readKeys(dst chan<- selectors.Element) {
@@ -81,13 +83,15 @@ func (r *real) readKeys(dst chan<- selectors.Element) {
 		return
 	}
 
-	var keys []selectors.Key
+	var keys struct {
+		Records []selectors.Key `json:"records"`
+	}
 	if err := json.Unmarshal(res, &keys); err != nil {
 		dst <- selectors.NewErrorElement(err)
 		return
 	}
 
-	dst <- selectors.NewKeysElement(keys)
+	dst <- selectors.NewKeysElement(keys.Records)
 }
 
 func (r *real) readSize(key selectors.Key, dst chan<- selectors.Element) {
@@ -97,13 +101,15 @@ func (r *real) readSize(key selectors.Key, dst chan<- selectors.Element) {
 		return
 	}
 
-	var size int
+	var size struct {
+		Records int `json:"records"`
+	}
 	if err := json.Unmarshal(res, &size); err != nil {
 		dst <- selectors.NewErrorElement(err)
 		return
 	}
 
-	dst <- selectors.NewIntElement(size)
+	dst <- selectors.NewIntElement(size.Records)
 }
 
 func (r *real) readMembers(key selectors.Key, dst chan<- selectors.Element) {
@@ -113,11 +119,13 @@ func (r *real) readMembers(key selectors.Key, dst chan<- selectors.Element) {
 		return
 	}
 
-	var members []selectors.Field
+	var members struct {
+		Records []selectors.Field `json:"records"`
+	}
 	if err := json.Unmarshal(res, &members); err != nil {
 		dst <- selectors.NewErrorElement(err)
 		return
 	}
 
-	dst <- selectors.NewFieldsElement(members)
+	dst <- selectors.NewFieldsElement(members.Records)
 }
