@@ -34,7 +34,7 @@ func (nop) Keys() <-chan selectors.Element {
 
 func (nop) Size(selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	ch <- selectors.NewInt64Element(0)
 	return ch
 }
 
@@ -44,9 +44,9 @@ func (nop) Members(selectors.Key) <-chan selectors.Element {
 	return ch
 }
 
-func (nop) Repair([]selectors.KeyField) <-chan selectors.Element {
+func (nop) Score(selectors.Key, selectors.Field) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	ch <- selectors.NewPresenceElement(selectors.Presence{})
 	return ch
 }
 

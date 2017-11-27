@@ -40,7 +40,7 @@ func TestLRU_Add(t *testing.T) {
 			}
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id1, rec1},
+				selectors.FieldScore{Field: id1, Score: rec1},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -68,9 +68,9 @@ func TestLRU_Add(t *testing.T) {
 			l.Add(id0, rec3)
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
-				selectors.FieldScore{id0, rec3},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
+				selectors.FieldScore{Field: id0, Score: rec3},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -130,9 +130,9 @@ func TestLRU_Get(t *testing.T) {
 			l.Get(id0)
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
-				selectors.FieldScore{id0, rec0},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
+				selectors.FieldScore{Field: id0, Score: rec0},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -192,9 +192,9 @@ func TestLRU_Peek(t *testing.T) {
 			l.Peek(id0)
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id0, rec0},
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id0, Score: rec0},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -289,8 +289,8 @@ func TestLRU_Remove(t *testing.T) {
 			}
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -385,8 +385,8 @@ func TestLRU_Pop(t *testing.T) {
 			}
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -417,9 +417,9 @@ func TestLRU_Purge(t *testing.T) {
 			l.Add(id2, rec2)
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id0, rec0},
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id0, Score: rec0},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -523,9 +523,9 @@ func TestLRU_Dequeue(t *testing.T) {
 			l.Add(id2, rec2)
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id0, rec0},
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id0, Score: rec0},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -570,9 +570,9 @@ func TestLRU_Dequeue(t *testing.T) {
 			l.Add(id2, rec2)
 
 			values := []selectors.FieldScore{
-				selectors.FieldScore{id0, rec0},
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id0, Score: rec0},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -593,15 +593,15 @@ func TestLRU_Dequeue(t *testing.T) {
 			}
 
 			values = []selectors.FieldScore{
-				selectors.FieldScore{id0, rec0},
+				selectors.FieldScore{Field: id0, Score: rec0},
 			}
 			if expected, actual := values, got; !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
 			values = []selectors.FieldScore{
-				selectors.FieldScore{id1, rec1},
-				selectors.FieldScore{id2, rec2},
+				selectors.FieldScore{Field: id1, Score: rec1},
+				selectors.FieldScore{Field: id2, Score: rec2},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)

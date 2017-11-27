@@ -1,6 +1,8 @@
 package nodes
 
 import (
+	"sync"
+
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
@@ -22,6 +24,25 @@ type Node interface {
 	// Members defines a way to return all member keys associated with the key
 	Members(selectors.Key) <-chan selectors.Element
 
-	// Repair attempts to repair the store depending on the elements
-	Repair([]selectors.KeyField) <-chan selectors.Element
+	// Score returns the value of the field in a key
+	Score(selectors.Key, selectors.Field) <-chan selectors.Element
+}
+
+type Nodes struct {
+	mutex sync.Mutex
+	nodes []Node
+}
+
+func (n *Nodes) Snapshot() []Node {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
+	return n.nodes[0:]
+}
+
+func (n *Nodes) SetNodes(nodes []Node) {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
+
+	n.nodes = nodes
 }

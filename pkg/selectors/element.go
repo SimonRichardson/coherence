@@ -7,17 +7,20 @@ const (
 	// ErrorElementType describes an element with a error payload
 	ErrorElementType ElementType = iota
 
-	// IntElementType describes an element with an amount payload
-	IntElementType
+	// Int64ElementType describes an element with an int64 payload
+	Int64ElementType
 
-	// KeysElementType describes an element with an amount payload
+	// KeysElementType describes an element with an a slice of keys payload
 	KeysElementType
 
-	// FieldsElementType describes an element with an amount payload
+	// FieldsElementType describes an element with a slice of fields payload
 	FieldsElementType
 
-	// ChangeSetElementType describes an element with an amount payload
+	// ChangeSetElementType describes an element with an change set payload
 	ChangeSetElementType
+
+	// PresenceElementType describes an element with an presence payload
+	PresenceElementType
 )
 
 // Element combines a submitted key with the resulting values. If there was an
@@ -55,31 +58,31 @@ func ErrorFromElement(e Element) error {
 	return nil
 }
 
-// IntElement defines a struct that is a container for errors.
-type IntElement struct {
+// Int64Element defines a struct that is a container for errors.
+type Int64Element struct {
 	typ ElementType
-	val int
+	val int64
 }
 
-// NewIntElement creates a new IntElement
-func NewIntElement(val int) *IntElement {
-	return &IntElement{IntElementType, val}
+// NewInt64Element creates a new Int64Element
+func NewInt64Element(val int64) *Int64Element {
+	return &Int64Element{Int64ElementType, val}
 }
 
-// Type defines the type associated with the IntElement
-func (e *IntElement) Type() ElementType { return e.typ }
+// Type defines the type associated with the Int64Element
+func (e *Int64Element) Type() ElementType { return e.typ }
 
-// Int defines the int associated with the IntElement
-func (e *IntElement) Int() int { return e.val }
+// Int64 defines the int64 associated with the 6464Element
+func (e *Int64Element) Int64() int64 { return e.val }
 
-type intElement interface {
-	Int() int
+type int64Element interface {
+	Int64() int64
 }
 
-// IntFromElement attempts to get an int from the element if it exists.
-func IntFromElement(e Element) int {
-	if v, ok := e.(intElement); ok {
-		return v.Int()
+// Int64FromElement attempts to get an int from the element if it exists.
+func Int64FromElement(e Element) int64 {
+	if v, ok := e.(int64Element); ok {
+		return v.Int64()
 	}
 	return -1
 }
@@ -169,4 +172,33 @@ func ChangeSetFromElement(e Element) ChangeSet {
 		return v.ChangeSet()
 	}
 	return ChangeSet{}
+}
+
+// PresenceElement defines a struct that is a container for errors.
+type PresenceElement struct {
+	typ ElementType
+	val Presence
+}
+
+// NewPresenceElement creates a new PresenceElement
+func NewPresenceElement(val Presence) *PresenceElement {
+	return &PresenceElement{PresenceElementType, val}
+}
+
+// Type defines the type associated with the PresenceElement
+func (e *PresenceElement) Type() ElementType { return e.typ }
+
+// Presence defines the presence associated with the PresenceElement
+func (e *PresenceElement) Presence() Presence { return e.val }
+
+type presenceElement interface {
+	Presence() Presence
+}
+
+// PresenceFromElement attempts to get an presence from the element if it exists.
+func PresenceFromElement(e Element) Presence {
+	if v, ok := e.(presenceElement); ok {
+		return v.Presence()
+	}
+	return Presence{}
 }

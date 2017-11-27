@@ -49,7 +49,7 @@ func (v *virtual) Keys() <-chan selectors.Element {
 func (v *virtual) Size(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
-		ch <- selectors.NewIntElement(v.store.Size(key))
+		ch <- selectors.NewInt64Element(v.store.Size(key))
 	}()
 	return ch
 }
@@ -62,8 +62,10 @@ func (v *virtual) Members(key selectors.Key) <-chan selectors.Element {
 	return ch
 }
 
-func (v *virtual) Repair([]selectors.KeyField) <-chan selectors.Element {
+func (v *virtual) Score(key selectors.Key, field selectors.Field) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	go func() {
+		ch <- selectors.NewPresenceElement(v.store.Score(key, field))
+	}()
 	return ch
 }

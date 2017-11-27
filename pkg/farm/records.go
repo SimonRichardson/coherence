@@ -116,13 +116,13 @@ func (r *fieldsRecords) Fields() []selectors.Field {
 	return r.fields
 }
 
-type intRecords struct {
-	integer int
+type int64Records struct {
+	integer int64
 	set     bool
 	err     error
 }
 
-func (r *intRecords) Add(v int) {
+func (r *int64Records) Add(v int64) {
 	if r.set && r.integer != v {
 		r.err = errors.New("variance detected from replication")
 		return
@@ -131,10 +131,33 @@ func (r *intRecords) Add(v int) {
 	r.set = true
 }
 
-func (r *intRecords) Err() error {
+func (r *int64Records) Err() error {
 	return r.err
 }
 
-func (r *intRecords) Int() int {
+func (r *int64Records) Int64() int64 {
 	return r.integer
+}
+
+type presenceRecords struct {
+	presence selectors.Presence
+	set      bool
+	err      error
+}
+
+func (r *presenceRecords) Add(v selectors.Presence) {
+	if r.set && !r.presence.Equal(v) {
+		r.err = errors.New("variance detected from replication")
+		return
+	}
+	r.presence = v
+	r.set = true
+}
+
+func (r *presenceRecords) Err() error {
+	return r.err
+}
+
+func (r *presenceRecords) Presence() selectors.Presence {
+	return r.presence
 }

@@ -42,9 +42,9 @@ func (r *real) Members(key selectors.Key) <-chan selectors.Element {
 	return ch
 }
 
-func (r *real) Repair([]selectors.KeyField) <-chan selectors.Element {
+func (r *real) Score(key selectors.Key, field selectors.Field) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
-	ch <- selectors.NewIntElement(0)
+	go r.readScore(key, field, ch)
 	return ch
 }
 
@@ -102,14 +102,14 @@ func (r *real) readSize(key selectors.Key, dst chan<- selectors.Element) {
 	}
 
 	var size struct {
-		Records int `json:"records"`
+		Records int64 `json:"records"`
 	}
 	if err := json.Unmarshal(res, &size); err != nil {
 		dst <- selectors.NewErrorElement(err)
 		return
 	}
 
-	dst <- selectors.NewIntElement(size.Records)
+	dst <- selectors.NewInt64Element(size.Records)
 }
 
 func (r *real) readMembers(key selectors.Key, dst chan<- selectors.Element) {
@@ -128,4 +128,22 @@ func (r *real) readMembers(key selectors.Key, dst chan<- selectors.Element) {
 	}
 
 	dst <- selectors.NewFieldsElement(members.Records)
+}
+
+func (r *real) readScore(key selectors.Key, field selectors.Field, dst chan<- selectors.Element) {
+	res, err := r.client.Get(fmt.Sprintf("/score?key=%s&field=%s", key.String(), field.String()))
+	if err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	var score struct {
+		Records selectors.Presence `json:"records"`
+	}
+	if err := json.Unmarshal(res, &score); err != nil {
+		dst <- selectors.NewErrorElement(err)
+		return
+	}
+
+	dst <- selectors.NewPresenceElement(score.Records)
 }

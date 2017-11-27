@@ -34,6 +34,9 @@ const (
 	// APIPathMembers represents a way to find all the members for a key with in
 	// the cache.
 	APIPathMembers = "/members"
+
+	// APIPathScore represents a way to find the score of a field with in a key.
+	APIPathScore = "/score"
 )
 
 // API serves the cache API
@@ -91,6 +94,8 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.handleSize(w, r)
 	case method == "GET" && path == APIPathMembers:
 		a.handleMembers(w, r)
+	case method == "GET" && path == APIPathScore:
+		a.handleScore(w, r)
 	default:
 		// Nothing found
 		a.errors.NotFound(w, r)
@@ -116,7 +121,7 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changeSet, err := a.farm.Insert(qp.Key, members)
+	changeSet, err := a.farm.Insert(qp.Key(), members)
 	if err != nil {
 		a.errors.InternalServerError(w, r, err.Error())
 		return
@@ -150,7 +155,7 @@ func (a *API) handleDeletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changeSet, err := a.farm.Delete(qp.Key, members)
+	changeSet, err := a.farm.Delete(qp.Key(), members)
 	if err != nil {
 		a.errors.InternalServerError(w, r, err.Error())
 		return
@@ -199,15 +204,15 @@ func (a *API) handleSize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	size, err := a.farm.Size(qp.Key)
+	size, err := a.farm.Size(qp.Key())
 	if err != nil {
 		a.errors.InternalServerError(w, r, err.Error())
 		return
 	}
 
 	// Make sure we collect the document for the result.
-	qr := SizeQueryResult{Errors: a.errors, Params: qp}
-	qr.Size = size
+	qr := Int64QueryResult{Errors: a.errors, Params: qp}
+	qr.Integer = size
 
 	// Finish
 	qr.Duration = time.Since(begin).String()
@@ -227,7 +232,7 @@ func (a *API) handleMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := a.farm.Members(qp.Key)
+	members, err := a.farm.Members(qp.Key())
 	if err != nil {
 		a.errors.InternalServerError(w, r, err.Error())
 		return
@@ -236,6 +241,34 @@ func (a *API) handleMembers(w http.ResponseWriter, r *http.Request) {
 	// Make sure we collect the document for the result.
 	qr := FieldsQueryResult{Errors: a.errors, Params: qp}
 	qr.Fields = members
+
+	// Finish
+	qr.Duration = time.Since(begin).String()
+	qr.EncodeTo(w)
+}
+
+func (a *API) handleScore(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// useful metrics
+	begin := time.Now()
+
+	// Validate user input.
+	var qp KeyFieldQueryParams
+	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
+		a.errors.BadRequest(w, r, err.Error())
+		return
+	}
+
+	presence, err := a.farm.Score(qp.Key(), qp.Field())
+	if err != nil {
+		a.errors.InternalServerError(w, r, err.Error())
+		return
+	}
+
+	// Make sure we collect the document for the result.
+	qr := PresenceQueryResult{Errors: a.errors, Params: qp}
+	qr.Presence = presence
 
 	// Finish
 	qr.Duration = time.Since(begin).String()

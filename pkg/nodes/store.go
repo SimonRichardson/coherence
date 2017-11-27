@@ -22,13 +22,13 @@ type Store interface {
 	Keys() []selectors.Key
 
 	// Size returns the number of members for the key are stored in the store.
-	Size(selectors.Key) int
+	Size(selectors.Key) int64
 
 	// Members returns the members associated for a key
 	Members(selectors.Key) []selectors.Field
 
 	// Score returns the specific score for the field with in the key.
-	Score(selectors.Key, selectors.Field) int64
+	Score(selectors.Key, selectors.Field) selectors.Presence
 }
 
 type memory struct {
@@ -80,9 +80,9 @@ func (m *memory) Keys() []selectors.Key {
 	return res
 }
 
-func (m *memory) Size(key selectors.Key) int {
+func (m *memory) Size(key selectors.Key) int64 {
 	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Len()
+	return int64(m.buckets[index].Len())
 }
 
 func (m *memory) Members(key selectors.Key) []selectors.Field {
@@ -90,7 +90,7 @@ func (m *memory) Members(key selectors.Key) []selectors.Field {
 	return m.buckets[index].Members()
 }
 
-func (m *memory) Score(key selectors.Key, field selectors.Field) int64 {
+func (m *memory) Score(key selectors.Key, field selectors.Field) selectors.Presence {
 	index := uint(key.Hash()) % m.size
 	return m.buckets[index].Score(field)
 }
@@ -167,15 +167,23 @@ func (b *bucket) Len() int {
 	return len(b.Members())
 }
 
-func (b *bucket) Score(field selectors.Field) int64 {
-	score := -1.0
+func (b *bucket) Score(field selectors.Field) selectors.Presence {
+	presence := selectors.Presence{
+		Inserted: false,
+		Present:  false,
+		Score:    -1,
+	}
 	if s, ok := b.insert.Peek(field); ok {
-		score = s
+		presence.Inserted = true
+		presence.Present = true
+		presence.Score = s
 	}
-	if s, ok := b.delete.Peek(field); ok && s > score {
-		score = s
+	if s, ok := b.delete.Peek(field); ok && s > presence.Score {
+		presence.Inserted = false
+		presence.Present = true
+		presence.Score = s
 	}
-	return score
+	return presence
 }
 
 func (b *bucket) onEviction(reason lru.EvictionReason, field selectors.Field, value int64) {

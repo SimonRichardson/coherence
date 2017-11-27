@@ -16,10 +16,14 @@ type Farm interface {
 	Keys() ([]selectors.Key, error)
 
 	// Size defines a way to find the size associated with the key
-	Size(selectors.Key) (int, error)
+	Size(selectors.Key) (int64, error)
 
 	// Members defines a way to return all member keys associated with the key
 	Members(selectors.Key) ([]selectors.Field, error)
+
+	// Score defines a way to find out the score associated with a field with in a
+	// key
+	Score(selectors.Key, selectors.Field) (selectors.Presence, error)
 
 	// Repair attempts to repair the store depending on the elements
 	Repair([]selectors.KeyField) error
