@@ -12,9 +12,9 @@ func (v *virtual) Insert(key selectors.Key, members []selectors.FieldScore) <-ch
 		var changeSet selectors.ChangeSet
 		for _, member := range members {
 			if v.store.Insert(key, member) {
-				changeSet.Success++
+				changeSet.Success = append(changeSet.Success, member.Field)
 			} else {
-				changeSet.Failure++
+				changeSet.Failure = append(changeSet.Failure, member.Field)
 			}
 		}
 		ch <- selectors.NewChangeSetElement(changeSet)
@@ -27,10 +27,10 @@ func (v *virtual) Delete(key selectors.Key, members []selectors.FieldScore) <-ch
 	go func() {
 		var changeSet selectors.ChangeSet
 		for _, member := range members {
-			if v.store.Insert(key, member) {
-				changeSet.Success++
+			if v.store.Delete(key, member) {
+				changeSet.Success = append(changeSet.Success, member.Field)
 			} else {
-				changeSet.Failure++
+				changeSet.Failure = append(changeSet.Failure, member.Field)
 			}
 		}
 		ch <- selectors.NewChangeSetElement(changeSet)

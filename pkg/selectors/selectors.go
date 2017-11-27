@@ -58,15 +58,30 @@ type KeyField struct {
 }
 
 type FieldScore struct {
-	Field Field   `json:"field"`
-	Score float64 `json:"score"`
+	Field Field `json:"field"`
+	Score int64 `json:"score"`
 }
 
 type ChangeSet struct {
-	Success int `json:"success"`
-	Failure int `json:"failure"`
+	Success []Field `json:"success"`
+	Failure []Field `json:"failure"`
 }
 
 func (c ChangeSet) Equal(v ChangeSet) bool {
-	return c.Success == v.Success && c.Failure == v.Failure
+	return fieldsEqual(c.Success, v.Success) &&
+		fieldsEqual(c.Failure, v.Failure)
+}
+
+func fieldsEqual(a, b []Field) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for k, v := range a {
+		if !v.Equal(b[k]) {
+			return false
+		}
+	}
+
+	return true
 }

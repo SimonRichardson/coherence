@@ -26,6 +26,9 @@ type Store interface {
 
 	// Members returns the members associated for a key
 	Members(selectors.Key) []selectors.Field
+
+	// Score returns the specific score for the field with in the key.
+	Score(selectors.Key, selectors.Field) int64
 }
 
 type memory struct {
@@ -87,6 +90,11 @@ func (m *memory) Members(key selectors.Key) []selectors.Field {
 	return m.buckets[index].Members()
 }
 
+func (m *memory) Score(key selectors.Key, field selectors.Field) int64 {
+	index := uint(key.Hash()) % m.size
+	return m.buckets[index].Score(field)
+}
+
 // bucket conforms to the Key/Val store interface and provides locking mechanism
 // for each bucket.
 type bucket struct {
@@ -103,7 +111,7 @@ func NewBucket(amountPerBucket int) *bucket {
 	return b
 }
 
-func (b *bucket) Insert(field selectors.Field, score float64) bool {
+func (b *bucket) Insert(field selectors.Field, score int64) bool {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -123,7 +131,7 @@ func (b *bucket) Insert(field selectors.Field, score float64) bool {
 	return true
 }
 
-func (b *bucket) Delete(field selectors.Field, score float64) bool {
+func (b *bucket) Delete(field selectors.Field, score int64) bool {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -145,7 +153,7 @@ func (b *bucket) Delete(field selectors.Field, score float64) bool {
 
 func (b *bucket) Members() []selectors.Field {
 	var res []selectors.Field
-	b.insert.Walk(func(field selectors.Field, score float64) error {
+	b.insert.Walk(func(field selectors.Field, score int64) error {
 		// Prevent future deletes becoming members
 		if s, ok := b.delete.Peek(field); !ok || s < score {
 			res = append(res, field)
@@ -159,6 +167,17 @@ func (b *bucket) Len() int {
 	return len(b.Members())
 }
 
-func (b *bucket) onEviction(reason lru.EvictionReason, field selectors.Field, value float64) {
+func (b *bucket) Score(field selectors.Field) int64 {
+	score := -1.0
+	if s, ok := b.insert.Peek(field); ok {
+		score = s
+	}
+	if s, ok := b.delete.Peek(field); ok && s > score {
+		score = s
+	}
+	return score
+}
+
+func (b *bucket) onEviction(reason lru.EvictionReason, field selectors.Field, value int64) {
 	// Do nothing here, we don't really care.
 }
