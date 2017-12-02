@@ -34,7 +34,7 @@ func (m *MockNode) EXPECT() *MockNodeMockRecorder {
 }
 
 // Delete mocks base method
-func (m *MockNode) Delete(arg0 selectors.Key, arg1 []selectors.FieldScore) <-chan selectors.Element {
+func (m *MockNode) Delete(arg0 selectors.Key, arg1 []selectors.FieldValueScore) <-chan selectors.Element {
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(<-chan selectors.Element)
 	return ret0
@@ -46,7 +46,7 @@ func (mr *MockNodeMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // Insert mocks base method
-func (m *MockNode) Insert(arg0 selectors.Key, arg1 []selectors.FieldScore) <-chan selectors.Element {
+func (m *MockNode) Insert(arg0 selectors.Key, arg1 []selectors.FieldValueScore) <-chan selectors.Element {
 	ret := m.ctrl.Call(m, "Insert", arg0, arg1)
 	ret0, _ := ret[0].(<-chan selectors.Element)
 	return ret0

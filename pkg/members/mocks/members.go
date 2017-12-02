@@ -176,6 +176,18 @@ func (m *MockMember) EXPECT() *MockMemberMockRecorder {
 	return m.recorder
 }
 
+// Address mocks base method
+func (m *MockMember) Address() string {
+	ret := m.ctrl.Call(m, "Address")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Address indicates an expected call of Address
+func (mr *MockMemberMockRecorder) Address() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockMember)(nil).Address))
+}
+
 // Name mocks base method
 func (m *MockMember) Name() string {
 	ret := m.ctrl.Call(m, "Name")

@@ -34,6 +34,18 @@ func (m *MockPeer) EXPECT() *MockPeerMockRecorder {
 	return m.recorder
 }
 
+// Address mocks base method
+func (m *MockPeer) Address() string {
+	ret := m.ctrl.Call(m, "Address")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Address indicates an expected call of Address
+func (mr *MockPeerMockRecorder) Address() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockPeer)(nil).Address))
+}
+
 // Close mocks base method
 func (m *MockPeer) Close() {
 	m.ctrl.Call(m, "Close")
@@ -57,16 +69,16 @@ func (mr *MockPeerMockRecorder) ClusterSize() *gomock.Call {
 }
 
 // Current mocks base method
-func (m *MockPeer) Current(arg0 members.PeerType) ([]string, error) {
-	ret := m.ctrl.Call(m, "Current", arg0)
+func (m *MockPeer) Current(arg0 members.PeerType, arg1 bool) ([]string, error) {
+	ret := m.ctrl.Call(m, "Current", arg0, arg1)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Current indicates an expected call of Current
-func (mr *MockPeerMockRecorder) Current(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Current", reflect.TypeOf((*MockPeer)(nil).Current), arg0)
+func (mr *MockPeerMockRecorder) Current(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Current", reflect.TypeOf((*MockPeer)(nil).Current), arg0, arg1)
 }
 
 // Join mocks base method

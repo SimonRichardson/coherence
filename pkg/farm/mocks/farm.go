@@ -34,7 +34,7 @@ func (m *MockFarm) EXPECT() *MockFarmMockRecorder {
 }
 
 // Delete mocks base method
-func (m *MockFarm) Delete(arg0 selectors.Key, arg1 []selectors.FieldScore) (selectors.ChangeSet, error) {
+func (m *MockFarm) Delete(arg0 selectors.Key, arg1 []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(selectors.ChangeSet)
 	ret1, _ := ret[1].(error)
@@ -47,7 +47,7 @@ func (mr *MockFarmMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // Insert mocks base method
-func (m *MockFarm) Insert(arg0 selectors.Key, arg1 []selectors.FieldScore) (selectors.ChangeSet, error) {
+func (m *MockFarm) Insert(arg0 selectors.Key, arg1 []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	ret := m.ctrl.Call(m, "Insert", arg0, arg1)
 	ret0, _ := ret[0].(selectors.ChangeSet)
 	ret1, _ := ret[1].(error)
@@ -86,7 +86,7 @@ func (mr *MockFarmMockRecorder) Members(arg0 interface{}) *gomock.Call {
 }
 
 // Repair mocks base method
-func (m *MockFarm) Repair(arg0 []selectors.KeyField) error {
+func (m *MockFarm) Repair(arg0 []selectors.KeyFieldValue) error {
 	ret := m.ctrl.Call(m, "Repair", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
@@ -111,9 +111,9 @@ func (mr *MockFarmMockRecorder) Score(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // Select mocks base method
-func (m *MockFarm) Select(arg0 selectors.Key, arg1 selectors.Field) (selectors.FieldScore, error) {
+func (m *MockFarm) Select(arg0 selectors.Key, arg1 selectors.Field) (selectors.FieldValueScore, error) {
 	ret := m.ctrl.Call(m, "Select", arg0, arg1)
-	ret0, _ := ret[0].(selectors.FieldScore)
+	ret0, _ := ret[0].(selectors.FieldValueScore)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
