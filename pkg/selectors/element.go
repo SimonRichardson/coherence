@@ -24,6 +24,9 @@ const (
 
 	// FieldScoreElementType describes an element with a field score payload
 	FieldScoreElementType
+
+	// FieldValueScoreElementType describes an element with a field, value score payload
+	FieldValueScoreElementType
 )
 
 // Element combines a submitted key with the resulting values. If there was an
@@ -233,4 +236,33 @@ func FieldScoreFromElement(e Element) FieldScore {
 		return v.FieldScore()
 	}
 	return FieldScore{}
+}
+
+// FieldValueScoreElement defines a struct that is a container for errors.
+type FieldValueScoreElement struct {
+	typ ElementType
+	val FieldValueScore
+}
+
+// NewFieldValueScoreElement creates a new FieldValueScoreElement
+func NewFieldValueScoreElement(val FieldValueScore) *FieldValueScoreElement {
+	return &FieldValueScoreElement{FieldValueScoreElementType, val}
+}
+
+// Type defines the type associated with the FieldValueScoreElement
+func (e *FieldValueScoreElement) Type() ElementType { return e.typ }
+
+// FieldValueScore defines the fieldValueScore associated with the FieldValueScoreElement
+func (e *FieldValueScoreElement) FieldValueScore() FieldValueScore { return e.val }
+
+type fieldValueScoreElement interface {
+	FieldValueScore() FieldValueScore
+}
+
+// FieldValueScoreFromElement attempts to get an fieldValueScore from the element if it exists.
+func FieldValueScoreFromElement(e Element) FieldValueScore {
+	if v, ok := e.(fieldValueScoreElement); ok {
+		return v.FieldValueScore()
+	}
+	return FieldValueScore{}
 }

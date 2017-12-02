@@ -7,13 +7,13 @@ type Farm interface {
 
 	// Insert defines a way to insert some members into the store that's associated
 	// with the key
-	Insert(selectors.Key, []selectors.FieldScore) (selectors.ChangeSet, error)
+	Insert(selectors.Key, []selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Delete removes a set of members associated with a key with in the store
-	Delete(selectors.Key, []selectors.FieldScore) (selectors.ChangeSet, error)
+	Delete(selectors.Key, []selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Select queries a set of members for an associated key, field
-	Select(selectors.Key, selectors.Field) (selectors.FieldScore, error)
+	Select(selectors.Key, selectors.Field) (selectors.FieldValueScore, error)
 
 	// Keys returns all the keys with in the store
 	Keys() ([]selectors.Key, error)
@@ -29,7 +29,7 @@ type Farm interface {
 	Score(selectors.Key, selectors.Field) (selectors.Presence, error)
 
 	// Repair attempts to repair the store depending on the elements
-	Repair([]selectors.KeyField) error
+	Repair([]selectors.KeyFieldValue) error
 }
 
 type errPartial struct {

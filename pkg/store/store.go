@@ -7,15 +7,15 @@ type Store interface {
 
 	// Insert takes a key and value and stores with in the underlying store.
 	// Returns true if it's over writting an existing value.
-	Insert(selectors.Key, selectors.FieldScore) (selectors.ChangeSet, error)
+	Insert(selectors.Key, selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Delete removes a value associated with the key.
 	// Returns true if the value is found when deleting.
-	Delete(selectors.Key, selectors.FieldScore) (selectors.ChangeSet, error)
+	Delete(selectors.Key, selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Select retrieves a field and score associated with the store.
 	// Returns true if the value found
-	Select(selectors.Key, selectors.Field) (selectors.FieldScore, error)
+	Select(selectors.Key, selectors.Field) (selectors.FieldValueScore, error)
 
 	// Keys returns all the potential keys that are stored with in the store.
 	Keys() ([]selectors.Key, error)

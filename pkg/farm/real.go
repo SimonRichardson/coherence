@@ -23,27 +23,27 @@ func NewRealFarm(nodes *nodes.NodeSet) Farm {
 	}
 }
 
-func (r *real) Insert(key selectors.Key, members []selectors.FieldScore) (selectors.ChangeSet, error) {
+func (r *real) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	changeSet, err := r.write(func(n nodes.Node) <-chan selectors.Element {
 		return n.Insert(key, members)
 	})
 	if PartialError(err) {
-		go r.Repair(mergeKeyFields(key, changeSet.Failure))
+		go r.Repair(mergeKeyFieldMembers(key, changeSet.Failure, members))
 	}
 	return changeSet, err
 }
 
-func (r *real) Delete(key selectors.Key, members []selectors.FieldScore) (selectors.ChangeSet, error) {
+func (r *real) Delete(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	changeSet, err := r.write(func(n nodes.Node) <-chan selectors.Element {
 		return n.Delete(key, members)
 	})
 	if PartialError(err) {
-		go r.Repair(mergeKeyFields(key, changeSet.Failure))
+		go r.Repair(mergeKeyFieldMembers(key, changeSet.Failure, members))
 	}
 	return changeSet, err
 }
 
-func (r *real) Select(key selectors.Key, field selectors.Field) (selectors.FieldScore, error) {
+func (r *real) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
 	return r.read(key, func(n nodes.Node) <-chan selectors.Element {
 		return n.Select(key, field)
 	})
@@ -73,7 +73,7 @@ func (r *real) Score(key selectors.Key, field selectors.Field) (selectors.Presen
 	})
 }
 
-func (r *real) Repair(members []selectors.KeyField) error {
+func (r *real) Repair(members []selectors.KeyFieldValue) error {
 	return r.repairStrategy.Repair(members)
 }
 
@@ -132,7 +132,7 @@ func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (selectors.Ch
 
 func (r *real) read(key selectors.Key,
 	fn func(nodes.Node) <-chan selectors.Element,
-) (selectors.FieldScore, error) {
+) (selectors.FieldValueScore, error) {
 	var (
 		retrieved = 0
 		returned  = 0
@@ -149,7 +149,7 @@ func (r *real) read(key selectors.Key,
 	go func() { wg.Wait(); close(elements) }()
 
 	if err := scatterRequests(nodes, fn, wg, elements); err != nil {
-		return selectors.FieldScore{}, err
+		return selectors.FieldValueScore{}, err
 	}
 
 	for element := range elements {
@@ -161,21 +161,21 @@ func (r *real) read(key selectors.Key,
 		}
 
 		returned++
-		result := selectors.FieldScoreFromElement(element)
-		results = append(results, MakeTupleSet([]selectors.FieldScore{
+		result := selectors.FieldValueScoreFromElement(element)
+		results = append(results, MakeTupleSet([]selectors.FieldValueScore{
 			result,
 		}))
 	}
 	union, difference := UnionDifference(results)
 
-	go r.Repair(FieldScoresToKeyField(key, difference))
+	go r.Repair(FieldValueScoresToKeyField(key, difference))
 
 	if len(errs) > 0 {
-		return selectors.FieldScore{}, mapErrors(errs)
+		return selectors.FieldValueScore{}, mapErrors(errs)
 	} else if len(union) == 1 {
 		return union[0], nil
 	}
-	return selectors.FieldScore{}, errors.New("invalid results")
+	return selectors.FieldValueScore{}, errors.New("invalid results")
 }
 
 func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Key, error) {
@@ -396,12 +396,18 @@ func joinErrors(e []error) error {
 	return errors.New(strings.Join(buf, "; "))
 }
 
-func mergeKeyFields(key selectors.Key, fields []selectors.Field) []selectors.KeyField {
-	res := make([]selectors.KeyField, len(fields))
+func mergeKeyFieldMembers(key selectors.Key, fields []selectors.Field, members []selectors.FieldValueScore) []selectors.KeyFieldValue {
+	lookup := make(map[selectors.Field]selectors.FieldValueScore)
+	for _, v := range members {
+		lookup[v.Field] = v
+	}
+
+	res := make([]selectors.KeyFieldValue, len(fields))
 	for k, v := range fields {
-		res[k] = selectors.KeyField{
+		res[k] = selectors.KeyFieldValue{
 			Key:   key,
 			Field: v,
+			Value: lookup[v].Value,
 		}
 	}
 	return res

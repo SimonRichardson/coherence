@@ -12,7 +12,7 @@ type repairStrategy struct {
 	nodes *nodes.NodeSet
 }
 
-func (r *repairStrategy) Repair(members []selectors.KeyField) error {
+func (r *repairStrategy) Repair(members []selectors.KeyFieldValue) error {
 	clues := make([]selectors.Clue, 0)
 	for _, v := range members {
 		// This can be optimised to send all of them at once, but could flood the
@@ -27,12 +27,12 @@ func (r *repairStrategy) Repair(members []selectors.KeyField) error {
 		if clue.Ignore {
 			continue
 		}
-		clues = append(clues, clue.SetKeyField(v.Key, v.Field))
+		clues = append(clues, clue.SetKeyFieldValue(v.Key, v.Field, v.Value))
 	}
 
 	var (
-		inserts = make(map[selectors.Key][]selectors.FieldScore)
-		deletes = make(map[selectors.Key][]selectors.FieldScore)
+		inserts = make(map[selectors.Key][]selectors.FieldValueScore)
+		deletes = make(map[selectors.Key][]selectors.FieldValueScore)
 	)
 	for _, v := range clues {
 		// If we've not met quorum then we shouldn't be doing anything.
@@ -41,13 +41,15 @@ func (r *repairStrategy) Repair(members []selectors.KeyField) error {
 		}
 
 		if v.Insert {
-			inserts[v.Key] = append(inserts[v.Key], selectors.FieldScore{
+			inserts[v.Key] = append(inserts[v.Key], selectors.FieldValueScore{
 				Field: v.Field,
+				Value: v.Value,
 				Score: v.Score + 1,
 			})
 		} else {
-			deletes[v.Key] = append(deletes[v.Key], selectors.FieldScore{
+			deletes[v.Key] = append(deletes[v.Key], selectors.FieldValueScore{
 				Field: v.Field,
+				Value: v.Value,
 				Score: v.Score + 1,
 			})
 		}

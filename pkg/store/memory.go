@@ -28,25 +28,25 @@ func New(amountBuckets, amountPerBucket uint) Store {
 	}
 }
 
-func (m *memory) Insert(key selectors.Key, member selectors.FieldScore) (selectors.ChangeSet, error) {
+func (m *memory) Insert(key selectors.Key, member selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	if _, ok := m.keys[key]; !ok {
 		m.keys[key] = struct{}{}
 	}
 
 	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Insert(member.Field, member.Score)
+	return m.buckets[index].Insert(member.Field, member.ValueScore())
 }
 
-func (m *memory) Delete(key selectors.Key, member selectors.FieldScore) (selectors.ChangeSet, error) {
+func (m *memory) Delete(key selectors.Key, member selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	if _, ok := m.keys[key]; !ok {
 		m.keys[key] = struct{}{}
 	}
 
 	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Delete(member.Field, member.Score)
+	return m.buckets[index].Delete(member.Field, member.ValueScore())
 }
 
-func (m *memory) Select(key selectors.Key, field selectors.Field) (selectors.FieldScore, error) {
+func (m *memory) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
 	index := uint(key.Hash()) % m.size
 	return m.buckets[index].Select(field)
 }

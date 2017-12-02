@@ -25,67 +25,68 @@ func NewBucket(amountPerBucket int) *Bucket {
 }
 
 // Insert inserts a member associated with a field and a store
-func (b *Bucket) Insert(field selectors.Field, score int64) (selectors.ChangeSet, error) {
+func (b *Bucket) Insert(field selectors.Field, value selectors.ValueScore) (selectors.ChangeSet, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
 	// If we've already got a larger score, this is a nop!
-	if s, ok := b.insert.Peek(field); ok && s >= score {
-		return successChangeSet(field, score), nil
+	if v, ok := b.insert.Peek(field); ok && v.Score >= value.Score {
+		return successChangeSet(field, value), nil
 	}
-	if s, ok := b.delete.Peek(field); ok && s >= score {
-		return successChangeSet(field, score), nil
+	if v, ok := b.delete.Peek(field); ok && v.Score >= value.Score {
+		return successChangeSet(field, value), nil
 	}
 
 	b.insert.Remove(field)
 	b.delete.Remove(field)
 
-	b.insert.Add(field, score)
+	b.insert.Add(field, value)
 
-	return successChangeSet(field, score), nil
+	return successChangeSet(field, value), nil
 }
 
 // Delete removes a member associated with a field and a store
-func (b *Bucket) Delete(field selectors.Field, score int64) (selectors.ChangeSet, error) {
+func (b *Bucket) Delete(field selectors.Field, value selectors.ValueScore) (selectors.ChangeSet, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
 	// If we've already got a larger score, this is a nop!
-	if s, ok := b.insert.Peek(field); ok && s >= score {
-		return successChangeSet(field, score), nil
+	if v, ok := b.insert.Peek(field); ok && v.Score >= value.Score {
+		return successChangeSet(field, value), nil
 	}
-	if s, ok := b.delete.Peek(field); ok && s >= score {
-		return successChangeSet(field, score), nil
+	if v, ok := b.delete.Peek(field); ok && v.Score >= value.Score {
+		return successChangeSet(field, value), nil
 	}
 
 	b.insert.Remove(field)
 	b.delete.Remove(field)
 
-	b.delete.Add(field, score)
+	b.delete.Add(field, value)
 
-	return successChangeSet(field, score), nil
+	return successChangeSet(field, value), nil
 }
 
 // Select queries a set of members for an associated field
-func (b *Bucket) Select(field selectors.Field) (selectors.FieldScore, error) {
+func (b *Bucket) Select(field selectors.Field) (selectors.FieldValueScore, error) {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if s, ok := b.insert.Peek(field); ok {
-		return selectors.FieldScore{
+	if v, ok := b.insert.Peek(field); ok {
+		return selectors.FieldValueScore{
 			Field: field,
-			Score: s,
+			Value: v.Value,
+			Score: v.Score,
 		}, nil
 	}
-	return selectors.FieldScore{}, errNotFound{errors.New("not found")}
+	return selectors.FieldValueScore{}, errNotFound{errors.New("not found")}
 }
 
 // Members defines a way to return all members
 func (b *Bucket) Members() ([]selectors.Field, error) {
 	var res []selectors.Field
-	b.insert.Walk(func(field selectors.Field, score int64) error {
+	b.insert.Walk(func(field selectors.Field, value selectors.ValueScore) error {
 		// Prevent future deletes becoming members
-		if s, ok := b.delete.Peek(field); !ok || s < score {
+		if v, ok := b.delete.Peek(field); !ok || v.Score < value.Score {
 			res = append(res, field)
 		}
 		return nil
@@ -110,31 +111,31 @@ func (b *Bucket) Score(field selectors.Field) (selectors.Presence, error) {
 		Present:  false,
 		Score:    -1,
 	}
-	if s, ok := b.insert.Peek(field); ok {
+	if v, ok := b.insert.Peek(field); ok {
 		presence.Inserted = true
 		presence.Present = true
-		presence.Score = s
+		presence.Score = v.Score
 	}
-	if s, ok := b.delete.Peek(field); ok && s > presence.Score {
+	if v, ok := b.delete.Peek(field); ok && v.Score > presence.Score {
 		presence.Inserted = false
 		presence.Present = true
-		presence.Score = s
+		presence.Score = v.Score
 	}
 	return presence, nil
 }
 
-func (b *Bucket) onEviction(reason lru.EvictionReason, field selectors.Field, value int64) {
+func (b *Bucket) onEviction(reason lru.EvictionReason, field selectors.Field, value selectors.ValueScore) {
 	// Do nothing here, we don't really care.
 }
 
-func successChangeSet(field selectors.Field, score int64) selectors.ChangeSet {
+func successChangeSet(field selectors.Field, value selectors.ValueScore) selectors.ChangeSet {
 	return selectors.ChangeSet{
 		Success: []selectors.Field{field},
 		Failure: make([]selectors.Field, 0),
 	}
 }
 
-func failureChangeSet(field selectors.Field, score int64) selectors.ChangeSet {
+func failureChangeSet(field selectors.Field, value selectors.ValueScore) selectors.ChangeSet {
 	return selectors.ChangeSet{
 		Success: make([]selectors.Field, 0),
 		Failure: []selectors.Field{field},

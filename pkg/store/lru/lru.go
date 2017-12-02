@@ -22,7 +22,7 @@ const (
 )
 
 // EvictCallback lets you know when an eviction has happened in the cache
-type EvictCallback func(EvictionReason, selectors.Field, int64)
+type EvictCallback func(EvictionReason, selectors.Field, selectors.ValueScore)
 
 // LRU implements a non-thread safe fixed size LRU cache
 type LRU struct {
@@ -43,7 +43,7 @@ func NewLRU(size int, onEvict EvictCallback) *LRU {
 
 // Add adds a key, value pair.
 // Returns true if an eviction happened.
-func (l *LRU) Add(key selectors.Field, value int64) bool {
+func (l *LRU) Add(key selectors.Field, value selectors.ValueScore) bool {
 	if elem, ok := l.items[key]; ok {
 		l.list.Mark(elem)
 		elem.value = value
@@ -66,7 +66,7 @@ func (l *LRU) Add(key selectors.Field, value int64) bool {
 
 // Get returns back a value if it exists.
 // Returns true if found.
-func (l *LRU) Get(key selectors.Field) (value int64, ok bool) {
+func (l *LRU) Get(key selectors.Field) (value selectors.ValueScore, ok bool) {
 	var elem *element
 	if elem, ok = l.items[key]; ok {
 		l.list.Mark(elem)
@@ -87,7 +87,7 @@ func (l *LRU) Remove(key selectors.Field) (ok bool) {
 
 // Peek returns a value, without marking the LRU cache.
 // Returns true if a value is found.
-func (l *LRU) Peek(key selectors.Field) (value int64, ok bool) {
+func (l *LRU) Peek(key selectors.Field) (value selectors.ValueScore, ok bool) {
 	var elem *element
 	if elem, ok = l.items[key]; ok {
 		value = elem.value
@@ -102,17 +102,17 @@ func (l *LRU) Contains(key selectors.Field) bool {
 }
 
 // Pop removes the last LRU item with in the cache
-func (l *LRU) Pop() (selectors.Field, int64, bool) {
+func (l *LRU) Pop() (selectors.Field, selectors.ValueScore, bool) {
 	if elem := l.list.Back(); elem != nil {
 		l.removeElement(Popped, elem)
 		return elem.key, elem.value, true
 	}
-	return selectors.Field(""), -1, false
+	return selectors.Field(""), selectors.ValueScore{}, false
 }
 
 // Purge removes all items with in the cache, calling evict callback on each.
 func (l *LRU) Purge() {
-	l.list.Walk(func(key selectors.Field, value int64) error {
+	l.list.Walk(func(key selectors.Field, value selectors.ValueScore) error {
 		l.onEvict(Purged, key, value)
 		delete(l.items, key)
 		return nil
@@ -126,7 +126,7 @@ func (l *LRU) Keys() []selectors.Field {
 		index int
 		keys  = make([]selectors.Field, l.list.Len())
 	)
-	l.list.Walk(func(k selectors.Field, v int64) error {
+	l.list.Walk(func(k selectors.Field, v selectors.ValueScore) error {
 		keys[index] = k
 		index++
 		return nil
@@ -149,16 +149,17 @@ func (l *LRU) Capacity() bool {
 	return l.Len() >= l.Cap()
 }
 
-// Slice returns a snapshot of the selectors.FieldScore pairs.
-func (l *LRU) Slice() []selectors.FieldScore {
+// Slice returns a snapshot of the selectors.FieldValueScore pairs.
+func (l *LRU) Slice() []selectors.FieldValueScore {
 	var (
 		index  int
-		values = make([]selectors.FieldScore, l.list.Len())
+		values = make([]selectors.FieldValueScore, l.list.Len())
 	)
-	l.list.Walk(func(k selectors.Field, v int64) error {
-		values[index] = selectors.FieldScore{
+	l.list.Walk(func(k selectors.Field, v selectors.ValueScore) error {
+		values[index] = selectors.FieldValueScore{
 			Field: k,
-			Score: v,
+			Value: v.Value,
+			Score: v.Score,
 		}
 		index++
 		return nil
@@ -167,7 +168,7 @@ func (l *LRU) Slice() []selectors.FieldScore {
 }
 
 // Dequeue iterates over the LRU cache removing an item upon each iteration.
-func (l *LRU) Dequeue(fn func(selectors.Field, int64) error) ([]selectors.FieldScore, error) {
+func (l *LRU) Dequeue(fn func(selectors.Field, selectors.ValueScore) error) ([]selectors.FieldValueScore, error) {
 	var dequeued []*element
 	err := l.list.Dequeue(func(e *element) error {
 		err := fn(e.key, e.value)
@@ -177,19 +178,20 @@ func (l *LRU) Dequeue(fn func(selectors.Field, int64) error) ([]selectors.FieldS
 		return err
 	})
 
-	res := make([]selectors.FieldScore, len(dequeued))
+	res := make([]selectors.FieldValueScore, len(dequeued))
 	for k, e := range dequeued {
 		l.removeElement(Dequeued, e)
-		res[k] = selectors.FieldScore{
+		res[k] = selectors.FieldValueScore{
 			Field: e.key,
-			Score: e.value,
+			Value: e.value.Value,
+			Score: e.value.Score,
 		}
 	}
 	return res, err
 }
 
 // Walk iterates over the LRU cache removing an item upon each iteration.
-func (l *LRU) Walk(fn func(selectors.Field, int64) error) (err error) {
+func (l *LRU) Walk(fn func(selectors.Field, selectors.ValueScore) error) (err error) {
 	return l.list.Walk(fn)
 }
 

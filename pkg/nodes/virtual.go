@@ -16,7 +16,7 @@ func NewVirtual(store store.Store) Node {
 	}
 }
 
-func (v *virtual) Insert(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
+func (v *virtual) Insert(key selectors.Key, members []selectors.FieldValueScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
@@ -34,7 +34,7 @@ func (v *virtual) Insert(key selectors.Key, members []selectors.FieldScore) <-ch
 	return ch
 }
 
-func (v *virtual) Delete(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
+func (v *virtual) Delete(key selectors.Key, members []selectors.FieldValueScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
@@ -62,7 +62,7 @@ func (v *virtual) Select(key selectors.Key, field selectors.Field) <-chan select
 			ch <- selectors.NewErrorElement(err)
 			return
 		}
-		ch <- selectors.NewFieldScoreElement(member)
+		ch <- selectors.NewFieldValueScoreElement(member)
 	}()
 	return ch
 }

@@ -10,10 +10,10 @@ type Node interface {
 
 	// Insert defines a way to insert some members into the store that's associated
 	// with the key
-	Insert(selectors.Key, []selectors.FieldScore) <-chan selectors.Element
+	Insert(selectors.Key, []selectors.FieldValueScore) <-chan selectors.Element
 
 	// Delete removes a set of members associated with a key with in the store
-	Delete(selectors.Key, []selectors.FieldScore) <-chan selectors.Element
+	Delete(selectors.Key, []selectors.FieldValueScore) <-chan selectors.Element
 
 	// Select retrieves a single element from the store
 	Select(selectors.Key, selectors.Field) <-chan selectors.Element

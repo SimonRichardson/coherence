@@ -9,7 +9,7 @@ func NewNop() Node {
 	return nop{}
 }
 
-func (nop) Insert(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
+func (nop) Insert(key selectors.Key, members []selectors.FieldValueScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
@@ -22,7 +22,7 @@ func (nop) Insert(key selectors.Key, members []selectors.FieldScore) <-chan sele
 	return ch
 }
 
-func (nop) Delete(key selectors.Key, members []selectors.FieldScore) <-chan selectors.Element {
+func (nop) Delete(key selectors.Key, members []selectors.FieldValueScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
@@ -40,8 +40,9 @@ func (nop) Select(key selectors.Key, field selectors.Field) <-chan selectors.Ele
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewFieldScoreElement(selectors.FieldScore{
+		ch <- selectors.NewFieldValueScoreElement(selectors.FieldValueScore{
 			Field: field,
+			Value: nil,
 			Score: -1,
 		})
 	}()
@@ -88,7 +89,7 @@ func (nop) Score(selectors.Key, selectors.Field) <-chan selectors.Element {
 	return ch
 }
 
-func extractFields(members []selectors.FieldScore) []selectors.Field {
+func extractFields(members []selectors.FieldValueScore) []selectors.Field {
 	res := make([]selectors.Field, len(members))
 	for k, v := range members {
 		res[k] = v.Field

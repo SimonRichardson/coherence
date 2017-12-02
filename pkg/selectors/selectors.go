@@ -2,6 +2,8 @@ package selectors
 
 import (
 	"encoding/json"
+	"math/rand"
+	"reflect"
 	"sort"
 
 	"github.com/spaolacci/murmur3"
@@ -64,8 +66,99 @@ func (f *Field) UnmarshalJSON(data []byte) error {
 	return err
 }
 
+// Generate allows Field to be used within quickcheck scenarios.
+func (Field) Generate(r *rand.Rand, size int) reflect.Value {
+	s := generateString(r, size)
+	return reflect.ValueOf(Field(s))
+}
+
+func generateString(r *rand.Rand, size int) string {
+	v := make([]byte, size)
+	if _, err := r.Read(v); err != nil {
+		panic(err)
+	}
+	return string(v)
+}
+
 func (f Field) String() string {
 	return string(f)
+}
+
+// ValueScore represents both a value and score for the store
+type ValueScore struct {
+	Value []byte
+	Score int64
+}
+
+// Equal checks to see if a ValueScore matches another ValueScore
+func (f ValueScore) Equal(b ValueScore) bool {
+	return bytesEqual(f.Value, b.Value) && f.Score == b.Score
+}
+
+// Generate allows ValueScore to be used within quickcheck scenarios.
+func (ValueScore) Generate(r *rand.Rand, size int) reflect.Value {
+	v := make([]byte, size)
+	if _, err := r.Read(v); err != nil {
+		panic(err)
+	}
+	return reflect.ValueOf(ValueScore{
+		Value: v,
+		Score: 0,
+	})
+}
+
+// FieldValueScore represents a field, value and score for the store
+type FieldValueScore struct {
+	Field Field
+	Value []byte
+	Score int64
+}
+
+// Equal checks to see if a FieldValueScore matches another FieldValueScore
+func (f FieldValueScore) Equal(b FieldValueScore) bool {
+	return f.Field.Equal(b.Field) && bytesEqual(f.Value, b.Value) && f.Score == b.Score
+}
+
+// FieldScore returns a FieldScore from a FieldValueScore
+func (f FieldValueScore) FieldScore() FieldScore {
+	return FieldScore{
+		Field: f.Field,
+		Score: f.Score,
+	}
+}
+
+// ValueScore returns a ValueScore from a FieldValueScore
+func (f FieldValueScore) ValueScore() ValueScore {
+	return ValueScore{
+		Value: f.Value,
+		Score: f.Score,
+	}
+}
+
+// Generate allows FieldValueScore to be used within quickcheck scenarios.
+func (FieldValueScore) Generate(r *rand.Rand, size int) reflect.Value {
+	v := make([]byte, size)
+	if _, err := r.Read(v); err != nil {
+		panic(err)
+	}
+	return reflect.ValueOf(FieldValueScore{
+		Field: Field(generateString(r, size)),
+		Value: v,
+		Score: 0,
+	})
+}
+
+func bytesEqual(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
 }
 
 // KeyField defines the union of both the Key and Field
@@ -77,6 +170,27 @@ type KeyField struct {
 // Hash returns the hash (uint32) value of the KeyField union
 func (k KeyField) Hash() uint32 {
 	return murmur3.Sum32([]byte(k.Key.String() + k.Field.String()))
+}
+
+// KeyFieldValue defines the union of both the Key, Field and Value
+type KeyFieldValue struct {
+	Key   Key    `json:"key"`
+	Field Field  `json:"field"`
+	Value []byte `json:"value"`
+}
+
+// Hash returns the hash (uint32) value of the KeyField union
+func (k KeyFieldValue) Hash() uint32 {
+	return murmur3.Sum32(append(
+		[]byte(k.Key.String()+k.Field.String()),
+		k.Value...,
+	))
+}
+
+// FieldValue represents the union of both a Field and a Value
+type FieldValue struct {
+	Field Field  `json:"field"`
+	Value []byte `json:"value"`
 }
 
 // FieldScore represents the union of both a Field and a Score
@@ -148,16 +262,18 @@ type Clue struct {
 	Insert bool
 	Key    Key
 	Field  Field
+	Value  []byte
 	Score  int64
 	Quorum bool
 }
 
-// SetKeyField allows the setting of the key and field on the clue.
+// SetKeyFieldValue allows the setting of the key and field on the clue.
 // This does not mutate the Clue
-func (c Clue) SetKeyField(key Key, field Field) Clue {
+func (c Clue) SetKeyFieldValue(key Key, field Field, value []byte) Clue {
 	return Clue{
 		Key:    key,
 		Field:  field,
+		Value:  value,
 		Ignore: c.Ignore,
 		Insert: c.Insert,
 		Score:  c.Score,

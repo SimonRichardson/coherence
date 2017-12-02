@@ -25,7 +25,7 @@ func NewRemote(client *client.Client) Node {
 	}
 }
 
-func (r *remote) Insert(key selectors.Key, fields []selectors.FieldScore) <-chan selectors.Element {
+func (r *remote) Insert(key selectors.Key, fields []selectors.FieldValueScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
@@ -34,7 +34,7 @@ func (r *remote) Insert(key selectors.Key, fields []selectors.FieldScore) <-chan
 	return ch
 }
 
-func (r *remote) Delete(key selectors.Key, fields []selectors.FieldScore) <-chan selectors.Element {
+func (r *remote) Delete(key selectors.Key, fields []selectors.FieldValueScore) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
@@ -93,9 +93,9 @@ func (r *remote) Host() string {
 	return r.client.Host()
 }
 
-func (r *remote) write(key selectors.Key, path string, fields []selectors.FieldScore, dst chan<- selectors.Element) {
+func (r *remote) write(key selectors.Key, path string, fields []selectors.FieldValueScore, dst chan<- selectors.Element) {
 	b, err := json.Marshal(struct {
-		Members []selectors.FieldScore `json:"members"`
+		Members []selectors.FieldValueScore `json:"members"`
 	}{
 		Members: fields,
 	})
@@ -128,15 +128,15 @@ func (r *remote) read(key selectors.Key, field selectors.Field, dst chan<- selec
 		return
 	}
 
-	var fieldScore struct {
-		Records selectors.FieldScore `json:"records"`
+	var fieldValueScore struct {
+		Records selectors.FieldValueScore `json:"records"`
 	}
-	if err := json.Unmarshal(res, &fieldScore); err != nil {
+	if err := json.Unmarshal(res, &fieldValueScore); err != nil {
 		dst <- selectors.NewErrorElement(err)
 		return
 	}
 
-	dst <- selectors.NewFieldScoreElement(fieldScore.Records)
+	dst <- selectors.NewFieldValueScoreElement(fieldValueScore.Records)
 }
 
 func (r *remote) readKeys(dst chan<- selectors.Element) {

@@ -14,9 +14,9 @@ func TestLRU_Add(t *testing.T) {
 	t.Parallel()
 
 	t.Run("adding with eviction", func(t *testing.T) {
-		fn := func(id0, id1 selectors.Field, rec0, rec1 int64) bool {
+		fn := func(id0, id1 selectors.Field, rec0, rec1 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				if expected, actual := id0, k; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
@@ -39,8 +39,8 @@ func TestLRU_Add(t *testing.T) {
 				t.Errorf("expected: %d, actual: %d", expected, actual)
 			}
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id1, Score: rec1},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -54,8 +54,8 @@ func TestLRU_Add(t *testing.T) {
 	})
 
 	t.Run("adding sorts keys", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2, rec3 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2, rec3 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -67,10 +67,10 @@ func TestLRU_Add(t *testing.T) {
 
 			l.Add(id0, rec3)
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
-				selectors.FieldScore{Field: id0, Score: rec3},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
+				selectors.FieldValueScore{Field: id0, Value: rec3.Value, Score: rec3.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -88,8 +88,8 @@ func TestLRU_Get(t *testing.T) {
 	t.Parallel()
 
 	t.Run("get", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -104,7 +104,7 @@ func TestLRU_Get(t *testing.T) {
 			if expected, actual := true, ok; expected != actual {
 				t.Errorf("expected: %t, actual: %t", expected, actual)
 			}
-			if expected, actual := rec0, value; expected != actual {
+			if expected, actual := rec0, value; !expected.Equal(actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
@@ -116,8 +116,8 @@ func TestLRU_Get(t *testing.T) {
 	})
 
 	t.Run("get sorts keys", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -129,10 +129,10 @@ func TestLRU_Get(t *testing.T) {
 
 			l.Get(id0)
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
-				selectors.FieldScore{Field: id0, Score: rec0},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
+				selectors.FieldValueScore{Field: id0, Value: rec0.Value, Score: rec0.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -150,8 +150,8 @@ func TestLRU_Peek(t *testing.T) {
 	t.Parallel()
 
 	t.Run("peek", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -166,7 +166,7 @@ func TestLRU_Peek(t *testing.T) {
 			if expected, actual := true, ok; expected != actual {
 				t.Errorf("expected: %t, actual: %t", expected, actual)
 			}
-			if expected, actual := rec0, value; expected != actual {
+			if expected, actual := rec0, value; !expected.Equal(actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
@@ -178,8 +178,8 @@ func TestLRU_Peek(t *testing.T) {
 	})
 
 	t.Run("peek does not sorts keys", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -191,10 +191,10 @@ func TestLRU_Peek(t *testing.T) {
 
 			l.Peek(id0)
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id0, Score: rec0},
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id0, Value: rec0.Value, Score: rec0.Score},
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -212,8 +212,8 @@ func TestLRU_Contains(t *testing.T) {
 	t.Parallel()
 
 	t.Run("contains", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -237,8 +237,8 @@ func TestLRU_Contains(t *testing.T) {
 	})
 
 	t.Run("does not contains", func(t *testing.T) {
-		fn := func(id0, id1, id2, id3 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2, id3 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -266,9 +266,9 @@ func TestLRU_Remove(t *testing.T) {
 	t.Parallel()
 
 	t.Run("removes key value pair", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				if expected, actual := id0, k; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
@@ -288,9 +288,9 @@ func TestLRU_Remove(t *testing.T) {
 				t.Errorf("expected: %d, actual: %d", expected, actual)
 			}
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -308,7 +308,7 @@ func TestLRU_Pop(t *testing.T) {
 	t.Parallel()
 
 	t.Run("pop on empty", func(t *testing.T) {
-		onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 			t.Fatal("failed if called")
 		}
 
@@ -322,9 +322,9 @@ func TestLRU_Pop(t *testing.T) {
 	})
 
 	t.Run("pop", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				if expected, actual := id0, k; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
@@ -350,7 +350,7 @@ func TestLRU_Pop(t *testing.T) {
 			if expected, actual := id0, key; !expected.Equal(actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
-			if expected, actual := rec0, value; expected != actual {
+			if expected, actual := rec0, value; !expected.Equal(actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
@@ -362,9 +362,9 @@ func TestLRU_Pop(t *testing.T) {
 	})
 
 	t.Run("pop results", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				if expected, actual := id0, k; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
@@ -384,9 +384,9 @@ func TestLRU_Pop(t *testing.T) {
 				t.Errorf("expected: %d, actual: %d", expected, actual)
 			}
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -404,9 +404,9 @@ func TestLRU_Purge(t *testing.T) {
 	t.Parallel()
 
 	t.Run("purge", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				evictted += 1
 			}
 
@@ -416,10 +416,10 @@ func TestLRU_Purge(t *testing.T) {
 			l.Add(id1, rec1)
 			l.Add(id2, rec2)
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id0, Score: rec0},
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id0, Value: rec0.Value, Score: rec0.Score},
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -430,7 +430,7 @@ func TestLRU_Purge(t *testing.T) {
 			if expected, actual := 3, evictted; expected != actual {
 				t.Errorf("expected: %d, actual: %d", expected, actual)
 			}
-			values = []selectors.FieldScore{}
+			values = []selectors.FieldValueScore{}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
@@ -446,8 +446,8 @@ func TestLRU_Keys(t *testing.T) {
 	t.Parallel()
 
 	t.Run("keys", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -475,8 +475,8 @@ func TestLRU_Keys(t *testing.T) {
 	})
 
 	t.Run("keys after get", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				t.Fatal("failed if called")
 			}
 
@@ -510,9 +510,9 @@ func TestLRU_Dequeue(t *testing.T) {
 	t.Parallel()
 
 	t.Run("dequeue", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				evictted += 1
 			}
 
@@ -522,16 +522,16 @@ func TestLRU_Dequeue(t *testing.T) {
 			l.Add(id1, rec1)
 			l.Add(id2, rec2)
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id0, Score: rec0},
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id0, Value: rec0.Value, Score: rec0.Score},
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
-			got, err := l.Dequeue(func(key selectors.Field, value int64) error {
+			got, err := l.Dequeue(func(key selectors.Field, value selectors.ValueScore) error {
 				return nil
 			})
 			if expected, actual := true, err == nil; expected != actual {
@@ -545,7 +545,7 @@ func TestLRU_Dequeue(t *testing.T) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
-			values = []selectors.FieldScore{}
+			values = []selectors.FieldValueScore{}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
@@ -557,9 +557,9 @@ func TestLRU_Dequeue(t *testing.T) {
 	})
 
 	t.Run("dequeue with error", func(t *testing.T) {
-		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 int64) bool {
+		fn := func(id0, id1, id2 selectors.Field, rec0, rec1, rec2 selectors.ValueScore) bool {
 			evictted := 0
-			onEviction := func(reason lru.EvictionReason, k selectors.Field, v int64) {
+			onEviction := func(reason lru.EvictionReason, k selectors.Field, v selectors.ValueScore) {
 				evictted += 1
 			}
 
@@ -569,16 +569,16 @@ func TestLRU_Dequeue(t *testing.T) {
 			l.Add(id1, rec1)
 			l.Add(id2, rec2)
 
-			values := []selectors.FieldScore{
-				selectors.FieldScore{Field: id0, Score: rec0},
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values := []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id0, Value: rec0.Value, Score: rec0.Score},
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
-			got, err := l.Dequeue(func(key selectors.Field, value int64) error {
+			got, err := l.Dequeue(func(key selectors.Field, value selectors.ValueScore) error {
 				if key.Equal(id1) {
 					return errors.New("bad")
 				}
@@ -592,16 +592,16 @@ func TestLRU_Dequeue(t *testing.T) {
 				t.Errorf("expected: %d, actual: %d", expected, actual)
 			}
 
-			values = []selectors.FieldScore{
-				selectors.FieldScore{Field: id0, Score: rec0},
+			values = []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id0, Value: rec0.Value, Score: rec0.Score},
 			}
 			if expected, actual := values, got; !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 
-			values = []selectors.FieldScore{
-				selectors.FieldScore{Field: id1, Score: rec1},
-				selectors.FieldScore{Field: id2, Score: rec2},
+			values = []selectors.FieldValueScore{
+				selectors.FieldValueScore{Field: id1, Value: rec1.Value, Score: rec1.Score},
+				selectors.FieldValueScore{Field: id2, Value: rec2.Value, Score: rec2.Score},
 			}
 			if expected, actual := values, l.Slice(); !reflect.DeepEqual(expected, actual) {
 				t.Errorf("expected: %v, actual: %v", expected, actual)

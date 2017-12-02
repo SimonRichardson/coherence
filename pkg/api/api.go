@@ -205,8 +205,8 @@ func (a *API) handleSelect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure we collect the document for the result.
-	qr := FieldScoreQueryResult{Errors: a.errors, Params: qp}
-	qr.FieldScore = member
+	qr := FieldValueScoreQueryResult{Errors: a.errors, Params: qp}
+	qr.FieldValueScore = member
 
 	// Finish
 	qr.Duration = time.Since(begin).String()
@@ -312,7 +312,7 @@ func (iw *interceptingWriter) WriteHeader(code int) {
 	iw.ResponseWriter.WriteHeader(code)
 }
 
-func ingestMembers(reader io.ReadCloser) ([]selectors.FieldScore, error) {
+func ingestMembers(reader io.ReadCloser) ([]selectors.FieldValueScore, error) {
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, err
@@ -336,5 +336,5 @@ func ingestMembers(reader io.ReadCloser) ([]selectors.FieldScore, error) {
 
 // MembersInput defines a simple type for marshalling and unmarshalling members
 type MembersInput struct {
-	Members []selectors.FieldScore `json:"members"`
+	Members []selectors.FieldValueScore `json:"members"`
 }

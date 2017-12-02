@@ -156,6 +156,30 @@ func (qr *FieldScoreQueryResult) EncodeTo(w http.ResponseWriter) {
 	}
 }
 
+// FieldValueScoreQueryResult contains statistics about the query.
+type FieldValueScoreQueryResult struct {
+	Errors          errs.Error
+	Params          KeyFieldQueryParams       `json:"query"`
+	Duration        string                    `json:"duration"`
+	FieldValueScore selectors.FieldValueScore `json:"fieldValueScore"`
+}
+
+// EncodeTo encodes the FieldValueScoreQueryResult to the HTTP response writer.
+func (qr *FieldValueScoreQueryResult) EncodeTo(w http.ResponseWriter) {
+	w.Header().Set(httpHeaderContentType, defaultContentType)
+	w.Header().Set(httpHeaderDuration, qr.Duration)
+	w.Header().Set(httpHeaderKey, qr.Params.Key().String())
+	w.Header().Set(httpHeaderField, qr.Params.Field().String())
+
+	if err := json.NewEncoder(w).Encode(struct {
+		Records selectors.FieldValueScore `json:"records"`
+	}{
+		Records: qr.FieldValueScore,
+	}); err != nil {
+		qr.Errors.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
 const (
 	httpHeaderContentType = "Content-Type"
 	httpHeaderDuration    = "X-Duration"

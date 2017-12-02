@@ -3,27 +3,27 @@ package farm
 import "github.com/trussle/coherence/pkg/selectors"
 
 // TupleSet defines unique map of KeyField values
-type TupleSet map[selectors.FieldScore]struct{}
+type TupleSet map[selectors.FieldScore]selectors.ValueScore
 
 // MakeTupleSet creates a new TupleSet with the results
-func MakeTupleSet(members []selectors.FieldScore) TupleSet {
+func MakeTupleSet(members []selectors.FieldValueScore) TupleSet {
 	m := make(TupleSet)
 	for _, v := range members {
-		m[v] = struct{}{}
+		m[v.FieldScore()] = v.ValueScore()
 	}
 	return m
 }
 
 // UnionDifference returns the union and difference from a slice of TupleSets
-func UnionDifference(sets []TupleSet) ([]selectors.FieldScore, []selectors.FieldScore) {
+func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.FieldValueScore) {
 	var (
-		scores = make(map[selectors.FieldScore]int64)
+		scores = make(map[selectors.FieldScore]selectors.ValueScore)
 		counts = make(map[selectors.FieldScore]int)
 	)
 
 	// Aggregate all the tuple sets together.
 	for _, set := range sets {
-		for tuple := range set {
+		for tuple, value := range set {
 			// Check the score is greater than zero, if not, we should skip it.
 			if tuple.Score < 0 {
 				continue
@@ -35,8 +35,11 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldScore, []selectors.Field
 				Score: tuple.Score,
 			}
 
-			if score, ok := scores[member]; !ok || member.Score > score {
-				scores[member] = tuple.Score
+			if vs, ok := scores[member]; !ok || member.Score > vs.Score {
+				scores[member] = selectors.ValueScore{
+					Value: value.Value,
+					Score: tuple.Score,
+				}
 			}
 
 			// difference
@@ -46,14 +49,15 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldScore, []selectors.Field
 
 	var (
 		index      int
-		union      = make([]selectors.FieldScore, len(scores))
-		difference = make([]selectors.FieldScore, len(counts))
+		union      = make([]selectors.FieldValueScore, len(scores))
+		difference = make([]selectors.FieldValueScore, len(counts))
 	)
 
-	for member, score := range scores {
-		union[index] = selectors.FieldScore{
+	for member, value := range scores {
+		union[index] = selectors.FieldValueScore{
 			Field: member.Field,
-			Score: score,
+			Value: value.Value,
+			Score: value.Score,
 		}
 		index++
 	}
@@ -61,14 +65,11 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldScore, []selectors.Field
 	index = 0
 	for member, count := range counts {
 		if count < len(sets) {
-			score := member.Score
-			if s, ok := scores[member]; ok {
-				score = s
-			}
-
-			difference[index] = selectors.FieldScore{
+			vs := scores[member]
+			difference[index] = selectors.FieldValueScore{
 				Field: member.Field,
-				Score: score,
+				Value: vs.Value,
+				Score: vs.Score,
 			}
 			index++
 		}
@@ -77,13 +78,14 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldScore, []selectors.Field
 	return union, difference
 }
 
-// FieldScoresToKeyField converts a slice of members to a slice of KeyField
-func FieldScoresToKeyField(key selectors.Key, members []selectors.FieldScore) []selectors.KeyField {
-	res := make([]selectors.KeyField, len(members))
+// FieldValueScoresToKeyField converts a slice of members to a slice of KeyField
+func FieldValueScoresToKeyField(key selectors.Key, members []selectors.FieldValueScore) []selectors.KeyFieldValue {
+	res := make([]selectors.KeyFieldValue, len(members))
 	for k, v := range members {
-		res[k] = selectors.KeyField{
+		res[k] = selectors.KeyFieldValue{
 			Key:   key,
 			Field: v.Field,
+			Value: v.Value,
 		}
 	}
 	return res

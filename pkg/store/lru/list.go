@@ -6,7 +6,7 @@ import (
 
 type element struct {
 	key   selectors.Field
-	value int64
+	value selectors.ValueScore
 
 	next, prev *element
 	list       *list
@@ -51,7 +51,7 @@ func (l *list) Remove(e *element) bool {
 }
 
 // Walk iterates over the list with a key, value
-func (l *list) Walk(fn func(selectors.Field, int64) error) error {
+func (l *list) Walk(fn func(selectors.Field, selectors.ValueScore) error) error {
 	for elem := l.Back(); elem != nil; elem = elem.Prev() {
 		if err := fn(elem.key, elem.value); err != nil {
 			return err
