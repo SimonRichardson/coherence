@@ -1,6 +1,7 @@
 package nodes
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -119,7 +120,11 @@ func (n *NodeSet) updateNodes(hosts []string) {
 	// Add any new nodes that could be missing
 	for _, v := range hosts {
 		if _, ok := m[v]; !ok && v != address {
-			m[v] = NewRemote(client.New(cleanhttp.DefaultPooledClient(), v))
+			var (
+				url    = fmt.Sprintf("http://%s", v)
+				client = client.New(cleanhttp.DefaultPooledClient(), url)
+			)
+			m[v] = NewRemote(client)
 		}
 	}
 

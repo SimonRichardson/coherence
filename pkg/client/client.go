@@ -38,7 +38,7 @@ func New(client *http.Client, host string) *Client {
 func (c *Client) Get(u string) (b []byte, err error) {
 	err = c.circuit.Run(func() error {
 
-		resp, err := c.client.Get(fmt.Sprintf("http://%s%s", c.host, u))
+		resp, err := c.client.Get(fmt.Sprintf("%s%s", c.host, u))
 		if err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func (c *Client) Get(u string) (b []byte, err error) {
 func (c *Client) Post(u string, p []byte) (b []byte, err error) {
 	err = c.circuit.Run(func() error {
 
-		resp, err := c.client.Post(fmt.Sprintf("http://%s%s", c.host, u), "application/javascript", bytes.NewReader(p))
+		resp, err := c.client.Post(fmt.Sprintf("%s%s", c.host, u), "application/javascript", bytes.NewReader(p))
 		if err != nil {
 			return err
 		}
