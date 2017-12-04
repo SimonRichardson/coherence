@@ -30,10 +30,10 @@ func (b *Bucket) Insert(field selectors.Field, value selectors.ValueScore) (sele
 	defer b.mutex.Unlock()
 
 	// If we've already got a larger score, this is a nop!
-	if v, ok := b.insert.Peek(field); ok && v.Score >= value.Score {
+	if v, ok := b.insert.Get(field); ok && v.Score >= value.Score {
 		return successChangeSet(field, value), nil
 	}
-	if v, ok := b.delete.Peek(field); ok && v.Score >= value.Score {
+	if v, ok := b.delete.Get(field); ok && v.Score >= value.Score {
 		return successChangeSet(field, value), nil
 	}
 
@@ -51,10 +51,10 @@ func (b *Bucket) Delete(field selectors.Field, value selectors.ValueScore) (sele
 	defer b.mutex.Unlock()
 
 	// If we've already got a larger score, this is a nop!
-	if v, ok := b.insert.Peek(field); ok && v.Score >= value.Score {
+	if v, ok := b.insert.Get(field); ok && v.Score >= value.Score {
 		return successChangeSet(field, value), nil
 	}
-	if v, ok := b.delete.Peek(field); ok && v.Score >= value.Score {
+	if v, ok := b.delete.Get(field); ok && v.Score >= value.Score {
 		return successChangeSet(field, value), nil
 	}
 
@@ -71,7 +71,7 @@ func (b *Bucket) Select(field selectors.Field) (selectors.FieldValueScore, error
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	if v, ok := b.insert.Peek(field); ok {
+	if v, ok := b.insert.Get(field); ok {
 		return selectors.FieldValueScore{
 			Field: field,
 			Value: v.Value,
