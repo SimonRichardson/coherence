@@ -38,12 +38,19 @@ func (m *memory) Insert(key selectors.Key, member selectors.FieldValueScore) (se
 }
 
 func (m *memory) Delete(key selectors.Key, member selectors.FieldValueScore) (selectors.ChangeSet, error) {
-	if _, ok := m.keys[key]; !ok {
-		m.keys[key] = struct{}{}
+	index := uint(key.Hash()) % m.size
+	changeSet, err := m.buckets[index].Delete(member.Field, member.ValueScore())
+	if err != nil {
+		return changeSet, err
 	}
 
-	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Delete(member.Field, member.ValueScore())
+	if amount, err := m.buckets[index].Len(); err != nil {
+		return changeSet, err
+	} else if amount == 0 {
+		delete(m.keys, key)
+	}
+
+	return changeSet, nil
 }
 
 func (m *memory) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
