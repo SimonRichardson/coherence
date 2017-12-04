@@ -15,8 +15,10 @@ func TestRealMembers_Integration(t *testing.T) {
 	t.Parallel()
 
 	config, err := Build(
+		WithAPIAddrPort("0.0.0.0", 8079),
 		WithBindAddrPort("0.0.0.0", 8080),
 		WithLogOutput(ioutil.Discard),
+		WithNodeName("peer"),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -111,7 +113,7 @@ func TestRealMembers_Integration(t *testing.T) {
 		})
 
 		want := []PeerInfo{
-			PeerInfo{Type: PeerType(""), APIAddr: "0.0.0.0", APIPort: 8080},
+			PeerInfo{Type: PeerType(""), Name: "peer", APIAddr: "0.0.0.0", APIPort: 8079},
 		}
 		if expected, actual := want, got; !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
