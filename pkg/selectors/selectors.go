@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/trussle/harness/generators"
+
 	"github.com/spaolacci/murmur3"
 )
 
@@ -38,6 +40,11 @@ func (k Key) Hash() uint32 {
 	return murmur3.Sum32([]byte(k))
 }
 
+// Generate allows Field to be used within quickcheck scenarios.
+func (Key) Generate(r *rand.Rand, size int) reflect.Value {
+	return reflect.ValueOf(Key(generateASCIIString(r, size)))
+}
+
 func (k Key) String() string {
 	return string(k)
 }
@@ -68,7 +75,7 @@ func (f *Field) UnmarshalJSON(data []byte) error {
 
 // Generate allows Field to be used within quickcheck scenarios.
 func (Field) Generate(r *rand.Rand, size int) reflect.Value {
-	s := generateString(r, size)
+	s := generateASCIIString(r, size)
 	return reflect.ValueOf(Field(s))
 }
 
@@ -78,6 +85,10 @@ func generateString(r *rand.Rand, size int) string {
 		panic(err)
 	}
 	return string(v)
+}
+
+func generateASCIIString(r *rand.Rand, size int) string {
+	return generators.GenerateString(r, size)
 }
 
 func (f Field) String() string {
@@ -142,7 +153,7 @@ func (FieldValueScore) Generate(r *rand.Rand, size int) reflect.Value {
 		panic(err)
 	}
 	return reflect.ValueOf(FieldValueScore{
-		Field: Field(generateString(r, size)),
+		Field: Field(generateASCIIString(r, size)),
 		Value: v,
 		Score: 0,
 	})

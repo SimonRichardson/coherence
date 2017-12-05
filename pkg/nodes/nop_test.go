@@ -24,7 +24,7 @@ func TestNopInsert(t *testing.T) {
 					Failure: extractFields(members),
 				}
 
-				if expected, actual := want, changeSet; !expected.Equal(changeSet) {
+				if expected, actual := want, changeSet; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
 
@@ -58,7 +58,7 @@ func TestNopDelete(t *testing.T) {
 					Failure: extractFields(members),
 				}
 
-				if expected, actual := want, changeSet; !expected.Equal(changeSet) {
+				if expected, actual := want, changeSet; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
 
@@ -93,7 +93,7 @@ func TestNopSelect(t *testing.T) {
 					Score: -1,
 				}
 
-				if expected, actual := want, result; !expected.Equal(result) {
+				if expected, actual := want, result; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
 				}
 
