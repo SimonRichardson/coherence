@@ -48,6 +48,11 @@ pkg/nodes/mocks/node.go:
 	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/nodes/mocks/node.go
 
+pkg/store/mocks/store.go:
+	mockgen -package=mocks -destination=pkg/store/mocks/store.go ${PATH_COHERENCE}/pkg/store Store
+	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/store/mocks/store.go
+
+
 .PHONY: build-mocks
 build-mocks: FORCE
 	@ $(MAKE) pkg/cluster/mocks/peer.go
@@ -56,6 +61,7 @@ build-mocks: FORCE
 	@ $(MAKE) pkg/metrics/mocks/metrics.go
 	@ $(MAKE) pkg/metrics/mocks/observer.go
 	@ $(MAKE) pkg/nodes/mocks/node.go
+	@ $(MAKE) pkg/store/mocks/store.go
 	
 .PHONY: clean-mocks
 clean-mocks: FORCE
@@ -65,6 +71,7 @@ clean-mocks: FORCE
 	rm -f pkg/metrics/mocks/metrics.go
 	rm -f pkg/metrics/mocks/observer.go
 	rm -f pkg/nodes/mocks/node.go
+	rm -f pkg/store/mocks/store.go
 
 .PHONY: clean
 clean: FORCE
