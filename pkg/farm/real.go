@@ -3,16 +3,24 @@ package farm
 import (
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
 	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
+const (
+	defaultFailureRate    = 3
+	defaultFailureTimeout = time.Second
+)
+
 type real struct {
 	nodes          *nodes.NodeSet
 	repairStrategy *repairStrategy
+	circuit        *breaker.CircuitBreaker
 }
 
 // NewRealFarm creates a farm that talks to various nodes
@@ -20,12 +28,18 @@ func NewRealFarm(nodes *nodes.NodeSet) Farm {
 	return &real{
 		nodes:          nodes,
 		repairStrategy: &repairStrategy{nodes},
+		circuit:        breaker.New(defaultFailureRate, defaultFailureTimeout),
 	}
 }
 
 func (r *real) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
-	changeSet, err := r.write(func(n nodes.Node) <-chan selectors.Element {
-		return n.Insert(key, members)
+	var changeSet selectors.ChangeSet
+	err := r.circuit.Run(func() error {
+		var err error
+		changeSet, err = r.write(func(n nodes.Node) <-chan selectors.Element {
+			return n.Insert(key, members)
+		})
+		return err
 	})
 	if PartialError(err) {
 		go r.Repair(mergeKeyFieldMembers(key, changeSet.Failure, members))
@@ -34,8 +48,13 @@ func (r *real) Insert(key selectors.Key, members []selectors.FieldValueScore) (s
 }
 
 func (r *real) Delete(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
-	changeSet, err := r.write(func(n nodes.Node) <-chan selectors.Element {
-		return n.Delete(key, members)
+	var changeSet selectors.ChangeSet
+	err := r.circuit.Run(func() error {
+		var err error
+		changeSet, err = r.write(func(n nodes.Node) <-chan selectors.Element {
+			return n.Delete(key, members)
+		})
+		return err
 	})
 	if PartialError(err) {
 		go r.Repair(mergeKeyFieldMembers(key, changeSet.Failure, members))
