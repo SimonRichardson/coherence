@@ -111,7 +111,7 @@ func (n *NodeSet) updateNodes(hosts []string) {
 	for _, v := range n.nodes {
 		if r, ok := v.(remoteNode); ok {
 			if host := r.Host(); contains(hosts, host) {
-				m[r.Host()] = v
+				m[host] = v
 			}
 		}
 	}
@@ -124,7 +124,7 @@ func (n *NodeSet) updateNodes(hosts []string) {
 				url    = fmt.Sprintf("http://%s", v)
 				client = client.New(cleanhttp.DefaultPooledClient(), url)
 			)
-			m[v] = NewRemote(client)
+			m[url] = NewRemote(client)
 		}
 	}
 
@@ -142,7 +142,7 @@ func (n *NodeSet) updateNodes(hosts []string) {
 
 func contains(a []string, b string) bool {
 	for _, v := range a {
-		if v == b {
+		if fmt.Sprintf("http://%s", v) == b {
 			return true
 		}
 	}
