@@ -84,7 +84,11 @@ func (nop) Score(selectors.Key, selectors.Field) <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewPresenceElement(selectors.Presence{})
+		ch <- selectors.NewPresenceElement(selectors.Presence{
+			Inserted: false,
+			Present:  false,
+			Score:    -1,
+		})
 	}()
 	return ch
 }

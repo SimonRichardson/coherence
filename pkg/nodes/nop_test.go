@@ -199,3 +199,38 @@ func TestNopMembers(t *testing.T) {
 		}
 	})
 }
+
+func TestNopScore(t *testing.T) {
+	t.Parallel()
+
+	t.Run("members", func(t *testing.T) {
+		fn := func(key selectors.Key, field selectors.Field) bool {
+			node := NewNop()
+			ch := node.Score(key, field)
+
+			var found bool
+			for element := range ch {
+				if err := selectors.ErrorFromElement(element); err != nil {
+					t.Error(err)
+				}
+				result := selectors.PresenceFromElement(element)
+				want := selectors.Presence{
+					Inserted: false,
+					Present:  false,
+					Score:    -1,
+				}
+
+				if expected, actual := want, result; !expected.Equal(actual) {
+					t.Errorf("expected: %v, actual: %v", expected, actual)
+				}
+
+				found = true
+			}
+
+			return found
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+}
