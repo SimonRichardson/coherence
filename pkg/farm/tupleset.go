@@ -1,6 +1,8 @@
 package farm
 
-import "github.com/trussle/coherence/pkg/selectors"
+import (
+	"github.com/trussle/coherence/pkg/selectors"
+)
 
 // TupleSet defines unique map of KeyField values
 type TupleSet map[selectors.FieldScore]selectors.ValueScore
@@ -17,8 +19,9 @@ func MakeTupleSet(members []selectors.FieldValueScore) TupleSet {
 // UnionDifference returns the union and difference from a slice of TupleSets
 func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.FieldValueScore) {
 	var (
-		scores = make(map[selectors.FieldScore]selectors.ValueScore)
-		counts = make(map[selectors.FieldScore]int)
+		expectedCount = len(sets)
+		scores        = make(map[selectors.Field]selectors.ValueScore)
+		counts        = make(map[selectors.Field]int)
 	)
 
 	// Aggregate all the tuple sets together.
@@ -30,12 +33,8 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.
 			}
 
 			// union
-			member := selectors.FieldScore{
-				Field: tuple.Field,
-				Score: tuple.Score,
-			}
-
-			if vs, ok := scores[member]; !ok || member.Score > vs.Score {
+			member := tuple.Field
+			if vs, ok := scores[member]; !ok || tuple.Score > vs.Score {
 				scores[member] = selectors.ValueScore{
 					Value: value.Value,
 					Score: tuple.Score,
@@ -48,30 +47,30 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.
 	}
 
 	var (
-		index      int
-		union      = make([]selectors.FieldValueScore, len(scores))
-		difference = make([]selectors.FieldValueScore, len(counts))
+		union      = make([]selectors.FieldValueScore, 0)
+		difference = make([]selectors.FieldValueScore, 0)
 	)
 
 	for member, value := range scores {
-		union[index] = selectors.FieldValueScore{
-			Field: member.Field,
-			Value: value.Value,
-			Score: value.Score,
+		if count, ok := counts[member]; ok && consensus(expectedCount, count) {
+			union = append(union, selectors.FieldValueScore{
+				Field: member,
+				Value: value.Value,
+				Score: value.Score,
+			})
 		}
-		index++
 	}
 
-	index = 0
 	for member, count := range counts {
-		if count < len(sets) {
+		// Drop anything that has only ever been replicated to one node
+		if count < expectedCount && consensus(expectedCount, count) {
 			vs := scores[member]
-			difference[index] = selectors.FieldValueScore{
-				Field: member.Field,
+
+			difference = append(difference, selectors.FieldValueScore{
+				Field: member,
 				Value: vs.Value,
 				Score: vs.Score,
-			}
-			index++
+			})
 		}
 	}
 
