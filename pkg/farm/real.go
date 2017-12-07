@@ -18,13 +18,13 @@ const (
 )
 
 type real struct {
-	nodes          *nodes.NodeSet
+	nodes          nodes.Snapshot
 	repairStrategy *repairStrategy
 	circuit        *breaker.CircuitBreaker
 }
 
-// NewRealFarm creates a farm that talks to various nodes
-func NewRealFarm(nodes *nodes.NodeSet) Farm {
+// NewReal creates a farm that talks to various nodes
+func NewReal(nodes nodes.Snapshot) Farm {
 	return &real{
 		nodes:          nodes,
 		repairStrategy: &repairStrategy{nodes},

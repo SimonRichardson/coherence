@@ -29,6 +29,16 @@ const (
 	defaultIterationTime = time.Second
 )
 
+// Snapshot defines a way to snapshot a series of nodes at a specific time.
+type Snapshot interface {
+
+	// Snapshot returns a set of nodes in a specific time. Nodes which are used from
+	// the Snapshot are not guaranteed to succeed for longer than their purpose.
+	// It is not recommended to store the nodes locally as they may not be the same
+	// nodes over time.
+	Snapshot() []Node
+}
+
 // NodeSet represents a set of nodes with in the cluster
 type NodeSet struct {
 	mutex sync.RWMutex

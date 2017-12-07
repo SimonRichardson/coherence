@@ -9,7 +9,7 @@ import (
 )
 
 type repairStrategy struct {
-	nodes *nodes.NodeSet
+	nodes nodes.Snapshot
 }
 
 func (r *repairStrategy) Repair(members []selectors.KeyFieldValue) error {

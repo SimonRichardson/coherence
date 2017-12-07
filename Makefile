@@ -45,7 +45,7 @@ pkg/metrics/mocks/observer.go:
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/metrics/mocks/observer.go
 
 pkg/nodes/mocks/node.go:
-	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node
+	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node,Snapshot
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/nodes/mocks/node.go
 
 pkg/store/mocks/store.go:

@@ -9,7 +9,7 @@ import (
 type nop struct{}
 
 // NewNopFarm creates a new nop farm
-func NewNopFarm() Farm {
+func NewNop() Farm {
 	return nop{}
 }
 
