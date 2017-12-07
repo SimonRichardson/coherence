@@ -154,7 +154,6 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		notFound      = make(chan struct{})
 		internalError = make(chan error)
 		result        = make(chan selectors.ChangeSet)
 	)
@@ -166,14 +165,12 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 				internalError <- err
 				return
 			}
-			changeSet.Append(res)
+			changeSet = changeSet.Append(res)
 		}
 		result <- changeSet
 	}
 
 	select {
-	case <-notFound:
-		a.errors.Error(w, "not found", http.StatusNotFound)
 	case err := <-internalError:
 		a.errors.Error(w, err.Error(), http.StatusInternalServerError)
 	case changeSet := <-result:
@@ -400,10 +397,6 @@ func ingestMembers(reader io.ReadCloser) ([]selectors.FieldValueScore, error) {
 	var input MembersInput
 	if err = json.Unmarshal(bytes, &input); err != nil {
 		return nil, err
-	}
-
-	if len(input.Members) == 0 {
-		return nil, errors.New("no members")
 	}
 
 	return input.Members, nil

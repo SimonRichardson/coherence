@@ -226,9 +226,31 @@ func (c ChangeSet) Equal(v ChangeSet) bool {
 // Append a new ChangeSet to the existing ChangeSet
 func (c ChangeSet) Append(v ChangeSet) ChangeSet {
 	return ChangeSet{
-		Success: append(c.Success, v.Success...),
-		Failure: append(c.Failure, v.Failure...),
+		Success: unique(c.Success, v.Success),
+		Failure: unique(c.Failure, v.Failure),
 	}
+}
+
+func unique(a, b []Field) []Field {
+	x := make(map[Field]struct{})
+	for _, v := range a {
+		x[v] = struct{}{}
+	}
+
+	for _, v := range b {
+		x[v] = struct{}{}
+	}
+
+	var (
+		index int
+		res   = make([]Field, len(x))
+	)
+	for k := range x {
+		res[index] = k
+		index++
+	}
+
+	return res
 }
 
 func fieldsEqual(a, b []Field) bool {
