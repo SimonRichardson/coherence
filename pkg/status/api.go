@@ -8,9 +8,9 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/trussle/coherence/pkg/cache"
 	errs "github.com/trussle/coherence/pkg/http"
 	"github.com/trussle/coherence/pkg/metrics"
+	"github.com/trussle/coherence/pkg/store"
 )
 
 // These are the status API URL paths.
@@ -21,7 +21,7 @@ const (
 
 // API serves the status API
 type API struct {
-	cache    cache.Cache
+	store    store.Store
 	logger   log.Logger
 	clients  metrics.Gauge
 	duration metrics.HistogramVec
@@ -29,13 +29,13 @@ type API struct {
 }
 
 // NewAPI creates a API with the correct dependencies.
-func NewAPI(cache cache.Cache,
+func NewAPI(store store.Store,
 	logger log.Logger,
 	clients metrics.Gauge,
 	duration metrics.HistogramVec,
 ) *API {
 	return &API{
-		cache:    cache,
+		store:    store,
 		logger:   logger,
 		clients:  clients,
 		duration: duration,
@@ -87,7 +87,11 @@ func (a *API) handleLiveness(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	w.WriteHeader(http.StatusOK)
+	if _, err := a.store.Keys(); err == nil {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
 	if err := json.NewEncoder(w).Encode(struct{}{}); err != nil {
 		a.errors.Error(w, err.Error(), http.StatusInternalServerError)

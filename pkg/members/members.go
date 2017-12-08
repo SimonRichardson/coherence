@@ -58,6 +58,9 @@ type Member interface {
 
 	// Name returns the name of the member
 	Name() string
+
+	// Address returns the host:port of the member
+	Address() string
 }
 
 // Config defines a configuration setup for creating a list to manage the
@@ -65,6 +68,8 @@ type Member interface {
 type Config struct {
 	peerType         PeerType
 	nodeName         string
+	apiAddr          string
+	apiPort          int
 	bindAddr         string
 	bindPort         int
 	advertiseAddr    string
@@ -102,6 +107,15 @@ func WithPeerType(peerType PeerType) Option {
 func WithNodeName(nodeName string) Option {
 	return func(config *Config) error {
 		config.nodeName = nodeName
+		return nil
+	}
+}
+
+// WithAPIAddrPort adds a APIAddr and APIPort to the configuration
+func WithAPIAddrPort(addr string, port int) Option {
+	return func(config *Config) error {
+		config.apiAddr = addr
+		config.apiPort = port
 		return nil
 	}
 }

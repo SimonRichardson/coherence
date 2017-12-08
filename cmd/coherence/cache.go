@@ -14,15 +14,18 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/trussle/coherence/pkg/cache"
+	"github.com/trussle/coherence/pkg/api"
 	"github.com/trussle/coherence/pkg/cluster"
+	"github.com/trussle/coherence/pkg/farm"
 	"github.com/trussle/coherence/pkg/members"
+	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/status"
+	"github.com/trussle/coherence/pkg/store"
 )
 
 const (
-	defaultCache               = "nop"
 	defaultCacheSize           = 1000
+	defaultCacheBuckets        = 10
 	defaultReplicationFactor   = 2
 	defaultMetricsRegistration = true
 )
@@ -36,8 +39,8 @@ func runCache(args []string) error {
 		apiAddr                = flags.String("api", defaultAPIAddr, "listen address for query API")
 		clusterBindAddr        = flags.String("cluster", defaultClusterAddr, "listen address for cluster")
 		clusterAdvertiseAddr   = flags.String("cluster.advertise-addr", "", "optional, explicit address to advertise in cluster")
-		cacheType              = flags.String("cache", defaultCache, "type of temporary cache to use (remote, virtual, nop)")
-		cacheSize              = flags.Int("cache.size", defaultCacheSize, "number items the cache should hold")
+		cacheSize              = flags.Uint("cache.size", defaultCacheSize, "number items the cache should hold")
+		cacheBuckets           = flags.Uint("cache.buckets", defaultCacheBuckets, "number of buckets to use with the cache")
 		cacheReplicationFactor = flags.Int("cache.replication.factor", defaultReplicationFactor, "replication factor for remote configuration")
 		metricsRegistration    = flags.Bool("metrics.registration", defaultMetricsRegistration, "Registration of metrics on launch")
 		clusterPeers           = stringslice{}
@@ -91,41 +94,71 @@ func runCache(args []string) error {
 	}
 	level.Debug(logger).Log("API", fmt.Sprintf("%s://%s", apiNetwork, apiAddress))
 
-	// Make sure that we need the remote config, before going a head and setting
-	// it up. It prevents allocations that aren't required.
-	var remoteCacheConfig *cache.RemoteConfig
-	if cache.RequiresRemoteConfig(*cacheType) {
-		remoteCacheConfig, err = configureRemoteCache(logger,
-			*cacheReplicationFactor,
-			*clusterBindAddr,
-			*clusterAdvertiseAddr,
-			clusterPeers.Slice(),
-		)
-		if err != nil {
-			return errors.Wrap(err, "cache remote config")
-		}
+	apiAddress, apiPort, err := parseClusterAddr(*apiAddr, defaultAPIPort)
+	if err != nil {
+		return err
 	}
 
-	cacheConfig, err := cache.Build(
-		cache.With(*cacheType),
-		cache.WithSize(*cacheSize),
-		cache.WithRemoteConfig(remoteCacheConfig),
+	peer, err := configureRemoteCache(logger,
+		*cacheReplicationFactor,
+		apiAddress, apiPort,
+		*clusterBindAddr,
+		*clusterAdvertiseAddr,
+		clusterPeers.Slice(),
 	)
 	if err != nil {
-		return errors.Wrap(err, "cache config")
+		return err
 	}
 
-	supervisor, err := cache.New(cacheConfig, log.With(logger, "component", "cache"))
-	if err != nil {
-		return errors.Wrap(err, "cache")
-	}
+	var (
+		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
+		nodeSet     = nodes.NewNodeSet(peer)
+		supervisor  = farm.NewReal(nodeSet)
+	)
 
 	// Execution group.
 	g := gexec.NewGroup()
 	gexec.Block(g)
 	{
+		cancel := make(chan struct{})
 		g.Add(func() error {
+			if _, err := peer.Join(); err != nil {
+				return err
+			}
+			<-cancel
+			return peer.Leave()
+		}, func(error) {
+			close(cancel)
+		})
+	}
+	{
+		g.Add(func() error {
+			nodeSet.Listen(func(reason nodes.Reason) {
+				level.Debug(logger).Log("component", "nodeset", "reason", reason.String())
+			})
+			return nodeSet.Run()
+		}, func(error) {
+			nodeSet.Stop()
+		})
+	}
+	{
+		g.Add(func() error {
+			storeAPI := api.NewAPI(
+				persistence,
+				log.With(logger, "component", "store_api"),
+				connectedClients.WithLabelValues("api"),
+				apiDuration,
+			)
+			defer storeAPI.Close()
+
 			mux := http.NewServeMux()
+			mux.Handle("/store/", http.StripPrefix("/store", storeAPI))
+			mux.Handle("/cache/", http.StripPrefix("/cache", api.NewAPI(
+				supervisor,
+				log.With(logger, "component", "cache_api"),
+				connectedClients.WithLabelValues("api"),
+				apiDuration,
+			)))
 			mux.Handle("/status/", http.StripPrefix("/status", status.NewAPI(
 				supervisor,
 				log.With(logger, "component", "status_api"),
@@ -147,9 +180,10 @@ func runCache(args []string) error {
 
 func configureRemoteCache(logger log.Logger,
 	replicationFactor int,
+	apiAddr string, apiPort int,
 	bindAddr, advertiseAddr string,
 	peers []string,
-) (*cache.RemoteConfig, error) {
+) (cluster.Peer, error) {
 	clusterBindHost, clusterBindPort, err := parseClusterAddr(bindAddr, defaultClusterPort)
 	if err != nil {
 		return nil, err
@@ -180,8 +214,10 @@ func configureRemoteCache(logger log.Logger,
 	cacheMembersConfig, err := members.Build(
 		members.WithPeerType(cluster.PeerTypeStore),
 		members.WithNodeName(uuid.New()),
-		members.WithBindAddrPort(clusterBindHost, clusterAdvertisePort),
+		members.WithAPIAddrPort(apiAddr, apiPort),
+		members.WithBindAddrPort(clusterBindHost, clusterBindPort),
 		members.WithAdvertiseAddrPort(clusterAdvertiseHost, clusterAdvertisePort),
+		members.WithExisting(peers),
 		members.WithLogOutput(membersLogOutput{
 			logger: log.With(logger, "component", "cluster"),
 		}),
@@ -195,10 +231,7 @@ func configureRemoteCache(logger log.Logger,
 		return nil, errors.Wrap(err, "members remote")
 	}
 
-	return cache.BuildConfig(
-		cache.WithReplicationFactor(replicationFactor),
-		cache.WithPeer(cluster.NewPeer(cacheMembers, log.With(logger, "component", "peer"))),
-	)
+	return cluster.NewPeer(cacheMembers, log.With(logger, "component", "peer")), nil
 }
 
 type membersLogOutput struct {

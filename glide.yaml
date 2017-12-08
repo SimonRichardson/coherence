@@ -30,3 +30,5 @@ import:
   - package: github.com/trussle/harness
     version: 2d32c1f9391a2d295c3fb6a769bf18e626251e4b
   - package: github.com/trussle/uuid
+  - package: github.com/spaolacci/murmur3
+  - package: github.com/hashicorp/go-cleanhttp

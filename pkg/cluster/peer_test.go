@@ -12,6 +12,7 @@ import (
 	"github.com/trussle/coherence/pkg/members"
 	"github.com/trussle/coherence/pkg/members/mocks"
 	"github.com/trussle/harness/generators"
+	"github.com/trussle/uuid"
 )
 
 func TestPeerType(t *testing.T) {
@@ -236,20 +237,35 @@ func TestPeer(t *testing.T) {
 	})
 
 	t.Run("current", func(t *testing.T) {
-		fn := func(hosts generators.ASCIISlice) bool {
+		fn := func(hosts generators.ASCIISlice, name generators.ASCII) bool {
+			hostStrings := hosts.Slice()
+			if len(hostStrings) == 0 {
+				return true
+			}
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			hostStrings := hosts.Slice()
+			member := mocks.NewMockMember(ctrl)
+			member.EXPECT().
+				Name().
+				Return(name.String())
+
+			memberList := mocks.NewMockMemberList(ctrl)
+			memberList.EXPECT().
+				LocalNode().
+				Return(member)
 
 			members := mocks.NewMockMembers(ctrl)
 			members.EXPECT().
+				MemberList().
+				Return(memberList)
+			members.EXPECT().
 				Walk(Func(hostStrings)).
-				Return(nil).
-				Times(1)
+				Return(nil)
 
 			p := NewPeer(members, log.NewNopLogger())
-			got, err := p.Current(PeerTypeStore)
+			got, err := p.Current(PeerTypeStore, false)
 
 			if expected, actual := true, err == nil; expected != actual {
 				t.Errorf("expected: %t, actual: %t", expected, actual)
@@ -279,6 +295,7 @@ func (m funcMatcher) Matches(x interface{}) bool {
 		for _, v := range m.hosts {
 			if err := fn(members.PeerInfo{
 				Type:    PeerTypeStore,
+				Name:    uuid.MustNew().String(),
 				APIAddr: v,
 				APIPort: 8080,
 			}); err != nil {

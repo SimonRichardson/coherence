@@ -13,6 +13,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	header = `
+██████╗ ██████╗ ██╗  ██╗███████╗██████╗ ███████╗███╗   ██╗ ██████╗███████╗
+██╔════╝██╔═══██╗██║  ██║██╔════╝██╔══██╗██╔════╝████╗  ██║██╔════╝██╔════╝
+██║     ██║   ██║███████║█████╗  ██████╔╝█████╗  ██╔██╗ ██║██║     █████╗  
+██║     ██║   ██║██╔══██║██╔══╝  ██╔══██╗██╔══╝  ██║╚██╗██║██║     ██╔══╝  
+╚██████╗╚██████╔╝██║  ██║███████╗██║  ██║███████╗██║ ╚████║╚██████╗███████╗
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝╚══════╝
+
+`
+)
+
 var version = "dev"
 
 const (
@@ -60,6 +72,7 @@ func main() {
 }
 
 func usage() {
+	fmt.Fprintf(os.Stderr, header)
 	fmt.Fprintf(os.Stderr, "USAGE\n")
 	fmt.Fprintf(os.Stderr, "  %s <mode> [flags]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\n")
@@ -92,6 +105,7 @@ func errorFor(fs *flagset.FlagSet, name string, err error) error {
 	defer usageFor(fs, name)()
 
 	if err != nil {
+		fmt.Fprintf(os.Stderr, header)
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "ERROR\n")
 		fmt.Fprintf(os.Stderr, "  %s\n", err.Error())

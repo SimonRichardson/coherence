@@ -90,6 +90,10 @@ func (r *realMember) Name() string {
 	return r.member.Name
 }
 
+func (r *realMember) Address() string {
+	return r.member.Address()
+}
+
 func transformConfig(config Config) *serf.Config {
 	c := serf.DefaultConfig()
 
@@ -100,14 +104,14 @@ func transformConfig(config Config) *serf.Config {
 		c.MemberlistConfig.AdvertiseAddr = config.advertiseAddr
 		c.MemberlistConfig.AdvertisePort = config.advertisePort
 	}
+	c.MemberlistConfig.LogOutput = config.logOutput
 	c.LogOutput = config.logOutput
 	c.BroadcastTimeout = config.broadcastTimeout
 	c.Tags = encodePeerInfoTag(PeerInfo{
 		Name:    config.nodeName,
 		Type:    config.peerType,
-		APIAddr: config.bindAddr,
-		APIPort: config.bindPort,
+		APIAddr: config.apiAddr,
+		APIPort: config.apiPort,
 	})
-
 	return c
 }
