@@ -7,7 +7,6 @@ import (
 
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 	"github.com/trussle/coherence/pkg/store"
@@ -400,10 +399,10 @@ func tactic(n []nodes.Node, fn func(k int, n nodes.Node)) error {
 func mapErrors(errs []error) error {
 	notFound := true
 	for _, v := range errs {
-		notFound = notFound && client.NotFoundError(v)
+		notFound = notFound && selectors.NotFoundError(v)
 	}
 	if notFound {
-		return client.NewNotFoundError(errors.New("not found"))
+		return selectors.NewNotFoundError(errors.New("not found"))
 	}
 	return errors.Wrapf(joinErrors(errs), "partial error")
 }

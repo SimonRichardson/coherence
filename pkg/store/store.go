@@ -32,20 +32,3 @@ type Store interface {
 	// Repair attempts to repair the store depending on the elements
 	Repair([]selectors.KeyFieldValue) error
 }
-
-type errNotFound struct {
-	err error
-}
-
-func (e errNotFound) Error() string {
-	return e.err.Error()
-}
-
-// NotFoundError finds if the error passed in, is actually a partial error or not
-func NotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-	_, ok := err.(errNotFound)
-	return ok
-}

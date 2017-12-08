@@ -300,7 +300,7 @@ func TestBucketDeletion(t *testing.T) {
 			}
 
 			_, err = bucket.Select(field)
-			return NotFoundError(err)
+			return selectors.NotFoundError(err)
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)

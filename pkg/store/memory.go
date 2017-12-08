@@ -3,6 +3,9 @@ package store
 import (
 	"strings"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
+
 	"github.com/pkg/errors"
 	"github.com/trussle/coherence/pkg/selectors"
 )
@@ -14,11 +17,12 @@ type memory struct {
 	size    uint
 	buckets []*Bucket
 	keys    map[selectors.Key]struct{}
+	logger  log.Logger
 }
 
 // New creates a new in-memory Store according to the size required by
 // the value requested.
-func New(amountBuckets, amountPerBucket uint) Store {
+func New(amountBuckets, amountPerBucket uint, logger log.Logger) Store {
 	buckets := make([]*Bucket, amountBuckets)
 	for k := range buckets {
 		buckets[k] = NewBucket(int(amountPerBucket))
@@ -28,6 +32,7 @@ func New(amountBuckets, amountPerBucket uint) Store {
 		size:    amountBuckets,
 		buckets: buckets,
 		keys:    make(map[selectors.Key]struct{}),
+		logger:  logger,
 	}
 }
 
@@ -84,6 +89,7 @@ func (m *memory) Delete(key selectors.Key, members []selectors.FieldValueScore) 
 
 func (m *memory) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
 	index := uint(key.Hash()) % m.size
+	level.Info(m.logger).Log("key", key, "index", index, "field", field)
 	return m.buckets[index].Select(field)
 }
 

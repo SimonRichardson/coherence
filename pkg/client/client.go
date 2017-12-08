@@ -9,6 +9,7 @@ import (
 
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/selectors"
 )
 
 const (
@@ -45,7 +46,7 @@ func (c *Client) Get(u string) (b []byte, err error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusNotFound {
-			return NewNotFoundError(errors.Errorf("invalid status code: %d", resp.StatusCode))
+			return selectors.NewNotFoundError(errors.Errorf("invalid status code: %d", resp.StatusCode))
 		}
 		if resp.StatusCode != http.StatusOK {
 			return errors.Errorf("invalid status code: %d", resp.StatusCode)
@@ -71,7 +72,7 @@ func (c *Client) Post(u string, p []byte) (b []byte, err error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusNotFound {
-			return NewNotFoundError(errors.Errorf("invalid status code: %d", resp.StatusCode))
+			return selectors.NewNotFoundError(errors.Errorf("invalid status code: %d", resp.StatusCode))
 		}
 		if resp.StatusCode != http.StatusOK {
 			return errors.Errorf("invalid status code: %d", resp.StatusCode)
@@ -87,26 +88,4 @@ func (c *Client) Post(u string, p []byte) (b []byte, err error) {
 // Host returns the associated host
 func (c *Client) Host() string {
 	return c.host
-}
-
-type errNotFound struct {
-	err error
-}
-
-// NewNotFoundError creates a new NotFoundError
-func NewNotFoundError(err error) error {
-	return errNotFound{err}
-}
-
-func (e errNotFound) Error() string {
-	return e.err.Error()
-}
-
-// NotFoundError finds if the error passed in, is actually a partial error or not
-func NotFoundError(err error) bool {
-	if err == nil {
-		return false
-	}
-	_, ok := err.(errNotFound)
-	return ok
 }

@@ -78,7 +78,7 @@ func (b *Bucket) Select(field selectors.Field) (selectors.FieldValueScore, error
 			Score: v.Score,
 		}, nil
 	}
-	return selectors.FieldValueScore{}, errNotFound{errors.New("not found")}
+	return selectors.FieldValueScore{}, selectors.NewNotFoundError(errors.New("not found"))
 }
 
 // Members defines a way to return all members

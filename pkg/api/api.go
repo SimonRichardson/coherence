@@ -242,7 +242,7 @@ func (a *API) handleSelect(w http.ResponseWriter, r *http.Request) {
 
 	member, err := a.store.Select(qp.Key(), qp.Field())
 	if err != nil {
-		if store.NotFoundError(err) {
+		if selectors.NotFoundError(err) {
 			a.errors.NotFound(w, r)
 		} else {
 			a.errors.InternalServerError(w, r, err.Error())

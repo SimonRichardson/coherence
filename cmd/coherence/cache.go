@@ -111,7 +111,7 @@ func runCache(args []string) error {
 	}
 
 	var (
-		persistence = store.New(*cacheBuckets, *cacheSize)
+		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
 		nodeSet     = nodes.NewNodeSet(peer)
 		supervisor  = farm.NewReal(nodeSet)
 	)
