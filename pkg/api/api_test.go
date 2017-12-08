@@ -1,4 +1,4 @@
-package store
+package api
 
 import (
 	"bytes"
@@ -94,10 +94,7 @@ func TestInsertAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/insert", "500").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			for _, v := range members {
-				store.EXPECT().Insert(key, v).Return(selectors.ChangeSet{}, errors.New("bad"))
-				break
-			}
+			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
 			input := MembersInput{
 				Members: members,
@@ -143,12 +140,10 @@ func TestInsertAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/insert", "200").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			for _, v := range members {
-				store.EXPECT().Insert(key, v).Return(selectors.ChangeSet{
-					Success: extractFields(members),
-					Failure: make([]selectors.Field, 0),
-				}, nil)
-			}
+			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{
+				Success: extractFields(members),
+				Failure: make([]selectors.Field, 0),
+			}, nil)
 
 			input := MembersInput{
 				Members: members,
@@ -176,20 +171,23 @@ func TestInsertAPI(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			success := unique(extractFields(members))
+			var (
+				want = unique(extractFields(members))
+				got  = unique(cs.Records.Success)
+			)
 
-			if len(cs.Records.Success) == 0 && len(success) == 0 {
+			if len(want) == 0 && len(got) == 0 {
 				return true
 			}
 
-			sort.Slice(cs.Records.Success, func(i, j int) bool {
-				return cs.Records.Success[i] < cs.Records.Success[j]
+			sort.Slice(want, func(i, j int) bool {
+				return want[i] < want[j]
 			})
-			sort.Slice(success, func(i, j int) bool {
-				return success[i] < success[j]
+			sort.Slice(got, func(i, j int) bool {
+				return got[i] < got[j]
 			})
 
-			return reflect.DeepEqual(cs.Records.Success, success)
+			return reflect.DeepEqual(want, got)
 		}
 
 		if err := quick.Check(fn, nil); err != nil {
@@ -271,10 +269,7 @@ func TestDeleteAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/delete", "500").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			for _, v := range members {
-				store.EXPECT().Delete(key, v).Return(selectors.ChangeSet{}, errors.New("bad"))
-				break
-			}
+			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
 			input := MembersInput{
 				Members: members,
@@ -320,12 +315,10 @@ func TestDeleteAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/delete", "200").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			for _, v := range members {
-				store.EXPECT().Delete(key, v).Return(selectors.ChangeSet{
-					Success: extractFields(members),
-					Failure: make([]selectors.Field, 0),
-				}, nil)
-			}
+			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{
+				Success: extractFields(members),
+				Failure: make([]selectors.Field, 0),
+			}, nil)
 
 			input := MembersInput{
 				Members: members,
@@ -353,20 +346,23 @@ func TestDeleteAPI(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			success := unique(extractFields(members))
+			var (
+				want = unique(extractFields(members))
+				got  = unique(cs.Records.Success)
+			)
 
-			if len(cs.Records.Success) == 0 && len(success) == 0 {
+			if len(want) == 0 && len(got) == 0 {
 				return true
 			}
 
-			sort.Slice(cs.Records.Success, func(i, j int) bool {
-				return cs.Records.Success[i] < cs.Records.Success[j]
+			sort.Slice(want, func(i, j int) bool {
+				return want[i] < want[j]
 			})
-			sort.Slice(success, func(i, j int) bool {
-				return success[i] < success[j]
+			sort.Slice(got, func(i, j int) bool {
+				return got[i] < got[j]
 			})
 
-			return reflect.DeepEqual(cs.Records.Success, success)
+			return reflect.DeepEqual(want, got)
 		}
 
 		if err := quick.Check(fn, nil); err != nil {

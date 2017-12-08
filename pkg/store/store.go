@@ -7,11 +7,11 @@ type Store interface {
 
 	// Insert takes a key and value and stores with in the underlying store.
 	// Returns true if it's over writting an existing value.
-	Insert(selectors.Key, selectors.FieldValueScore) (selectors.ChangeSet, error)
+	Insert(selectors.Key, []selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Delete removes a value associated with the key.
 	// Returns true if the value is found when deleting.
-	Delete(selectors.Key, selectors.FieldValueScore) (selectors.ChangeSet, error)
+	Delete(selectors.Key, []selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Select retrieves a field and score associated with the store.
 	// Returns true if the value found
@@ -28,6 +28,9 @@ type Store interface {
 
 	// Score returns the specific score for the field with in the key.
 	Score(selectors.Key, selectors.Field) (selectors.Presence, error)
+
+	// Repair attempts to repair the store depending on the elements
+	Repair([]selectors.KeyFieldValue) error
 }
 
 type errNotFound struct {

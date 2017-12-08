@@ -21,13 +21,10 @@ func (v *virtual) Insert(key selectors.Key, members []selectors.FieldValueScore)
 	go func() {
 		defer close(ch)
 
-		var changeSet selectors.ChangeSet
-		for _, member := range members {
-			if _, err := v.store.Insert(key, member); err == nil {
-				changeSet.Success = append(changeSet.Success, member.Field)
-			} else {
-				changeSet.Failure = append(changeSet.Failure, member.Field)
-			}
+		changeSet, err := v.store.Insert(key, members)
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
 		}
 		ch <- selectors.NewChangeSetElement(changeSet)
 	}()
@@ -39,13 +36,10 @@ func (v *virtual) Delete(key selectors.Key, members []selectors.FieldValueScore)
 	go func() {
 		defer close(ch)
 
-		var changeSet selectors.ChangeSet
-		for _, member := range members {
-			if _, err := v.store.Delete(key, member); err == nil {
-				changeSet.Success = append(changeSet.Success, member.Field)
-			} else {
-				changeSet.Failure = append(changeSet.Failure, member.Field)
-			}
+		changeSet, err := v.store.Delete(key, members)
+		if err != nil {
+			ch <- selectors.NewErrorElement(err)
+			return
 		}
 		ch <- selectors.NewChangeSetElement(changeSet)
 	}()

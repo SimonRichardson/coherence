@@ -28,10 +28,6 @@ pkg/cluster/mocks/peer.go:
 	mockgen -package=mocks -destination=pkg/cluster/mocks/peer.go ${PATH_COHERENCE}/pkg/cluster Peer
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
 
-pkg/farm/mocks/farm.go:
-	mockgen -package=mocks -destination=pkg/farm/mocks/farm.go ${PATH_COHERENCE}/pkg/farm Farm
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/farm/mocks/farm.go
-
 pkg/members/mocks/members.go:
 	mockgen -package=mocks -destination=pkg/members/mocks/members.go ${PATH_COHERENCE}/pkg/members Members,MemberList,Member
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/members/mocks/members.go
@@ -56,7 +52,6 @@ pkg/store/mocks/store.go:
 .PHONY: build-mocks
 build-mocks: FORCE
 	@ $(MAKE) pkg/cluster/mocks/peer.go
-	@ $(MAKE) pkg/farm/mocks/farm.go
 	@ $(MAKE) pkg/members/mocks/members.go
 	@ $(MAKE) pkg/metrics/mocks/metrics.go
 	@ $(MAKE) pkg/metrics/mocks/observer.go
@@ -66,7 +61,6 @@ build-mocks: FORCE
 .PHONY: clean-mocks
 clean-mocks: FORCE
 	rm -f pkg/cluster/mocks/peer.go
-	rm -f pkg/farm/mocks/farm.go
 	rm -f pkg/members/mocks/members.go
 	rm -f pkg/metrics/mocks/metrics.go
 	rm -f pkg/metrics/mocks/observer.go

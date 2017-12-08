@@ -1,6 +1,9 @@
 package store
 
 import (
+	"strings"
+
+	"github.com/pkg/errors"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
@@ -28,29 +31,55 @@ func New(amountBuckets, amountPerBucket uint) Store {
 	}
 }
 
-func (m *memory) Insert(key selectors.Key, member selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (m *memory) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	if _, ok := m.keys[key]; !ok {
 		m.keys[key] = struct{}{}
 	}
 
-	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Insert(member.Field, member.ValueScore())
+	var (
+		errors    []error
+		changeSet selectors.ChangeSet
+
+		index = uint(key.Hash()) % m.size
+	)
+	for _, member := range members {
+		res, err := m.buckets[index].Insert(member.Field, member.ValueScore())
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		changeSet = changeSet.Append(res)
+	}
+
+	return changeSet, joinErrors(errors)
 }
 
-func (m *memory) Delete(key selectors.Key, member selectors.FieldValueScore) (selectors.ChangeSet, error) {
-	index := uint(key.Hash()) % m.size
-	changeSet, err := m.buckets[index].Delete(member.Field, member.ValueScore())
-	if err != nil {
-		return changeSet, err
+func (m *memory) Delete(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
+	var (
+		errors    []error
+		changeSet selectors.ChangeSet
+
+		index = uint(key.Hash()) % m.size
+	)
+
+	for _, member := range members {
+		res, err := m.buckets[index].Delete(member.Field, member.ValueScore())
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+
+		changeSet = changeSet.Append(res)
 	}
 
 	if amount, err := m.buckets[index].Len(); err != nil {
-		return changeSet, err
+		return changeSet, joinErrors(append(errors, err))
 	} else if amount == 0 {
 		delete(m.keys, key)
 	}
 
-	return changeSet, nil
+	return changeSet, joinErrors(errors)
 }
 
 func (m *memory) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
@@ -85,4 +114,20 @@ func (m *memory) Members(key selectors.Key) ([]selectors.Field, error) {
 func (m *memory) Score(key selectors.Key, field selectors.Field) (selectors.Presence, error) {
 	index := uint(key.Hash()) % m.size
 	return m.buckets[index].Score(field)
+}
+
+func (m *memory) Repair([]selectors.KeyFieldValue) error {
+	return nil
+}
+
+func joinErrors(e []error) error {
+	if len(e) == 0 {
+		return nil
+	}
+
+	var buf []string
+	for _, v := range e {
+		buf = append(buf, v.Error())
+	}
+	return errors.New(strings.Join(buf, "; "))
 }

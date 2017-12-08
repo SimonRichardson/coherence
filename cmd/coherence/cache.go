@@ -7,21 +7,20 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/pborman/uuid"
-	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/cluster"
-	"github.com/trussle/coherence/pkg/members"
-	"github.com/trussle/coherence/pkg/nodes"
-	"github.com/trussle/coherence/pkg/store"
-
 	"github.com/SimonRichardson/flagset"
 	"github.com/SimonRichardson/gexec"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/pborman/uuid"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/trussle/coherence/pkg/api"
+	"github.com/trussle/coherence/pkg/cluster"
 	"github.com/trussle/coherence/pkg/farm"
+	"github.com/trussle/coherence/pkg/members"
+	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/status"
+	"github.com/trussle/coherence/pkg/store"
 )
 
 const (
@@ -144,7 +143,7 @@ func runCache(args []string) error {
 	}
 	{
 		g.Add(func() error {
-			storeAPI := store.NewAPI(
+			storeAPI := api.NewAPI(
 				persistence,
 				log.With(logger, "component", "store_api"),
 				connectedClients.WithLabelValues("api"),

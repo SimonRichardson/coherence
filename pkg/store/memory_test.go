@@ -2,6 +2,7 @@ package store
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 	"testing/quick"
 
@@ -12,17 +13,19 @@ func TestMemoryInsertion(t *testing.T) {
 	t.Parallel()
 
 	t.Run("inserting key and value", func(t *testing.T) {
-		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			changeSet, err := store.Insert(key, member)
+		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
+			store := New(1, uint(len(members)*2))
+			changeSet, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
 
+			sort.Slice(changeSet.Success, func(i, j int) bool {
+				return changeSet.Success[i] < changeSet.Success[j]
+			})
+
 			return changeSet.Equal(selectors.ChangeSet{
-				Success: []selectors.Field{
-					member.Field,
-				},
+				Success: extractFields(members),
 				Failure: make([]selectors.Field, 0),
 			})
 		}
@@ -33,24 +36,28 @@ func TestMemoryInsertion(t *testing.T) {
 
 	t.Run("inserting key value with older score", func(t *testing.T) {
 		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
+			members0 := []selectors.FieldValueScore{
+				member,
+			}
+			members1 := []selectors.FieldValueScore{
+				selectors.FieldValueScore{
+					Field: member.Field,
+					Value: member.Value,
+					Score: member.Score - 1,
+				},
+			}
 			store := New(1, 1)
-			if _, err := store.Insert(key, member); err != nil {
+			if _, err := store.Insert(key, members0); err != nil {
 				t.Fatal(err)
 			}
 
-			changeSet, err := store.Insert(key, selectors.FieldValueScore{
-				Field: member.Field,
-				Value: member.Value,
-				Score: member.Score - 1,
-			})
+			changeSet, err := store.Insert(key, members1)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			return changeSet.Equal(selectors.ChangeSet{
-				Success: []selectors.Field{
-					member.Field,
-				},
+				Success: extractFields(members0),
 				Failure: make([]selectors.Field, 0),
 			})
 		}
@@ -61,8 +68,12 @@ func TestMemoryInsertion(t *testing.T) {
 
 	t.Run("inserting then select", func(t *testing.T) {
 		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			_, err := store.Insert(key, member)
+			members := []selectors.FieldValueScore{
+				member,
+			}
+
+			store := New(1, uint(len(members)*2))
+			_, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -80,9 +91,13 @@ func TestMemoryInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting keys", func(t *testing.T) {
-		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			_, err := store.Insert(key, member)
+		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
+			if len(members) == 0 {
+				return true
+			}
+
+			store := New(1, uint(len(members)*2))
+			_, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -102,21 +117,29 @@ func TestMemoryInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting members", func(t *testing.T) {
-		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			_, err := store.Insert(key, member)
+		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
+			store := New(1, uint(len(members)*2))
+			_, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			members, err := store.Members(key)
+			fields, err := store.Members(key)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			return reflect.DeepEqual(members, []selectors.Field{
-				member.Field,
+			sort.Slice(fields, func(i, j int) bool {
+				return fields[i] < fields[j]
 			})
+
+			want := extractFields(members)
+
+			if len(fields) == 0 && len(want) == 0 {
+				return true
+			}
+
+			return reflect.DeepEqual(fields, want)
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
@@ -125,8 +148,12 @@ func TestMemoryInsertion(t *testing.T) {
 
 	t.Run("inserting score", func(t *testing.T) {
 		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			_, err := store.Insert(key, member)
+			members := []selectors.FieldValueScore{
+				member,
+			}
+
+			store := New(1, uint(len(members)*2))
+			_, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -152,17 +179,15 @@ func TestMemoryDeletion(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deleting key and value", func(t *testing.T) {
-		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			changeSet, err := store.Delete(key, member)
+		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
+			store := New(1, uint(len(members)*2))
+			changeSet, err := store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
 
 			return changeSet.Equal(selectors.ChangeSet{
-				Success: []selectors.Field{
-					member.Field,
-				},
+				Success: extractFields(members),
 				Failure: make([]selectors.Field, 0),
 			})
 		}
@@ -173,16 +198,23 @@ func TestMemoryDeletion(t *testing.T) {
 
 	t.Run("deleting key value with older score", func(t *testing.T) {
 		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
+			members0 := []selectors.FieldValueScore{
+				member,
+			}
+			members1 := []selectors.FieldValueScore{
+				selectors.FieldValueScore{
+					Field: member.Field,
+					Value: member.Value,
+					Score: member.Score - 1,
+				},
+			}
+
 			store := New(1, 1)
-			if _, err := store.Delete(key, member); err != nil {
+			if _, err := store.Delete(key, members0); err != nil {
 				t.Fatal(err)
 			}
 
-			changeSet, err := store.Delete(key, selectors.FieldValueScore{
-				Field: member.Field,
-				Value: member.Value,
-				Score: member.Score - 1,
-			})
+			changeSet, err := store.Delete(key, members1)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -201,8 +233,12 @@ func TestMemoryDeletion(t *testing.T) {
 
 	t.Run("deleting then select", func(t *testing.T) {
 		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			_, err := store.Delete(key, member)
+			members := []selectors.FieldValueScore{
+				member,
+			}
+
+			store := New(1, uint(len(members)*2))
+			_, err := store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -216,18 +252,14 @@ func TestMemoryDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting keys", func(t *testing.T) {
-		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
+		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
+			store := New(1, uint(len(members)*2))
 
-			_, err := store.Insert(key, member)
+			_, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
-			_, err = store.Delete(key, selectors.FieldValueScore{
-				Field: member.Field,
-				Value: member.Value,
-				Score: member.Score + 1,
-			})
+			_, err = store.Delete(key, incScore(members))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -244,19 +276,19 @@ func TestMemoryDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting members", func(t *testing.T) {
-		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
-			store := New(1, 1)
-			_, err := store.Delete(key, member)
+		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
+			store := New(1, uint(len(members)*2))
+			_, err := store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			members, err := store.Members(key)
+			fields, err := store.Members(key)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			return len(members) == 0
+			return len(fields) == 0
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
@@ -265,8 +297,12 @@ func TestMemoryDeletion(t *testing.T) {
 
 	t.Run("deleting score", func(t *testing.T) {
 		fn := func(key selectors.Key, member selectors.FieldValueScore) bool {
+			members := []selectors.FieldValueScore{
+				member,
+			}
+
 			store := New(1, 1)
-			_, err := store.Delete(key, member)
+			_, err := store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -286,4 +322,49 @@ func TestMemoryDeletion(t *testing.T) {
 			t.Error(err)
 		}
 	})
+}
+
+func extractFields(members []selectors.FieldValueScore) []selectors.Field {
+	res := make([]selectors.Field, len(members))
+	for k, v := range members {
+		res[k] = v.Field
+	}
+
+	res = unique(res)
+
+	sort.Slice(res, func(i, j int) bool {
+		return res[i] < res[j]
+	})
+
+	return res
+}
+
+func unique(a []selectors.Field) []selectors.Field {
+	x := make(map[selectors.Field]struct{})
+	for _, v := range a {
+		x[v] = struct{}{}
+	}
+
+	var (
+		index int
+		res   = make([]selectors.Field, len(x))
+	)
+	for k := range x {
+		res[index] = k
+		index++
+	}
+
+	return res
+}
+
+func incScore(members []selectors.FieldValueScore) []selectors.FieldValueScore {
+	res := make([]selectors.FieldValueScore, len(members))
+	for k, v := range members {
+		res[k] = selectors.FieldValueScore{
+			Field: v.Field,
+			Value: v.Value,
+			Score: v.Score + 1,
+		}
+	}
+	return res
 }

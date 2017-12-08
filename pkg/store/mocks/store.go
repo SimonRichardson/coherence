@@ -34,7 +34,7 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 }
 
 // Delete mocks base method
-func (m *MockStore) Delete(arg0 selectors.Key, arg1 selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (m *MockStore) Delete(arg0 selectors.Key, arg1 []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	ret := m.ctrl.Call(m, "Delete", arg0, arg1)
 	ret0, _ := ret[0].(selectors.ChangeSet)
 	ret1, _ := ret[1].(error)
@@ -47,7 +47,7 @@ func (mr *MockStoreMockRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
 }
 
 // Insert mocks base method
-func (m *MockStore) Insert(arg0 selectors.Key, arg1 selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (m *MockStore) Insert(arg0 selectors.Key, arg1 []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	ret := m.ctrl.Call(m, "Insert", arg0, arg1)
 	ret0, _ := ret[0].(selectors.ChangeSet)
 	ret1, _ := ret[1].(error)
@@ -83,6 +83,18 @@ func (m *MockStore) Members(arg0 selectors.Key) ([]selectors.Field, error) {
 // Members indicates an expected call of Members
 func (mr *MockStoreMockRecorder) Members(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Members", reflect.TypeOf((*MockStore)(nil).Members), arg0)
+}
+
+// Repair mocks base method
+func (m *MockStore) Repair(arg0 []selectors.KeyFieldValue) error {
+	ret := m.ctrl.Call(m, "Repair", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Repair indicates an expected call of Repair
+func (mr *MockStoreMockRecorder) Repair(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockStore)(nil).Repair), arg0)
 }
 
 // Score mocks base method

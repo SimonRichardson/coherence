@@ -4,12 +4,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/trussle/coherence/pkg/store"
 )
 
 type nop struct{}
 
-// NewNopFarm creates a new nop farm
-func NewNop() Farm {
+// NewNop creates a new nop farm
+func NewNop() store.Store {
 	return nop{}
 }
 

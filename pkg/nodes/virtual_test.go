@@ -20,9 +20,7 @@ func TestVirtualInsert(t *testing.T) {
 			defer ctrl.Finish()
 
 			store := mocks.NewMockStore(ctrl)
-			for _, v := range members {
-				store.EXPECT().Insert(key, v).Return(selectors.ChangeSet{}, errors.New("bad"))
-			}
+			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
 			node := NewVirtual(store)
 
@@ -31,19 +29,10 @@ func TestVirtualInsert(t *testing.T) {
 			var found bool
 			for element := range ch {
 				if err := selectors.ErrorFromElement(element); err != nil {
-					t.Error(err)
+					found = true
+					continue
 				}
-				changeSet := selectors.ChangeSetFromElement(element)
-				want := selectors.ChangeSet{
-					Success: make([]selectors.Field, 0),
-					Failure: extractFields(members),
-				}
-
-				if expected, actual := want, changeSet; !expected.Equal(actual) {
-					t.Errorf("expected: %v, actual: %v", expected, actual)
-				}
-
-				found = true
+				t.Fatal(errors.New("failed if called"))
 			}
 			return found
 		}
@@ -57,10 +46,13 @@ func TestVirtualInsert(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			store := mocks.NewMockStore(ctrl)
-			for _, v := range members {
-				store.EXPECT().Insert(key, v).Return(selectors.ChangeSet{}, nil)
+			want := selectors.ChangeSet{
+				Success: extractFields(members),
+				Failure: make([]selectors.Field, 0),
 			}
+
+			store := mocks.NewMockStore(ctrl)
+			store.EXPECT().Insert(key, members).Return(want, nil)
 
 			node := NewVirtual(store)
 
@@ -72,10 +64,6 @@ func TestVirtualInsert(t *testing.T) {
 					t.Error(err)
 				}
 				changeSet := selectors.ChangeSetFromElement(element)
-				want := selectors.ChangeSet{
-					Success: extractFields(members),
-					Failure: make([]selectors.Field, 0),
-				}
 
 				if expected, actual := want, changeSet; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -100,9 +88,7 @@ func TestVirtualDelete(t *testing.T) {
 			defer ctrl.Finish()
 
 			store := mocks.NewMockStore(ctrl)
-			for _, v := range members {
-				store.EXPECT().Delete(key, v).Return(selectors.ChangeSet{}, errors.New("bad"))
-			}
+			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
 			node := NewVirtual(store)
 
@@ -111,19 +97,10 @@ func TestVirtualDelete(t *testing.T) {
 			var found bool
 			for element := range ch {
 				if err := selectors.ErrorFromElement(element); err != nil {
-					t.Error(err)
+					found = true
+					continue
 				}
-				changeSet := selectors.ChangeSetFromElement(element)
-				want := selectors.ChangeSet{
-					Success: make([]selectors.Field, 0),
-					Failure: extractFields(members),
-				}
-
-				if expected, actual := want, changeSet; !expected.Equal(actual) {
-					t.Errorf("expected: %v, actual: %v", expected, actual)
-				}
-
-				found = true
+				t.Fatal(errors.New("failed if called"))
 			}
 			return found
 		}
@@ -137,10 +114,13 @@ func TestVirtualDelete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			store := mocks.NewMockStore(ctrl)
-			for _, v := range members {
-				store.EXPECT().Delete(key, v).Return(selectors.ChangeSet{}, nil)
+			want := selectors.ChangeSet{
+				Success: extractFields(members),
+				Failure: make([]selectors.Field, 0),
 			}
+
+			store := mocks.NewMockStore(ctrl)
+			store.EXPECT().Delete(key, members).Return(want, nil)
 
 			node := NewVirtual(store)
 
@@ -152,10 +132,6 @@ func TestVirtualDelete(t *testing.T) {
 					t.Error(err)
 				}
 				changeSet := selectors.ChangeSetFromElement(element)
-				want := selectors.ChangeSet{
-					Success: extractFields(members),
-					Failure: make([]selectors.Field, 0),
-				}
 
 				if expected, actual := want, changeSet; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)

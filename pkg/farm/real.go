@@ -10,6 +10,7 @@ import (
 	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/trussle/coherence/pkg/store"
 )
 
 const (
@@ -24,7 +25,7 @@ type real struct {
 }
 
 // NewReal creates a farm that talks to various nodes
-func NewReal(nodes nodes.Snapshot) Farm {
+func NewReal(nodes nodes.Snapshot) store.Store {
 	return &real{
 		nodes:          nodes,
 		repairStrategy: &repairStrategy{nodes},
@@ -408,6 +409,10 @@ func mapErrors(errs []error) error {
 }
 
 func joinErrors(e []error) error {
+	if len(e) == 0 {
+		return nil
+	}
+
 	var buf []string
 	for _, v := range e {
 		buf = append(buf, v.Error())
@@ -434,4 +439,21 @@ func mergeKeyFieldMembers(key selectors.Key, fields []selectors.Field, members [
 
 func consensus(total, returned int) bool {
 	return float64(returned)/float64(total) >= .51
+}
+
+type errPartial struct {
+	err error
+}
+
+func (e errPartial) Error() string {
+	return e.err.Error()
+}
+
+// PartialError finds if the error passed in, is actually a partial error or not
+func PartialError(err error) bool {
+	if err == nil {
+		return false
+	}
+	_, ok := err.(errPartial)
+	return ok
 }

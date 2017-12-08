@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,11 +11,10 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/client"
-	"github.com/trussle/coherence/pkg/farm"
 	errs "github.com/trussle/coherence/pkg/http"
 	"github.com/trussle/coherence/pkg/metrics"
 	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/trussle/coherence/pkg/store"
 )
 
 const (
@@ -39,30 +37,41 @@ const (
 	// APIPathMembers represents a way to find all the members for a key with in
 	// the cache.
 	APIPathMembers = "/members"
+
+	// APIPathScore represents a way to find the score of a field with in a key.
+	APIPathScore = "/score"
 )
 
 // API serves the cache API
 type API struct {
-	farm     farm.Farm
+	store    store.Store
 	logger   log.Logger
 	clients  metrics.Gauge
 	duration metrics.HistogramVec
 	errors   errs.Error
+	action   chan func()
+	stop     chan chan struct{}
 }
 
 // NewAPI creates a API with the correct dependencies.
-func NewAPI(farm farm.Farm,
+func NewAPI(store store.Store,
 	logger log.Logger,
 	clients metrics.Gauge,
 	duration metrics.HistogramVec,
 ) *API {
-	return &API{
-		farm:     farm,
+	api := &API{
+		store:    store,
 		logger:   logger,
 		clients:  clients,
 		duration: duration,
 		errors:   errs.NewError(logger),
+		action:   make(chan func()),
+		stop:     make(chan chan struct{}),
 	}
+
+	go api.run()
+
+	return api
 }
 
 func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -85,7 +94,6 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Routing table
 	method, path := r.Method, r.URL.Path
-	fmt.Println(method, path, r.URL.RawQuery)
 	switch {
 	case method == "POST" && path == APIPathInsert:
 		a.handleInsertion(w, r)
@@ -99,10 +107,32 @@ func (a *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.handleSize(w, r)
 	case method == "GET" && path == APIPathMembers:
 		a.handleMembers(w, r)
+	case method == "GET" && path == APIPathScore:
+		a.handleScore(w, r)
 	default:
 		// Nothing found
 		a.errors.NotFound(w, r)
 	}
+}
+
+func (a *API) run() {
+	for {
+		select {
+		case f := <-a.action:
+			f()
+
+		case c := <-a.stop:
+			close(c)
+			return
+		}
+	}
+}
+
+// Close out the API
+func (a *API) Close() {
+	c := make(chan struct{})
+	a.stop <- c
+	<-c
 }
 
 func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
@@ -124,23 +154,31 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changeSet, err := a.farm.Insert(qp.Key(), members)
-	if err != nil {
-		if client.NotFoundError(err) {
-			a.errors.NotFound(w, r)
-		} else {
-			a.errors.InternalServerError(w, r, err.Error())
+	var (
+		internalError = make(chan error)
+		result        = make(chan selectors.ChangeSet)
+	)
+	a.action <- func() {
+		changeSet, err := a.store.Insert(qp.Key(), members)
+		if err != nil {
+			internalError <- err
+			return
 		}
-		return
+		result <- changeSet
 	}
 
-	// Make sure we collect the document for the result.
-	qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
-	qr.ChangeSet = changeSet
+	select {
+	case err := <-internalError:
+		a.errors.Error(w, err.Error(), http.StatusInternalServerError)
+	case changeSet := <-result:
+		// Make sure we collect the document for the result.
+		qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
+		qr.ChangeSet = changeSet
 
-	// Finish
-	qr.Duration = time.Since(begin).String()
-	qr.EncodeTo(w)
+		// Finish
+		qr.Duration = time.Since(begin).String()
+		qr.EncodeTo(w)
+	}
 }
 
 func (a *API) handleDeletion(w http.ResponseWriter, r *http.Request) {
@@ -162,23 +200,31 @@ func (a *API) handleDeletion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	changeSet, err := a.farm.Delete(qp.Key(), members)
-	if err != nil {
-		if client.NotFoundError(err) {
-			a.errors.NotFound(w, r)
-		} else {
-			a.errors.InternalServerError(w, r, err.Error())
+	var (
+		internalError = make(chan error)
+		result        = make(chan selectors.ChangeSet)
+	)
+	a.action <- func() {
+		changeSet, err := a.store.Delete(qp.Key(), members)
+		if err != nil {
+			internalError <- err
+			return
 		}
-		return
+		result <- changeSet
 	}
 
-	// Make sure we collect the document for the result.
-	qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
-	qr.ChangeSet = changeSet
+	select {
+	case err := <-internalError:
+		a.errors.Error(w, err.Error(), http.StatusInternalServerError)
+	case changeSet := <-result:
+		// Make sure we collect the document for the result.
+		qr := ChangeSetQueryResult{Errors: a.errors, Params: qp}
+		qr.ChangeSet = changeSet
 
-	// Finish
-	qr.Duration = time.Since(begin).String()
-	qr.EncodeTo(w)
+		// Finish
+		qr.Duration = time.Since(begin).String()
+		qr.EncodeTo(w)
+	}
 }
 
 func (a *API) handleSelect(w http.ResponseWriter, r *http.Request) {
@@ -194,9 +240,9 @@ func (a *API) handleSelect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	member, err := a.farm.Select(qp.Key(), qp.Field())
+	member, err := a.store.Select(qp.Key(), qp.Field())
 	if err != nil {
-		if client.NotFoundError(err) {
+		if store.NotFoundError(err) {
 			a.errors.NotFound(w, r)
 		} else {
 			a.errors.InternalServerError(w, r, err.Error())
@@ -219,13 +265,9 @@ func (a *API) handleKeys(w http.ResponseWriter, r *http.Request) {
 	// useful metrics
 	begin := time.Now()
 
-	keys, err := a.farm.Keys()
+	keys, err := a.store.Keys()
 	if err != nil {
-		if client.NotFoundError(err) {
-			a.errors.NotFound(w, r)
-		} else {
-			a.errors.InternalServerError(w, r, err.Error())
-		}
+		a.errors.InternalServerError(w, r, err.Error())
 		return
 	}
 
@@ -251,13 +293,9 @@ func (a *API) handleSize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	size, err := a.farm.Size(qp.Key())
+	size, err := a.store.Size(qp.Key())
 	if err != nil {
-		if client.NotFoundError(err) {
-			a.errors.NotFound(w, r)
-		} else {
-			a.errors.InternalServerError(w, r, err.Error())
-		}
+		a.errors.InternalServerError(w, r, err.Error())
 		return
 	}
 
@@ -283,19 +321,43 @@ func (a *API) handleMembers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members, err := a.farm.Members(qp.Key())
+	members, err := a.store.Members(qp.Key())
 	if err != nil {
-		if client.NotFoundError(err) {
-			a.errors.NotFound(w, r)
-		} else {
-			a.errors.InternalServerError(w, r, err.Error())
-		}
+		a.errors.InternalServerError(w, r, err.Error())
 		return
 	}
 
 	// Make sure we collect the document for the result.
 	qr := FieldsQueryResult{Errors: a.errors, Params: qp}
 	qr.Fields = members
+
+	// Finish
+	qr.Duration = time.Since(begin).String()
+	qr.EncodeTo(w)
+}
+
+func (a *API) handleScore(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	// useful metrics
+	begin := time.Now()
+
+	// Validate user input.
+	var qp KeyFieldQueryParams
+	if err := qp.DecodeFrom(r.URL, r.Header, queryOptional); err != nil {
+		a.errors.BadRequest(w, r, err.Error())
+		return
+	}
+
+	presence, err := a.store.Score(qp.Key(), qp.Field())
+	if err != nil {
+		a.errors.InternalServerError(w, r, err.Error())
+		return
+	}
+
+	// Make sure we collect the document for the result.
+	qr := PresenceQueryResult{Errors: a.errors, Params: qp}
+	qr.Presence = presence
 
 	// Finish
 	qr.Duration = time.Since(begin).String()
@@ -325,10 +387,6 @@ func ingestMembers(reader io.ReadCloser) ([]selectors.FieldValueScore, error) {
 	var input MembersInput
 	if err = json.Unmarshal(bytes, &input); err != nil {
 		return nil, err
-	}
-
-	if len(input.Members) == 0 {
-		return nil, errors.New("no members")
 	}
 
 	return input.Members, nil
