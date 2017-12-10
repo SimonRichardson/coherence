@@ -1,5 +1,9 @@
 package rbtree
 
+type Key interface {
+	Compare(Key) int
+}
+
 // NodeType describes which type the node represents
 type NodeType int
 
@@ -27,6 +31,16 @@ type RBTree struct {
 	size int
 }
 
+// NewRBTree creates a new RBTree
+func NewRBTree() *RBTree {
+	return &RBTree{}
+}
+
+// Root returns the root node within the tree
+func (t *RBTree) Root() *RBNode {
+	return t.root
+}
+
 // Size returns the number of nodes
 func (t *RBTree) Size() int {
 	return t.size
@@ -34,10 +48,10 @@ func (t *RBTree) Size() int {
 
 // Insert inserts a value and string into the tree
 // Returns true on insertion and false if a duplicate exists
-func (t *RBTree) Insert(val int, str string) bool {
+func (t *RBTree) Insert(key Key, str string) bool {
 	if t.root == nil {
 		t.root = &RBNode{
-			val:      val,
+			key:      key,
 			str:      str,
 			nodeType: Black,
 		}
@@ -61,7 +75,7 @@ func (t *RBTree) Insert(val int, str string) bool {
 	for {
 		if node == nil {
 			node = &RBNode{
-				val:      val,
+				key:      key,
 				str:      str,
 				nodeType: Red,
 			}
@@ -81,12 +95,14 @@ func (t *RBTree) Insert(val int, str string) bool {
 			}
 		}
 
-		if node.val-val == 0 {
+		comparator := node.key.Compare(key)
+
+		if comparator == 0 {
 			break
 		}
 
 		last = direction
-		direction = node.val-val < 0
+		direction = comparator < 0
 
 		if grandParent != nil {
 			root = grandParent
@@ -107,8 +123,9 @@ func (t *RBTree) Insert(val int, str string) bool {
 	return insertion
 }
 
+// RBNode is a RBTree node
 type RBNode struct {
-	val         int
+	key         Key
 	str         string
 	left, right *RBNode
 	nodeType    NodeType
