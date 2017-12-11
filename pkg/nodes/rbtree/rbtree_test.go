@@ -9,12 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type TestKey int
-
-func (t TestKey) Compare(b Key) int {
-	return int(t) - int(b.(TestKey))
-}
-
 func TestEmptyTree(t *testing.T) {
 	t.Parallel()
 
@@ -76,11 +70,11 @@ func TestInsert(t *testing.T) {
 			}
 
 			for i := 1; i <= 10; i++ {
-				if ok := tree.Insert(TestKey(amount+i), fmt.Sprintf("%d", amount+1)); !ok {
+				if ok := tree.Insert(amount+i, fmt.Sprintf("%d", amount+1)); !ok {
 					t.Errorf("expected: %t, actual: %t", true, ok)
 				}
 
-				if ok := tree.Insert(TestKey(1), fmt.Sprintf("%d", 1)); ok {
+				if ok := tree.Insert(1, fmt.Sprintf("%d", 1)); ok {
 					t.Errorf("expected: %t, actual: %t", false, ok)
 				}
 
@@ -114,28 +108,28 @@ func TestInsert(t *testing.T) {
 			t.Errorf("expected: %d, actual: %d", expected, actual)
 		}
 
-		if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+		if err := verifyNode(tree.root, 4, Black, Both); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.left, TestKey(2), Red, Both); err != nil {
+		if err := verifyNode(tree.root.left, 2, Red, Both); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.left.left, TestKey(1), Black, None); err != nil {
+		if err := verifyNode(tree.root.left.left, 1, Black, None); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.left.right, TestKey(3), Black, None); err != nil {
+		if err := verifyNode(tree.root.left.right, 3, Black, None); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.right, TestKey(6), Red, Both); err != nil {
+		if err := verifyNode(tree.root.right, 6, Red, Both); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.right.left, TestKey(5), Black, None); err != nil {
+		if err := verifyNode(tree.root.right.left, 5, Black, None); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.right.right, TestKey(7), Black, Right); err != nil {
+		if err := verifyNode(tree.root.right.right, 7, Black, Right); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root.right.right.right, TestKey(8), Red, None); err != nil {
+		if err := verifyNode(tree.root.right.right.right, 8, Red, None); err != nil {
 			t.Error(err)
 		}
 	})
@@ -153,52 +147,52 @@ func TestDelete(t *testing.T) {
 
 		// Remove 2
 		{
-			if expected, actual := true, tree.Delete(TestKey(2)); expected != actual {
+			if expected, actual := true, tree.Delete(2); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 7); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 4, Black, Both); err != nil {
 				t.Error(err)
 			}
 		}
 
 		// Remove 4
 		{
-			if expected, actual := true, tree.Delete(TestKey(4)); expected != actual {
+			if expected, actual := true, tree.Delete(4); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 6); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
 		}
 
 		// Insert 2
 		{
-			if expected, actual := true, tree.Insert(TestKey(2), fmt.Sprintf("%d", 2)); expected != actual {
+			if expected, actual := true, tree.Insert(2, fmt.Sprintf("%d", 2)); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 7); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
 		}
 
 		// Insert 4
 		{
-			if expected, actual := true, tree.Insert(TestKey(4), fmt.Sprintf("%d", 2)); expected != actual {
+			if expected, actual := true, tree.Insert(4, fmt.Sprintf("%d", 2)); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 8); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
 		}
@@ -210,7 +204,7 @@ func TestDelete(t *testing.T) {
 		if err := verifyTree(tree, 3, 8); err != nil {
 			t.Error(err)
 		}
-		if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+		if err := verifyNode(tree.root, 4, Black, Both); err != nil {
 			t.Error(err)
 		}
 
@@ -224,35 +218,35 @@ func TestDelete(t *testing.T) {
 			//                             \
 			//                              8,R
 
-			if expected, actual := true, tree.Delete(TestKey(1)); expected != actual {
+			if expected, actual := true, tree.Delete(1); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 7); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 4, Black, Both); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 4, Black, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left, TestKey(2), Black, Right); err != nil {
+			if err := verifyNode(tree.root.left, 2, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left.right, TestKey(3), Red, None); err != nil {
+			if err := verifyNode(tree.root.left.right, 3, Red, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right, TestKey(6), Red, Both); err != nil {
+			if err := verifyNode(tree.root.right, 6, Red, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right.left, TestKey(5), Black, None); err != nil {
+			if err := verifyNode(tree.root.right.left, 5, Black, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right.right, TestKey(7), Black, Right); err != nil {
+			if err := verifyNode(tree.root.right.right, 7, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right.right.right, TestKey(8), Red, None); err != nil {
+			if err := verifyNode(tree.root.right.right.right, 8, Red, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -265,32 +259,32 @@ func TestDelete(t *testing.T) {
 			//                 /   \          \
 			//               3,B   5,B        8,R
 
-			if expected, actual := true, tree.Delete(TestKey(2)); expected != actual {
+			if expected, actual := true, tree.Delete(2); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 6); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left, TestKey(4), Red, Both); err != nil {
+			if err := verifyNode(tree.root.left, 4, Red, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left.left, TestKey(3), Black, None); err != nil {
+			if err := verifyNode(tree.root.left.left, 3, Black, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left.right, TestKey(5), Black, None); err != nil {
+			if err := verifyNode(tree.root.left.right, 5, Black, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right, TestKey(7), Black, Right); err != nil {
+			if err := verifyNode(tree.root.right, 7, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right.right, TestKey(8), Red, None); err != nil {
+			if err := verifyNode(tree.root.right.right, 8, Red, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -303,29 +297,29 @@ func TestDelete(t *testing.T) {
 			//                     \          \
 			//                     5,R        8,R
 
-			if expected, actual := true, tree.Delete(TestKey(3)); expected != actual {
+			if expected, actual := true, tree.Delete(3); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 5); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left, TestKey(4), Black, Right); err != nil {
+			if err := verifyNode(tree.root.left, 4, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left.right, TestKey(5), Red, None); err != nil {
+			if err := verifyNode(tree.root.left.right, 5, Red, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right, TestKey(7), Black, Right); err != nil {
+			if err := verifyNode(tree.root.right, 7, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right.right, TestKey(8), Red, None); err != nil {
+			if err := verifyNode(tree.root.right.right, 8, Red, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -338,26 +332,26 @@ func TestDelete(t *testing.T) {
 			//                                \
 			//                                8,R
 
-			if expected, actual := true, tree.Delete(TestKey(4)); expected != actual {
+			if expected, actual := true, tree.Delete(4); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 4); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 6, Black, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left, TestKey(5), Black, None); err != nil {
+			if err := verifyNode(tree.root.left, 5, Black, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right, TestKey(7), Black, Right); err != nil {
+			if err := verifyNode(tree.root.right, 7, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right.right, TestKey(8), Red, None); err != nil {
+			if err := verifyNode(tree.root.right.right, 8, Red, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -368,23 +362,23 @@ func TestDelete(t *testing.T) {
 			//                      /     \
 			//                  6,B        8,B
 
-			if expected, actual := true, tree.Delete(TestKey(5)); expected != actual {
+			if expected, actual := true, tree.Delete(5); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 3, 3); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(7), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 7, Black, Both); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(7), Black, Both); err != nil {
+			if err := verifyNode(tree.root, 7, Black, Both); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.left, TestKey(6), Black, None); err != nil {
+			if err := verifyNode(tree.root.left, 6, Black, None); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right, TestKey(8), Black, None); err != nil {
+			if err := verifyNode(tree.root.right, 8, Black, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -395,20 +389,20 @@ func TestDelete(t *testing.T) {
 			//                            \
 			//                             8,R
 
-			if expected, actual := true, tree.Delete(TestKey(6)); expected != actual {
+			if expected, actual := true, tree.Delete(6); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 2, 2); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(7), Black, Right); err != nil {
+			if err := verifyNode(tree.root, 7, Black, Right); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(7), Black, Right); err != nil {
+			if err := verifyNode(tree.root, 7, Black, Right); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root.right, TestKey(8), Red, None); err != nil {
+			if err := verifyNode(tree.root.right, 8, Red, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -417,17 +411,17 @@ func TestDelete(t *testing.T) {
 		{
 			//                        8,B
 
-			if expected, actual := true, tree.Delete(TestKey(7)); expected != actual {
+			if expected, actual := true, tree.Delete(7); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 2, 1); err != nil {
 				t.Error(err)
 			}
-			if err := verifyNode(tree.root, TestKey(8), Black, None); err != nil {
+			if err := verifyNode(tree.root, 8, Black, None); err != nil {
 				t.Error(err)
 			}
 
-			if err := verifyNode(tree.root, TestKey(8), Black, None); err != nil {
+			if err := verifyNode(tree.root, 8, Black, None); err != nil {
 				t.Error(err)
 			}
 		}
@@ -435,7 +429,7 @@ func TestDelete(t *testing.T) {
 		// Remove eighth
 		{
 
-			if expected, actual := true, tree.Delete(TestKey(8)); expected != actual {
+			if expected, actual := true, tree.Delete(8); expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
 			if err := verifyTree(tree, 1, 0); err != nil {
@@ -455,33 +449,37 @@ func TestLookupNUniqueAt(t *testing.T) {
 	t.Run("lookup", func(t *testing.T) {
 		tree := NewRBTree()
 
-		if ok := tree.Insert(TestKey(1), "1"); !ok {
+		if ok := tree.Insert(1, "1"); !ok {
 			t.Errorf("expected: %t, actual: %t", true, ok)
 		}
-		if ok := tree.Insert(TestKey(2), "2"); !ok {
+		if ok := tree.Insert(2, "2"); !ok {
 			t.Errorf("expected: %t, actual: %t", true, ok)
 		}
-		if ok := tree.Insert(TestKey(3), "3"); !ok {
+		if ok := tree.Insert(3, "3"); !ok {
 			t.Errorf("expected: %t, actual: %t", true, ok)
 		}
+		err := verifyTreeStructure(tree.Root())
+		if expected, actual := true, err == nil; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
 
-		if expected, actual := []string{"1", "2", "3"}, tree.LookupNUniqueAt(3, TestKey(1)); !reflect.DeepEqual(expected, actual) {
+		if expected, actual := []string{"1", "2", "3"}, tree.LookupNUniqueAt(3, 1); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
-		if expected, actual := []string{"2", "3"}, tree.LookupNUniqueAt(3, TestKey(2)); !reflect.DeepEqual(expected, actual) {
+		if expected, actual := []string{"2", "3"}, tree.LookupNUniqueAt(3, 2); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
-		if expected, actual := []string{"2"}, tree.LookupNUniqueAt(1, TestKey(2)); !reflect.DeepEqual(expected, actual) {
+		if expected, actual := []string{"2"}, tree.LookupNUniqueAt(1, 2); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
-		if expected, actual := 0, len(tree.LookupNUniqueAt(10, TestKey(4))); expected != actual {
+		if expected, actual := 0, len(tree.LookupNUniqueAt(10, 4)); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
-		if expected, actual := 0, len(tree.LookupNUniqueAt(0, TestKey(1))); expected != actual {
+		if expected, actual := 0, len(tree.LookupNUniqueAt(0, 1)); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 	})
@@ -491,7 +489,7 @@ func makeTreeWithAmount(amount int) *RBTree {
 	tree := NewRBTree()
 
 	for i := 1; i <= amount; i++ {
-		tree.Insert(TestKey(i), fmt.Sprintf("%d", i))
+		tree.Insert(i, fmt.Sprintf("%d", i))
 	}
 
 	return tree
@@ -558,7 +556,7 @@ func verifyTree(tree *RBTree, height, size int) error {
 	return nil
 }
 
-func verifyNode(node *RBNode, key TestKey, nodeType NodeType, presence Presence) error {
+func verifyNode(node *RBNode, key int, nodeType NodeType, presence Presence) error {
 	if expected, actual := key, node.key; expected != actual {
 		return errors.Errorf("node key - expected: %v, actual: %v", expected, actual)
 	}
@@ -593,8 +591,8 @@ func verifyTreeStructure(n *RBNode) error {
 		return err
 	}
 
-	if n.left != nil && n.left.key.Compare(n.key) >= 0 ||
-		n.right != nil && n.right.key.Compare(n.key) <= 0 {
+	if n.left != nil && n.left.key-n.key >= 0 ||
+		n.right != nil && n.right.key-n.key <= 0 {
 		return errors.Errorf("binary tree violation with key %v", n.key)
 	}
 	return nil

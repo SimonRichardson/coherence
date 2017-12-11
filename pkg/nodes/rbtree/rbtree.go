@@ -1,9 +1,5 @@
 package rbtree
 
-type Key interface {
-	Compare(Key) int
-}
-
 // NodeType describes which type the node represents
 type NodeType int
 
@@ -48,7 +44,7 @@ func (t *RBTree) Size() int {
 
 // Insert inserts a value and string into the tree
 // Returns true on insertion and false if a duplicate exists
-func (t *RBTree) Insert(key Key, str string) bool {
+func (t *RBTree) Insert(key int, str string) bool {
 	if t.root == nil {
 		t.root = &RBNode{
 			key:      key,
@@ -94,7 +90,7 @@ func (t *RBTree) Insert(key Key, str string) bool {
 			}
 		}
 
-		comparator := node.key.Compare(key)
+		comparator := node.key - key
 
 		if comparator == 0 {
 			break
@@ -124,7 +120,7 @@ func (t *RBTree) Insert(key Key, str string) bool {
 
 // Delete removes the entry for key from the redBlackTree. Returns true on
 // successful deletion, false if the key is not in tree
-func (t *RBTree) Delete(key Key) bool {
+func (t *RBTree) Delete(key int) bool {
 	if t.root == nil {
 		return false
 	}
@@ -155,7 +151,7 @@ func (t *RBTree) Delete(key Key) bool {
 		parent = node
 		node = child
 
-		comparator := node.key.Compare(key)
+		comparator := node.key - key
 		if comparator == 0 {
 			found = node
 		}
@@ -205,18 +201,18 @@ func (t *RBTree) Delete(key Key) bool {
 
 // LookupNUniqueAt iterates through the tree from the last node that is smaller
 // than key or equal, and returns the next n unique values.
-func (t *RBTree) LookupNUniqueAt(n int, key Key) []string {
+func (t *RBTree) LookupNUniqueAt(n int, key int) []string {
 	res := new([]string)
 	find(t.root, n, key, make(map[string]struct{}), res)
 	return *res
 }
 
-func find(node *RBNode, n int, key Key, m map[string]struct{}, s *[]string) {
+func find(node *RBNode, n int, key int, m map[string]struct{}, s *[]string) {
 	if len(m) >= n || node == nil {
 		return
 	}
 
-	comparator := node.key.Compare(key)
+	comparator := node.key - key
 	if comparator >= 0 {
 		find(node.left, n, key, m, s)
 	}
@@ -237,7 +233,7 @@ func find(node *RBNode, n int, key Key, m map[string]struct{}, s *[]string) {
 
 // RBNode is a RBTree node
 type RBNode struct {
-	key         Key
+	key         int
 	str         string
 	left, right *RBNode
 	nodeType    NodeType
