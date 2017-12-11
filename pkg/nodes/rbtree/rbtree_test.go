@@ -153,15 +153,237 @@ func TestDelete(t *testing.T) {
 			t.Error(err)
 		}
 
-		// remove 1
-		if expected, actual := true, tree.Delete(TestKey(1)); expected != actual {
-			t.Errorf("expected: %v, actual: %v", expected, actual)
+		// Remove first
+		{
+			//               4,B
+			//             /     \
+			//         2,B         6,R
+			//             \     /     \
+			//            3,R   5,B    7,B
+			//                             \
+			//                              8,R
+
+			if expected, actual := true, tree.Delete(TestKey(1)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 3, 7); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left, TestKey(2), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left.right, TestKey(3), Red, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right, TestKey(6), Red, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right.left, TestKey(5), Black, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right.right, TestKey(7), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right.right.right, TestKey(8), Red, None); err != nil {
+				t.Error(err)
+			}
 		}
-		if err := verifyTree(tree, 3, 7); err != nil {
-			t.Error(err)
+
+		// Remove second
+		{
+			//                        6,B
+			//                      /     \
+			//                  4,R        7,B
+			//                 /   \          \
+			//               3,B   5,B        8,R
+
+			if expected, actual := true, tree.Delete(TestKey(2)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 3, 6); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left, TestKey(4), Red, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left.left, TestKey(3), Black, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left.right, TestKey(5), Black, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right, TestKey(7), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right.right, TestKey(8), Red, None); err != nil {
+				t.Error(err)
+			}
 		}
-		if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
-			t.Error(err)
+
+		// Remove third
+		{
+			//                        6,B
+			//                      /     \
+			//                  4,B        7,B
+			//                     \          \
+			//                     5,R        8,R
+
+			if expected, actual := true, tree.Delete(TestKey(3)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 3, 5); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left, TestKey(4), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left.right, TestKey(5), Red, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right, TestKey(7), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right.right, TestKey(8), Red, None); err != nil {
+				t.Error(err)
+			}
+		}
+
+		// Remove fourth
+		{
+			//                        6,B
+			//                      /     \
+			//                  5,B        7,B
+			//                                \
+			//                                8,R
+
+			if expected, actual := true, tree.Delete(TestKey(4)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 3, 4); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(6), Black, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left, TestKey(5), Black, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right, TestKey(7), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right.right, TestKey(8), Red, None); err != nil {
+				t.Error(err)
+			}
+		}
+
+		// Remove fifth
+		{
+			//                        7,B
+			//                      /     \
+			//                  6,B        8,B
+
+			if expected, actual := true, tree.Delete(TestKey(5)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 3, 3); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(7), Black, Both); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(7), Black, Both); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.left, TestKey(6), Black, None); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right, TestKey(8), Black, None); err != nil {
+				t.Error(err)
+			}
+		}
+
+		// Remove sixth
+		{
+			//                        7,B
+			//                            \
+			//                             8,R
+
+			if expected, actual := true, tree.Delete(TestKey(6)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 2, 2); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(7), Black, Right); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(7), Black, Right); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root.right, TestKey(8), Red, None); err != nil {
+				t.Error(err)
+			}
+		}
+
+		// Remove seventh
+		{
+			//                        8,B
+
+			if expected, actual := true, tree.Delete(TestKey(7)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 2, 1); err != nil {
+				t.Error(err)
+			}
+			if err := verifyNode(tree.root, TestKey(8), Black, None); err != nil {
+				t.Error(err)
+			}
+
+			if err := verifyNode(tree.root, TestKey(8), Black, None); err != nil {
+				t.Error(err)
+			}
+		}
+
+		// Remove eighth
+		{
+
+			if expected, actual := true, tree.Delete(TestKey(8)); expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
+			if err := verifyTree(tree, 1, 0); err != nil {
+				t.Error(err)
+			}
+
+			if expected, actual := true, tree.root == nil; expected != actual {
+				t.Errorf("expected: %v, actual: %v", expected, actual)
+			}
 		}
 	})
 }
