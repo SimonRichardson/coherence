@@ -34,63 +34,8 @@ func TestEmptyTree(t *testing.T) {
 	})
 }
 
-func makeTreeWithAmount(amount int) *RBTree {
-	tree := NewRBTree()
-
-	for i := 1; i <= amount; i++ {
-		tree.Insert(TestKey(i), fmt.Sprintf("%d", i))
-	}
-
-	return tree
-}
-
-func makeTree() *RBTree {
-	return makeTreeWithAmount(3)
-}
-
-func verifyRBTree(n *RBNode) error {
-	if n == nil {
-		return nil
-	}
-
-	if isRed(n) && (isRed(n.left) || isRed(n.right)) {
-		return errors.Errorf("red violation with key %v", n.key)
-	}
-
-	if err := verifyRBTree(n.left); err != nil {
-		return err
-	}
-	if err := verifyRBTree(n.right); err != nil {
-		return err
-	}
-
-	if n.left != nil && n.left.key.Compare(n.key) >= 0 ||
-		n.right != nil && n.right.key.Compare(n.key) <= 0 {
-		return errors.Errorf("binary tree violation with key %v", n.key)
-	}
-	return nil
-}
-
-func blackHeight(node *RBNode) int {
-	if node == nil {
-		return 1
-	}
-
-	leftHeight, rightHeight := blackHeight(node.left), blackHeight(node.right)
-	if leftHeight == 0 || rightHeight == 0 {
-		return 0
-	}
-
-	if leftHeight != rightHeight {
-		return 0
-	}
-	if isRed(node) {
-		return leftHeight
-	}
-	return leftHeight + 1
-}
-
 func TestInsert(t *testing.T) {
+	t.Parallel()
 
 	t.Run("insert", func(t *testing.T) {
 		fn := func(a uint) bool {
@@ -99,14 +44,11 @@ func TestInsert(t *testing.T) {
 				tree   = makeTreeWithAmount(amount)
 			)
 
-			err := verifyRBTree(tree.Root())
+			err := verifyTreeStructure(tree.Root())
 			if expected, actual := true, err == nil; expected != actual {
 				t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
 			}
 			if expected, actual := 1, blackHeight(tree.Root()); actual <= expected {
-				t.Errorf("expected: %d, actual: %d", expected, actual)
-			}
-			if expected, actual := amount, tree.Size(); expected != actual {
 				t.Errorf("expected: %d, actual: %d", expected, actual)
 			}
 
@@ -117,18 +59,50 @@ func TestInsert(t *testing.T) {
 		}
 	})
 
+	t.Run("duplication", func(t *testing.T) {
+		fn := func(a uint) bool {
+			var (
+				amount = int(a%100) + 1
+				tree   = makeTreeWithAmount(amount)
+			)
+
+			err := verifyTreeStructure(tree.Root())
+			if expected, actual := true, err == nil; expected != actual {
+				t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+			}
+			if expected, actual := amount, tree.Size(); actual != expected {
+				t.Errorf("expected: %d, actual: %d", expected, actual)
+			}
+
+			for i := 1; i <= 10; i++ {
+				if ok := tree.Insert(TestKey(amount+i), fmt.Sprintf("%d", amount+1)); !ok {
+					t.Errorf("expected: %t, actual: %t", true, ok)
+				}
+
+				if ok := tree.Insert(TestKey(1), fmt.Sprintf("%d", 1)); ok {
+					t.Errorf("expected: %t, actual: %t", false, ok)
+				}
+
+				err := verifyTreeStructure(tree.Root())
+				if expected, actual := true, err == nil; expected != actual {
+					t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+				}
+				if expected, actual := amount+i, tree.Size(); actual != expected {
+					t.Errorf("expected: %d, actual: %d", expected, actual)
+				}
+			}
+
+			return true
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
 	t.Run("manual", func(t *testing.T) {
-		//               4,B
-		//             /     \
-		//         2,R         6,R
-		//       /     \     /     \
-		//     1,B    3,B   5,B    7,B
-		//                             \
-		//                              8,R
+		tree := makeTree()
 
-		tree := makeTreeWithAmount(8)
-
-		err := verifyRBTree(tree.Root())
+		err := verifyTreeStructure(tree.Root())
 		if expected, actual := true, err == nil; expected != actual {
 			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
 		}
@@ -166,6 +140,72 @@ func TestInsert(t *testing.T) {
 	})
 }
 
+func TestDelete(t *testing.T) {
+	t.Parallel()
+
+	t.Run("manual", func(t *testing.T) {
+		tree := makeTree()
+
+		if err := verifyTree(tree, 3, 8); err != nil {
+			t.Error(err)
+		}
+		if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+			t.Error(err)
+		}
+
+		// remove 1
+		if expected, actual := true, tree.Delete(TestKey(1)); expected != actual {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+		if err := verifyTree(tree, 3, 7); err != nil {
+			t.Error(err)
+		}
+		if err := verifyNode(tree.root, TestKey(4), Black, Both); err != nil {
+			t.Error(err)
+		}
+	})
+}
+
+func makeTreeWithAmount(amount int) *RBTree {
+	tree := NewRBTree()
+
+	for i := 1; i <= amount; i++ {
+		tree.Insert(TestKey(i), fmt.Sprintf("%d", i))
+	}
+
+	return tree
+}
+
+func makeTree() *RBTree {
+	//               4,B
+	//             /     \
+	//         2,R         6,R
+	//       /     \     /     \
+	//     1,B    3,B   5,B    7,B
+	//                             \
+	//                              8,R
+	return makeTreeWithAmount(8)
+}
+
+func blackHeight(node *RBNode) int {
+	if node == nil {
+		return 1
+	}
+
+	leftHeight, rightHeight := blackHeight(node.left), blackHeight(node.right)
+	if leftHeight == 0 || rightHeight == 0 {
+		return 0
+	}
+
+	if leftHeight != rightHeight {
+		return 0
+	}
+	if isRed(node) {
+		return leftHeight
+	}
+	return leftHeight + 1
+}
+
 type Presence int
 
 const (
@@ -183,6 +223,20 @@ func (p Presence) Right() bool {
 	return p == Right || p == Both
 }
 
+func verifyTree(tree *RBTree, height, size int) error {
+	err := verifyTreeStructure(tree.Root())
+	if expected, actual := true, err == nil; expected != actual {
+		return errors.Errorf("tree structure - expected: %v, actual: %v, err: %v", expected, actual, err)
+	}
+	if expected, actual := height, blackHeight(tree.Root()); actual != expected {
+		return errors.Errorf("tree height - expected: %d, actual: %d", expected, actual)
+	}
+	if expected, actual := size, tree.Size(); expected != actual {
+		return errors.Errorf("tree size - expected: %d, actual: %d", expected, actual)
+	}
+	return nil
+}
+
 func verifyNode(node *RBNode, key TestKey, nodeType NodeType, presence Presence) error {
 	if expected, actual := key, node.key; expected != actual {
 		return errors.Errorf("node key - expected: %v, actual: %v", expected, actual)
@@ -198,6 +252,29 @@ func verifyNode(node *RBNode, key TestKey, nodeType NodeType, presence Presence)
 	}
 	if expected, actual := presence.Right(), node.right != nil; expected != actual {
 		return errors.Errorf("node right - expected: %v, actual: %v", expected, actual)
+	}
+	return nil
+}
+
+func verifyTreeStructure(n *RBNode) error {
+	if n == nil {
+		return nil
+	}
+
+	if isRed(n) && (isRed(n.left) || isRed(n.right)) {
+		return errors.Errorf("red violation with key %v", n.key)
+	}
+
+	if err := verifyTreeStructure(n.left); err != nil {
+		return err
+	}
+	if err := verifyTreeStructure(n.right); err != nil {
+		return err
+	}
+
+	if n.left != nil && n.left.key.Compare(n.key) >= 0 ||
+		n.right != nil && n.right.key.Compare(n.key) <= 0 {
+		return errors.Errorf("binary tree violation with key %v", n.key)
 	}
 	return nil
 }

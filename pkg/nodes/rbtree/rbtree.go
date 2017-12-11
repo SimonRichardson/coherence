@@ -60,14 +60,13 @@ func (t *RBTree) Insert(key Key, str string) bool {
 	}
 
 	var (
-		insertion       bool
-		direction, last bool
-
-		head = &RBNode{}
-
+		insertion           bool
 		parent, grandParent *RBNode
-		root                = head
-		node                = t.root
+
+		head            = &RBNode{}
+		root            = head
+		node            = t.root
+		direction, last = true, true
 	)
 
 	root.right = t.root
@@ -121,6 +120,87 @@ func (t *RBTree) Insert(key Key, str string) bool {
 	}
 
 	return insertion
+}
+
+// Delete removes the entry for key from the redBlackTree. Returns true on
+// successful deletion, false if the key is not in tree
+func (t *RBTree) Delete(key Key) bool {
+	if t.root == nil {
+		return false
+	}
+
+	var (
+		head = &RBNode{
+			nodeType: Red,
+		}
+
+		parent, grandParent *RBNode
+		found               *RBNode
+
+		node      = head
+		direction = true
+	)
+
+	node.right = t.root
+
+	for {
+		child := node.child(direction)
+		if child == nil {
+			break
+		}
+
+		last := direction
+
+		grandParent = parent
+		parent = node
+		node = child
+
+		comparator := node.key.Compare(key)
+		if comparator == 0 {
+			found = node
+		}
+
+		direction = comparator < 0
+		if !isRed(node) && !isRed(node.child(direction)) {
+			if isRed(node.child(!direction)) {
+				n := singleRotate(node, direction)
+				parent.setChild(last, n)
+				parent = n
+			} else {
+				if sibling := parent.child(!last); sibling != nil {
+					if !isRed(sibling.child(!last)) && !isRed(sibling.child(last)) {
+						parent.nodeType = Black
+						sibling.nodeType, node.nodeType = Red, Red
+					} else {
+						dir := grandParent.right == parent
+						if isRed(sibling.child(last)) {
+							grandParent.setChild(dir, doubleRotate(parent, last))
+						} else if isRed(sibling.child(!last)) {
+							grandParent.setChild(dir, singleRotate(parent, last))
+						}
+
+						c := grandParent.child(dir)
+						c.nodeType, node.nodeType = Red, Red
+						c.left.nodeType, c.right.nodeType = Black, Black
+					}
+				}
+			}
+		}
+	}
+
+	if found != nil {
+		found.key = node.key
+		found.str = node.str
+		parent.setChild(parent.right == node, node.child(node.left == nil))
+		t.size--
+	}
+
+	t.root = head.right
+	if t.root != nil {
+		t.root.nodeType = Black
+	}
+
+	return found != nil
 }
 
 // RBNode is a RBTree node
