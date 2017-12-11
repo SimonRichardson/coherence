@@ -2,6 +2,7 @@ package rbtree
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"testing/quick"
 
@@ -444,6 +445,44 @@ func TestDelete(t *testing.T) {
 			if expected, actual := true, tree.root == nil; expected != actual {
 				t.Errorf("expected: %v, actual: %v", expected, actual)
 			}
+		}
+	})
+}
+
+func TestLookupNUniqueAt(t *testing.T) {
+	t.Parallel()
+
+	t.Run("lookup", func(t *testing.T) {
+		tree := NewRBTree()
+
+		if ok := tree.Insert(TestKey(1), "1"); !ok {
+			t.Errorf("expected: %t, actual: %t", true, ok)
+		}
+		if ok := tree.Insert(TestKey(2), "2"); !ok {
+			t.Errorf("expected: %t, actual: %t", true, ok)
+		}
+		if ok := tree.Insert(TestKey(3), "3"); !ok {
+			t.Errorf("expected: %t, actual: %t", true, ok)
+		}
+
+		if expected, actual := []string{"1", "2", "3"}, tree.LookupNUniqueAt(3, TestKey(1)); !reflect.DeepEqual(expected, actual) {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+
+		if expected, actual := []string{"2", "3"}, tree.LookupNUniqueAt(3, TestKey(2)); !reflect.DeepEqual(expected, actual) {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+
+		if expected, actual := []string{"2"}, tree.LookupNUniqueAt(1, TestKey(2)); !reflect.DeepEqual(expected, actual) {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+
+		if expected, actual := 0, len(tree.LookupNUniqueAt(10, TestKey(4))); expected != actual {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+
+		if expected, actual := 0, len(tree.LookupNUniqueAt(0, TestKey(1))); expected != actual {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 	})
 }
