@@ -1,9 +1,19 @@
-package store
+package api
 
 import "github.com/trussle/coherence/pkg/selectors"
 
-// Store represents a in-memory Key/Value implementation
-type Store interface {
+// TransportStrategy defines a way to create a transport
+type TransportStrategy interface {
+
+	// Apply applies a host to create a new api.Transport
+	Apply(string) Transport
+}
+
+// Transport wraps the API transportation request to provide an agnostic
+// approach to the store.
+// As long as the API implements the following transportation service then
+// any protocol can be used; http, gRPC, raw udp
+type Transport interface {
 
 	// Insert takes a key and value and stores with in the underlying store.
 	// Returns ChangeSet of success and failure
@@ -29,6 +39,6 @@ type Store interface {
 	// Score returns the specific score for the field with in the key.
 	Score(selectors.Key, selectors.Field) (selectors.Presence, error)
 
-	// Repair attempts to repair the store depending on the elements
-	Repair([]selectors.KeyFieldValue) error
+	// Hash returns the transport unique hash
+	Hash() uint32
 }

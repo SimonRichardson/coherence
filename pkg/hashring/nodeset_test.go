@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
+	apiMocks "github.com/trussle/coherence/pkg/api/mocks"
 	"github.com/trussle/coherence/pkg/cluster/mocks"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
@@ -21,8 +22,9 @@ func TestNodeSet(t *testing.T) {
 		defer ctrl.Finish()
 
 		peer := mocks.NewMockPeer(ctrl)
+		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
-		nodeSet := NewNodeSet(peer, defaultReplicationFactor, log.NewNopLogger())
+		nodeSet := NewNodeSet(peer, strategy, defaultReplicationFactor, log.NewNopLogger())
 		nodes := nodeSet.Snapshot(selectors.Key("a"))
 
 		if expected, actual := 0, len(nodes); expected != actual {
@@ -36,7 +38,15 @@ func TestNodeSet(t *testing.T) {
 
 		peer := mocks.NewMockPeer(ctrl)
 
-		nodeSet := NewNodeSet(peer, defaultReplicationFactor, log.NewNopLogger())
+		transport := apiMocks.NewMockTransport(ctrl)
+		transport.EXPECT().Hash().Return(murmur3.Sum32([]byte("0.0.0.0:8080")))
+		transport.EXPECT().Hash().Return(murmur3.Sum32([]byte("0.0.0.0:8081")))
+
+		strategy := apiMocks.NewMockTransportStrategy(ctrl)
+		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
+		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
+
+		nodeSet := NewNodeSet(peer, strategy, defaultReplicationFactor, log.NewNopLogger())
 		nodeSet.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
@@ -44,8 +54,8 @@ func TestNodeSet(t *testing.T) {
 
 		nodes := nodeSet.Snapshot(selectors.Key("a"))
 		if expected, actual := []uint32{
-			murmur3.Sum32([]byte("http://0.0.0.0:8080")),
-			murmur3.Sum32([]byte("http://0.0.0.0:8081")),
+			murmur3.Sum32([]byte("0.0.0.0:8080")),
+			murmur3.Sum32([]byte("0.0.0.0:8081")),
 		}, extractAddresses(nodes); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
@@ -57,7 +67,15 @@ func TestNodeSet(t *testing.T) {
 
 		peer := mocks.NewMockPeer(ctrl)
 
-		nodeSet := NewNodeSet(peer, defaultReplicationFactor, log.NewNopLogger())
+		transport := apiMocks.NewMockTransport(ctrl)
+		transport.EXPECT().Hash().Return(murmur3.Sum32([]byte("0.0.0.0:8080")))
+		transport.EXPECT().Hash().Return(murmur3.Sum32([]byte("0.0.0.0:8081")))
+
+		strategy := apiMocks.NewMockTransportStrategy(ctrl)
+		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
+		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
+
+		nodeSet := NewNodeSet(peer, strategy, defaultReplicationFactor, log.NewNopLogger())
 		nodeSet.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
@@ -69,8 +87,8 @@ func TestNodeSet(t *testing.T) {
 
 		nodes := nodeSet.Snapshot(selectors.Key("a"))
 		if expected, actual := []uint32{
-			murmur3.Sum32([]byte("http://0.0.0.0:8080")),
-			murmur3.Sum32([]byte("http://0.0.0.0:8081")),
+			murmur3.Sum32([]byte("0.0.0.0:8080")),
+			murmur3.Sum32([]byte("0.0.0.0:8081")),
 		}, extractAddresses(nodes); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}

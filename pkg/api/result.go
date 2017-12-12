@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	errs "github.com/trussle/coherence/pkg/http"
+	errs "github.com/trussle/coherence/pkg/api/http"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 

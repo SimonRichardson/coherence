@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/trussle/coherence/pkg/api"
+	"github.com/trussle/coherence/pkg/api/transports"
 	"github.com/trussle/coherence/pkg/cluster"
 	"github.com/trussle/coherence/pkg/farm"
 	"github.com/trussle/coherence/pkg/hashring"
@@ -29,6 +30,7 @@ const (
 	defaultCacheReplicationFactor = 2
 	defaultNodeReplicationFactor  = 3
 	defaultMetricsRegistration    = true
+	defaultTransportProtocol      = "http"
 )
 
 func runCache(args []string) error {
@@ -44,6 +46,7 @@ func runCache(args []string) error {
 		cacheBuckets           = flags.Uint("cache.buckets", defaultCacheBuckets, "number of buckets to use with the cache")
 		cacheReplicationFactor = flags.Int("cache.replication.factor", defaultCacheReplicationFactor, "replication factor for remote configuration")
 		nodeReplicationFactor  = flags.Int("node.replication.factor", defaultNodeReplicationFactor, "replication factor for node configuration")
+		transportProtocol      = flags.String("transport.protocol", defaultTransportProtocol, "protocol used to talk to remote nodes (http)")
 		metricsRegistration    = flags.Bool("metrics.registration", defaultMetricsRegistration, "Registration of metrics on launch")
 		clusterPeers           = stringslice{}
 	)
@@ -112,9 +115,14 @@ func runCache(args []string) error {
 		return err
 	}
 
+	transport, err := transports.Parse(*transportProtocol)
+	if err != nil {
+		return err
+	}
+
 	var (
 		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
-		nodeSet     = hashring.NewNodeSet(peer, *nodeReplicationFactor, log.With(logger, "component", "nodeset"))
+		nodeSet     = hashring.NewNodeSet(peer, transport, *nodeReplicationFactor, log.With(logger, "component", "nodeset"))
 		supervisor  = farm.NewReal(nodeSet)
 	)
 

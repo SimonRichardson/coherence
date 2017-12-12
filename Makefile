@@ -24,6 +24,10 @@ build: dist/coherence
 dist/coherence:
 	go build -o dist/coherence ${PATH_COHERENCE}/cmd/coherence
 
+pkg/api/mocks/transport.go:
+	mockgen -package=mocks -destination=pkg/api/mocks/transport.go ${PATH_COHERENCE}/pkg/api Transport,TransportStrategy
+	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/api/mocks/transport.go
+
 pkg/cluster/mocks/peer.go:
 	mockgen -package=mocks -destination=pkg/cluster/mocks/peer.go ${PATH_COHERENCE}/pkg/cluster Peer
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
@@ -55,6 +59,7 @@ pkg/store/mocks/store.go:
 
 .PHONY: build-mocks
 build-mocks: FORCE
+	@ $(MAKE) pkg/api/mocks/transport.go
 	@ $(MAKE) pkg/cluster/mocks/peer.go
 	@ $(MAKE) pkg/hashring/mocks/hashring.go
 	@ $(MAKE) pkg/members/mocks/members.go
@@ -65,6 +70,7 @@ build-mocks: FORCE
 	
 .PHONY: clean-mocks
 clean-mocks: FORCE
+	rm -f pkg/api/mocks/transport.go
 	rm -f pkg/cluster/mocks/peer.go
 	rm -f pkg/hashring/mocks/hashring.go
 	rm -f pkg/members/mocks/members.go

@@ -1,15 +1,13 @@
 package nodes
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
+	"errors"
 	"reflect"
 	"testing"
 	"testing/quick"
 
-	"github.com/trussle/coherence/pkg/client"
+	"github.com/golang/mock/gomock"
+	apiMocks "github.com/trussle/coherence/pkg/api/mocks"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
@@ -18,46 +16,14 @@ func TestRemoteInsert(t *testing.T) {
 
 	t.Run("insert with post http error", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/insert", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Insert(key, members)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Insert(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("insert with json error", func(t *testing.T) {
-		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/insert", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Insert(key, members)
 
 			var found bool
@@ -77,44 +43,19 @@ func TestRemoteInsert(t *testing.T) {
 
 	t.Run("insert", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/insert", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				bytes, err := ioutil.ReadAll(r.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
+			want := selectors.ChangeSet{
+				Success: extractFields(members),
+				Failure: make([]selectors.Field, 0),
+			}
 
-				var input struct {
-					Members []selectors.FieldValueScore `json:"members"`
-				}
-				if err := json.Unmarshal(bytes, &input); err != nil {
-					t.Fatal(err)
-				}
-				for k, v := range input.Members {
-					if expected, actual := members[k], v; !expected.Equal(actual) {
-						t.Errorf("expected: %v, actual: %v", expected, actual)
-					}
-				}
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Insert(key, members).Return(want, nil)
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records selectors.ChangeSet `json:"records"`
-				}{
-					Records: selectors.ChangeSet{
-						Success: extractFields(members),
-						Failure: make([]selectors.Field, 0),
-					},
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Insert(key, members)
 
 			var found bool
@@ -123,10 +64,6 @@ func TestRemoteInsert(t *testing.T) {
 					t.Error(err)
 				}
 				changeSet := selectors.ChangeSetFromElement(element)
-				want := selectors.ChangeSet{
-					Success: extractFields(members),
-					Failure: make([]selectors.Field, 0),
-				}
 
 				if expected, actual := want, changeSet; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -148,46 +85,14 @@ func TestRemoteDelete(t *testing.T) {
 
 	t.Run("delete with post http error", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/delete", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Delete(key, members)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Delete(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("delete with json error", func(t *testing.T) {
-		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/delete", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Delete(key, members)
 
 			var found bool
@@ -207,44 +112,19 @@ func TestRemoteDelete(t *testing.T) {
 
 	t.Run("delete", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/delete", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				bytes, err := ioutil.ReadAll(r.Body)
-				if err != nil {
-					t.Fatal(err)
-				}
+			want := selectors.ChangeSet{
+				Success: extractFields(members),
+				Failure: make([]selectors.Field, 0),
+			}
 
-				var input struct {
-					Members []selectors.FieldValueScore `json:"members"`
-				}
-				if err := json.Unmarshal(bytes, &input); err != nil {
-					t.Fatal(err)
-				}
-				for k, v := range input.Members {
-					if expected, actual := members[k], v; !expected.Equal(actual) {
-						t.Errorf("expected: %v, actual: %v", expected, actual)
-					}
-				}
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Delete(key, members).Return(want, nil)
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records selectors.ChangeSet `json:"records"`
-				}{
-					Records: selectors.ChangeSet{
-						Success: extractFields(members),
-						Failure: make([]selectors.Field, 0),
-					},
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Delete(key, members)
 
 			var found bool
@@ -253,10 +133,6 @@ func TestRemoteDelete(t *testing.T) {
 					t.Error(err)
 				}
 				changeSet := selectors.ChangeSetFromElement(element)
-				want := selectors.ChangeSet{
-					Success: extractFields(members),
-					Failure: make([]selectors.Field, 0),
-				}
 
 				if expected, actual := want, changeSet; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -278,46 +154,14 @@ func TestRemoteSelect(t *testing.T) {
 
 	t.Run("select with post http error", func(t *testing.T) {
 		fn := func(key selectors.Key, field selectors.Field) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/select", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Select(key, field)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Select(key, field).Return(selectors.FieldValueScore{}, errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("select with json error", func(t *testing.T) {
-		fn := func(key selectors.Key, field selectors.Field) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/select", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Select(key, field)
 
 			var found bool
@@ -337,28 +181,20 @@ func TestRemoteSelect(t *testing.T) {
 
 	t.Run("select", func(t *testing.T) {
 		fn := func(key selectors.Key, field selectors.Field, value []byte) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/select", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records selectors.FieldValueScore `json:"records"`
-				}{
-					Records: selectors.FieldValueScore{
-						Field: field,
-						Value: value,
-						Score: 1,
-					},
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			want := selectors.FieldValueScore{
+				Field: field,
+				Value: value,
+				Score: 1,
+			}
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Select(key, field).Return(want, nil)
+
+			node := NewRemote(transport)
 			ch := node.Select(key, field)
 
 			var found bool
@@ -367,11 +203,6 @@ func TestRemoteSelect(t *testing.T) {
 					t.Error(err)
 				}
 				fieldValueScore := selectors.FieldValueScoreFromElement(element)
-				want := selectors.FieldValueScore{
-					Field: field,
-					Value: value,
-					Score: 1,
-				}
 
 				if expected, actual := want, fieldValueScore; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -393,46 +224,14 @@ func TestRemoteKeys(t *testing.T) {
 
 	t.Run("keys with post http error", func(t *testing.T) {
 		fn := func() bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/keys", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Keys()
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Keys().Return(nil, errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("keys with json error", func(t *testing.T) {
-		fn := func() bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/keys", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Keys()
 
 			var found bool
@@ -452,24 +251,14 @@ func TestRemoteKeys(t *testing.T) {
 
 	t.Run("keys", func(t *testing.T) {
 		fn := func(keys []selectors.Key) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/keys", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records []selectors.Key `json:"records"`
-				}{
-					Records: keys,
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Keys().Return(keys, nil)
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Keys()
 
 			var found bool
@@ -499,46 +288,14 @@ func TestRemoteSize(t *testing.T) {
 
 	t.Run("size with post http error", func(t *testing.T) {
 		fn := func(key selectors.Key) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/size", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Size(key)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Size(key).Return(int64(0), errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("size with json error", func(t *testing.T) {
-		fn := func(key selectors.Key) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/size", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Size(key)
 
 			var found bool
@@ -558,24 +315,14 @@ func TestRemoteSize(t *testing.T) {
 
 	t.Run("size", func(t *testing.T) {
 		fn := func(key selectors.Key, size int64) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/size", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records int64 `json:"records"`
-				}{
-					Records: size,
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Size(key).Return(size, nil)
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Size(key)
 
 			var found bool
@@ -605,46 +352,14 @@ func TestRemoteMembers(t *testing.T) {
 
 	t.Run("members with post http error", func(t *testing.T) {
 		fn := func(key selectors.Key) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/members", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Members(key)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Members(key).Return(nil, errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("members with json error", func(t *testing.T) {
-		fn := func(key selectors.Key) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/members", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Members(key)
 
 			var found bool
@@ -664,24 +379,14 @@ func TestRemoteMembers(t *testing.T) {
 
 	t.Run("members", func(t *testing.T) {
 		fn := func(key selectors.Key, fields []selectors.Field) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/members", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records []selectors.Field `json:"records"`
-				}{
-					Records: fields,
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Members(key).Return(fields, nil)
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Members(key)
 
 			var found bool
@@ -711,46 +416,14 @@ func TestRemoteScore(t *testing.T) {
 
 	t.Run("score with post http error", func(t *testing.T) {
 		fn := func(key selectors.Key, field selectors.Field) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/members", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusNotFound)
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
-			ch := node.Score(key, field)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Score(key, field).Return(selectors.Presence{}, errors.New("bad"))
 
-			var found bool
-			for element := range ch {
-				if err := selectors.ErrorFromElement(element); err != nil {
-					found = true
-					continue
-				}
-			}
-
-			return found
-		}
-		if err := quick.Check(fn, nil); err != nil {
-			t.Error(err)
-		}
-	})
-
-	t.Run("score with json error", func(t *testing.T) {
-		fn := func(key selectors.Key, field selectors.Field) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/score", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("!!"))
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
-
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			node := NewRemote(transport)
 			ch := node.Score(key, field)
 
 			var found bool
@@ -770,28 +443,20 @@ func TestRemoteScore(t *testing.T) {
 
 	t.Run("score", func(t *testing.T) {
 		fn := func(key selectors.Key, field selectors.Field) bool {
-			mux := http.NewServeMux()
-			mux.HandleFunc("/store/score", func(w http.ResponseWriter, r *http.Request) {
-				defer r.Body.Close()
-				w.WriteHeader(http.StatusOK)
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
 
-				if err := json.NewEncoder(w).Encode(struct {
-					Records selectors.Presence `json:"records"`
-				}{
-					Records: selectors.Presence{
-						Inserted: false,
-						Present:  true,
-						Score:    1,
-					},
-				}); err != nil {
-					t.Fatal(err)
-				}
-			})
-			server := httptest.NewServer(mux)
-			defer server.Close()
+			want := selectors.Presence{
+				Inserted: false,
+				Present:  true,
+				Score:    1,
+			}
 
-			client := client.New(http.DefaultClient, server.URL)
-			node := NewRemote(client)
+			transport := apiMocks.NewMockTransport(ctrl)
+			transport.EXPECT().Hash().Return(uint32(1))
+			transport.EXPECT().Score(key, field).Return(want, nil)
+
+			node := NewRemote(transport)
 			ch := node.Score(key, field)
 
 			var found bool
@@ -800,11 +465,6 @@ func TestRemoteScore(t *testing.T) {
 					t.Error(err)
 				}
 				got := selectors.PresenceFromElement(element)
-				want := selectors.Presence{
-					Inserted: false,
-					Present:  true,
-					Score:    1,
-				}
 
 				if expected, actual := want, got; !expected.Equal(actual) {
 					t.Errorf("expected: %v, actual: %v", expected, actual)

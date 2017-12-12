@@ -1,14 +1,12 @@
 package hashring
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/trussle/coherence/pkg/client"
+	"github.com/trussle/coherence/pkg/api"
 	"github.com/trussle/coherence/pkg/cluster"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
@@ -46,22 +44,28 @@ type Snapshot interface {
 
 // NodeSet represents a set of nodes with in the cluster
 type NodeSet struct {
-	mutex  sync.RWMutex
-	peer   cluster.Peer
-	ring   *HashRing
-	nodes  map[string]nodes.Node
-	stop   chan chan struct{}
-	logger log.Logger
+	mutex     sync.RWMutex
+	peer      cluster.Peer
+	transport api.TransportStrategy
+	ring      *HashRing
+	nodes     map[string]nodes.Node
+	stop      chan chan struct{}
+	logger    log.Logger
 }
 
 // NewNodeSet creates a NodeSet with the correct dependencies
-func NewNodeSet(peer cluster.Peer, replicationFactor int, logger log.Logger) *NodeSet {
+func NewNodeSet(peer cluster.Peer,
+	transport api.TransportStrategy,
+	replicationFactor int,
+	logger log.Logger,
+) *NodeSet {
 	return &NodeSet{
-		peer:   peer,
-		ring:   NewHashRing(replicationFactor),
-		nodes:  make(map[string]nodes.Node),
-		stop:   make(chan chan struct{}),
-		logger: logger,
+		peer:      peer,
+		transport: transport,
+		ring:      NewHashRing(replicationFactor),
+		nodes:     make(map[string]nodes.Node),
+		stop:      make(chan chan struct{}),
+		logger:    logger,
 	}
 }
 
@@ -78,7 +82,9 @@ func (n *NodeSet) Run() error {
 			if err != nil {
 				continue
 			}
-			n.updateNodes(hosts)
+			if err := n.updateNodes(hosts); err != nil {
+				return err
+			}
 
 		case c := <-n.stop:
 			close(c)
@@ -126,7 +132,7 @@ func (n *NodeSet) Snapshot(key selectors.Key) (nodes []nodes.Node) {
 	return
 }
 
-func (n *NodeSet) updateNodes(hosts []string) {
+func (n *NodeSet) updateNodes(hosts []string) error {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
@@ -136,13 +142,10 @@ func (n *NodeSet) updateNodes(hosts []string) {
 		}
 
 		if ok := n.ring.Add(v); ok {
-			var (
-				u = fmt.Sprintf("http://%s", v)
-				c = client.New(cleanhttp.DefaultPooledClient(), u)
-			)
-			n.nodes[v] = nodes.NewRemote(c)
+			n.nodes[v] = nodes.NewRemote(n.transport.Apply(v))
 		}
 	}
 
 	// Go through and make sure that we have all the nodes in the ring.
+	return nil
 }

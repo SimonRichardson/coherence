@@ -1,25 +1,20 @@
 package nodes
 
 import (
-	"encoding/json"
-	"fmt"
-
-	"github.com/spaolacci/murmur3"
-
-	"github.com/trussle/coherence/pkg/client"
+	"github.com/trussle/coherence/pkg/api"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
 type remote struct {
-	hash   uint32
-	client *client.Client
+	hash      uint32
+	transport api.Transport
 }
 
 // NewRemote creates a Node that communicates with a remote service
-func NewRemote(client *client.Client) Node {
+func NewRemote(transport api.Transport) Node {
 	return &remote{
-		hash:   murmur3.Sum32([]byte(client.Host())),
-		client: client,
+		hash:      transport.Hash(),
+		transport: transport,
 	}
 }
 
@@ -27,7 +22,11 @@ func (r *remote) Insert(key selectors.Key, fields []selectors.FieldValueScore) <
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.write(key, "insert", fields, ch)
+		if value, err := r.transport.Insert(key, fields); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewChangeSetElement(value)
+		}
 	}()
 	return ch
 }
@@ -36,7 +35,11 @@ func (r *remote) Delete(key selectors.Key, fields []selectors.FieldValueScore) <
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.write(key, "delete", fields, ch)
+		if value, err := r.transport.Delete(key, fields); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewChangeSetElement(value)
+		}
 	}()
 	return ch
 }
@@ -45,7 +48,11 @@ func (r *remote) Select(key selectors.Key, field selectors.Field) <-chan selecto
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.read(key, field, ch)
+		if value, err := r.transport.Select(key, field); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewFieldValueScoreElement(value)
+		}
 	}()
 	return ch
 }
@@ -54,7 +61,11 @@ func (r *remote) Keys() <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.readKeys(ch)
+		if value, err := r.transport.Keys(); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewKeysElement(value)
+		}
 	}()
 	return ch
 }
@@ -63,7 +74,11 @@ func (r *remote) Size(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.readSize(key, ch)
+		if value, err := r.transport.Size(key); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewInt64Element(value)
+		}
 	}()
 	return ch
 }
@@ -72,7 +87,11 @@ func (r *remote) Members(key selectors.Key) <-chan selectors.Element {
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.readMembers(key, ch)
+		if value, err := r.transport.Members(key); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewFieldsElement(value)
+		}
 	}()
 	return ch
 }
@@ -81,129 +100,15 @@ func (r *remote) Score(key selectors.Key, field selectors.Field) <-chan selector
 	ch := make(chan selectors.Element)
 	go func() {
 		defer close(ch)
-		r.readScore(key, field, ch)
+		if value, err := r.transport.Score(key, field); err != nil {
+			ch <- selectors.NewErrorElement(err)
+		} else {
+			ch <- selectors.NewPresenceElement(value)
+		}
 	}()
 	return ch
 }
 
 func (r *remote) Hash() uint32 {
 	return r.hash
-}
-
-func (r *remote) write(key selectors.Key, path string, fields []selectors.FieldValueScore, dst chan<- selectors.Element) {
-	b, err := json.Marshal(struct {
-		Members []selectors.FieldValueScore `json:"members"`
-	}{
-		Members: fields,
-	})
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	res, err := r.client.Post(fmt.Sprintf("/store/%s?key=%s", path, key.String()), b)
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	var changeset struct {
-		Records selectors.ChangeSet `json:"records"`
-	}
-	if err := json.Unmarshal(res, &changeset); err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	dst <- selectors.NewChangeSetElement(changeset.Records)
-}
-
-func (r *remote) read(key selectors.Key, field selectors.Field, dst chan<- selectors.Element) {
-	res, err := r.client.Get(fmt.Sprintf("/store/select?key=%s&field=%s", key.String(), field.String()))
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	var fieldValueScore struct {
-		Records selectors.FieldValueScore `json:"records"`
-	}
-	if err := json.Unmarshal(res, &fieldValueScore); err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	dst <- selectors.NewFieldValueScoreElement(fieldValueScore.Records)
-}
-
-func (r *remote) readKeys(dst chan<- selectors.Element) {
-	res, err := r.client.Get("/store/keys")
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	var keys struct {
-		Records []selectors.Key `json:"records"`
-	}
-	if err := json.Unmarshal(res, &keys); err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	dst <- selectors.NewKeysElement(keys.Records)
-}
-
-func (r *remote) readSize(key selectors.Key, dst chan<- selectors.Element) {
-	res, err := r.client.Get(fmt.Sprintf("/store/size?key=%s", key.String()))
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	var size struct {
-		Records int64 `json:"records"`
-	}
-	if err := json.Unmarshal(res, &size); err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	dst <- selectors.NewInt64Element(size.Records)
-}
-
-func (r *remote) readMembers(key selectors.Key, dst chan<- selectors.Element) {
-	res, err := r.client.Get(fmt.Sprintf("/store/members?key=%s", key.String()))
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	var members struct {
-		Records []selectors.Field `json:"records"`
-	}
-	if err := json.Unmarshal(res, &members); err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	dst <- selectors.NewFieldsElement(members.Records)
-}
-
-func (r *remote) readScore(key selectors.Key, field selectors.Field, dst chan<- selectors.Element) {
-	res, err := r.client.Get(fmt.Sprintf("/store/score?key=%s&field=%s", key.String(), field.String()))
-	if err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	var score struct {
-		Records selectors.Presence `json:"records"`
-	}
-	if err := json.Unmarshal(res, &score); err != nil {
-		dst <- selectors.NewErrorElement(err)
-		return
-	}
-
-	dst <- selectors.NewPresenceElement(score.Records)
 }

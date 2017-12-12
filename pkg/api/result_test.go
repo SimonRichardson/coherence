@@ -11,7 +11,7 @@ import (
 	"testing/quick"
 
 	"github.com/go-kit/kit/log"
-	errs "github.com/trussle/coherence/pkg/http"
+	errs "github.com/trussle/coherence/pkg/api/http"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 

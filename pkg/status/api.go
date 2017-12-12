@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	errs "github.com/trussle/coherence/pkg/http"
+	errs "github.com/trussle/coherence/pkg/api/http"
 	"github.com/trussle/coherence/pkg/metrics"
 	"github.com/trussle/coherence/pkg/store"
 )
