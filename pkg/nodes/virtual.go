@@ -1,17 +1,20 @@
 package nodes
 
 import (
+	"github.com/spaolacci/murmur3"
 	"github.com/trussle/coherence/pkg/selectors"
 	"github.com/trussle/coherence/pkg/store"
 )
 
 type virtual struct {
+	hash  uint32
 	store store.Store
 }
 
 // NewVirtual creates a local storage
 func NewVirtual(store store.Store) Node {
 	return &virtual{
+		hash:  murmur3.Sum32([]byte("virtual")),
 		store: store,
 	}
 }
@@ -119,4 +122,8 @@ func (v *virtual) Score(key selectors.Key, field selectors.Field) <-chan selecto
 		ch <- selectors.NewPresenceElement(score)
 	}()
 	return ch
+}
+
+func (v *virtual) Hash() uint32 {
+	return v.hash
 }

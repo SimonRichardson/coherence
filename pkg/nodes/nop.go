@@ -1,6 +1,7 @@
 package nodes
 
 import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/spaolacci/murmur3"
 
 type nop struct{}
 
@@ -91,6 +92,10 @@ func (nop) Score(selectors.Key, selectors.Field) <-chan selectors.Element {
 		})
 	}()
 	return ch
+}
+
+func (nop) Hash() uint32 {
+	return murmur3.Sum32([]byte("nop"))
 }
 
 func extractFields(members []selectors.FieldValueScore) []selectors.Field {

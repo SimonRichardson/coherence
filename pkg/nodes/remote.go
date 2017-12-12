@@ -4,23 +4,21 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/spaolacci/murmur3"
+
 	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
-type remoteNode interface {
-
-	// Host returns the value of the remote node
-	Host() string
-}
-
 type remote struct {
+	hash   uint32
 	client *client.Client
 }
 
 // NewRemote creates a Node that communicates with a remote service
 func NewRemote(client *client.Client) Node {
 	return &remote{
+		hash:   murmur3.Sum32([]byte(client.Host())),
 		client: client,
 	}
 }
@@ -88,9 +86,8 @@ func (r *remote) Score(key selectors.Key, field selectors.Field) <-chan selector
 	return ch
 }
 
-// Host returns the client host
-func (r *remote) Host() string {
-	return r.client.Host()
+func (r *remote) Hash() uint32 {
+	return r.hash
 }
 
 func (r *remote) write(key selectors.Key, path string, fields []selectors.FieldValueScore, dst chan<- selectors.Element) {

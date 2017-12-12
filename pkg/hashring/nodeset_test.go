@@ -1,11 +1,16 @@
-package nodes
+package hashring
 
 import (
 	"reflect"
 	"testing"
 
+	"github.com/spaolacci/murmur3"
+
+	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
 	"github.com/trussle/coherence/pkg/cluster/mocks"
+	"github.com/trussle/coherence/pkg/nodes"
+	"github.com/trussle/coherence/pkg/selectors"
 )
 
 func TestNodeSet(t *testing.T) {
@@ -17,8 +22,8 @@ func TestNodeSet(t *testing.T) {
 
 		peer := mocks.NewMockPeer(ctrl)
 
-		nodeSet := NewNodeSet(peer)
-		nodes := nodeSet.Snapshot()
+		nodeSet := NewNodeSet(peer, defaultReplicationFactor, log.NewNopLogger())
+		nodes := nodeSet.Snapshot(selectors.Key("a"))
 
 		if expected, actual := 0, len(nodes); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -30,17 +35,17 @@ func TestNodeSet(t *testing.T) {
 		defer ctrl.Finish()
 
 		peer := mocks.NewMockPeer(ctrl)
-		peer.EXPECT().Address().Return("0.0.0.0:8080")
 
-		nodeSet := NewNodeSet(peer)
+		nodeSet := NewNodeSet(peer, defaultReplicationFactor, log.NewNopLogger())
 		nodeSet.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot()
-		if expected, actual := []string{
-			"http://0.0.0.0:8081",
+		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		if expected, actual := []uint32{
+			murmur3.Sum32([]byte("http://0.0.0.0:8080")),
+			murmur3.Sum32([]byte("http://0.0.0.0:8081")),
 		}, extractAddresses(nodes); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
@@ -51,9 +56,8 @@ func TestNodeSet(t *testing.T) {
 		defer ctrl.Finish()
 
 		peer := mocks.NewMockPeer(ctrl)
-		peer.EXPECT().Address().Return("0.0.0.0:8080").Times(2)
 
-		nodeSet := NewNodeSet(peer)
+		nodeSet := NewNodeSet(peer, defaultReplicationFactor, log.NewNopLogger())
 		nodeSet.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
@@ -63,21 +67,20 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot()
-		if expected, actual := []string{
-			"http://0.0.0.0:8081",
+		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		if expected, actual := []uint32{
+			murmur3.Sum32([]byte("http://0.0.0.0:8080")),
+			murmur3.Sum32([]byte("http://0.0.0.0:8081")),
 		}, extractAddresses(nodes); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 	})
 }
 
-func extractAddresses(nodes []Node) []string {
-	res := make([]string, 0)
+func extractAddresses(nodes []nodes.Node) []uint32 {
+	res := make([]uint32, 0)
 	for _, v := range nodes {
-		if r, ok := v.(remoteNode); ok {
-			res = append(res, r.Host())
-		}
+		res = append(res, v.Hash())
 	}
 	return res
 }

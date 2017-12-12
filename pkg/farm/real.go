@@ -7,24 +7,26 @@ import (
 
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/hashring"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 	"github.com/trussle/coherence/pkg/store"
 )
 
 const (
+	defaultAllKey         = selectors.Key("all")
 	defaultFailureRate    = 3
 	defaultFailureTimeout = time.Second
 )
 
 type real struct {
-	nodes          nodes.Snapshot
+	nodes          hashring.Snapshot
 	repairStrategy *repairStrategy
 	circuit        *breaker.CircuitBreaker
 }
 
 // NewReal creates a farm that talks to various nodes
-func NewReal(nodes nodes.Snapshot) store.Store {
+func NewReal(nodes hashring.Snapshot) store.Store {
 	return &real{
 		nodes:          nodes,
 		repairStrategy: &repairStrategy{nodes},
@@ -36,7 +38,7 @@ func (r *real) Insert(key selectors.Key, members []selectors.FieldValueScore) (s
 	var changeSet selectors.ChangeSet
 	err := r.circuit.Run(func() error {
 		var err error
-		changeSet, err = r.write(func(n nodes.Node) <-chan selectors.Element {
+		changeSet, err = r.write(key, func(n nodes.Node) <-chan selectors.Element {
 			return n.Insert(key, members)
 		})
 		return err
@@ -51,7 +53,7 @@ func (r *real) Delete(key selectors.Key, members []selectors.FieldValueScore) (s
 	var changeSet selectors.ChangeSet
 	err := r.circuit.Run(func() error {
 		var err error
-		changeSet, err = r.write(func(n nodes.Node) <-chan selectors.Element {
+		changeSet, err = r.write(key, func(n nodes.Node) <-chan selectors.Element {
 			return n.Delete(key, members)
 		})
 		return err
@@ -69,25 +71,25 @@ func (r *real) Select(key selectors.Key, field selectors.Field) (selectors.Field
 }
 
 func (r *real) Keys() ([]selectors.Key, error) {
-	return r.readKeys(func(n nodes.Node) <-chan selectors.Element {
+	return r.readKeys(defaultAllKey, func(n nodes.Node) <-chan selectors.Element {
 		return n.Keys()
 	})
 }
 
 func (r *real) Size(key selectors.Key) (int64, error) {
-	return r.readSize(func(n nodes.Node) <-chan selectors.Element {
+	return r.readSize(key, func(n nodes.Node) <-chan selectors.Element {
 		return n.Size(key)
 	})
 }
 
 func (r *real) Members(key selectors.Key) ([]selectors.Field, error) {
-	return r.readMembers(func(n nodes.Node) <-chan selectors.Element {
+	return r.readMembers(key, func(n nodes.Node) <-chan selectors.Element {
 		return n.Members(key)
 	})
 }
 
 func (r *real) Score(key selectors.Key, field selectors.Field) (selectors.Presence, error) {
-	return r.readScore(func(n nodes.Node) <-chan selectors.Element {
+	return r.readScore(key, func(n nodes.Node) <-chan selectors.Element {
 		return n.Score(key, field)
 	})
 }
@@ -96,12 +98,12 @@ func (r *real) Repair(members []selectors.KeyFieldValue) error {
 	return r.repairStrategy.Repair(members)
 }
 
-func (r *real) write(fn func(nodes.Node) <-chan selectors.Element) (selectors.ChangeSet, error) {
+func (r *real) write(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) (selectors.ChangeSet, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -156,7 +158,7 @@ func (r *real) read(key selectors.Key,
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -197,12 +199,12 @@ func (r *real) read(key selectors.Key,
 	return selectors.FieldValueScore{}, errors.New("invalid results")
 }
 
-func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Key, error) {
+func (r *real) readKeys(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Key, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -241,12 +243,12 @@ func (r *real) readKeys(fn func(nodes.Node) <-chan selectors.Element) ([]selecto
 	return records.Keys(), nil
 }
 
-func (r *real) readSize(fn func(nodes.Node) <-chan selectors.Element) (int64, error) {
+func (r *real) readSize(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) (int64, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -285,12 +287,12 @@ func (r *real) readSize(fn func(nodes.Node) <-chan selectors.Element) (int64, er
 	return records.Int64(), nil
 }
 
-func (r *real) readMembers(fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Field, error) {
+func (r *real) readMembers(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) ([]selectors.Field, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -329,12 +331,12 @@ func (r *real) readMembers(fn func(nodes.Node) <-chan selectors.Element) ([]sele
 	return records.Fields(), nil
 }
 
-func (r *real) readScore(fn func(nodes.Node) <-chan selectors.Element) (selectors.Presence, error) {
+func (r *real) readScore(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) (selectors.Presence, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error

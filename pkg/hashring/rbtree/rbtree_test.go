@@ -485,6 +485,51 @@ func TestLookupNUniqueAt(t *testing.T) {
 	})
 }
 
+func TestSearch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("manual", func(t *testing.T) {
+		tree := makeTree()
+
+		err := verifyTreeStructure(tree.Root())
+		if expected, actual := true, err == nil; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+
+		value, ok := tree.Search(5)
+		if expected, actual := true, ok; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+		if expected, actual := "5", value; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+
+		value, ok = tree.Search(3)
+		if expected, actual := true, ok; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+		if expected, actual := "3", value; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+
+		value, ok = tree.Search(8)
+		if expected, actual := true, ok; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+		if expected, actual := "8", value; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+
+		value, ok = tree.Search(10)
+		if expected, actual := false, ok; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+		if expected, actual := "", value; expected != actual {
+			t.Errorf("expected: %v, actual: %v, err: %v", expected, actual, err)
+		}
+	})
+}
+
 func makeTreeWithAmount(amount int) *RBTree {
 	tree := NewRBTree()
 
@@ -560,7 +605,7 @@ func verifyNode(node *RBNode, key int, nodeType NodeType, presence Presence) err
 	if expected, actual := key, node.key; expected != actual {
 		return errors.Errorf("node key - expected: %v, actual: %v", expected, actual)
 	}
-	if expected, actual := fmt.Sprintf("%d", int(key)), node.str; expected != actual {
+	if expected, actual := fmt.Sprintf("%d", int(key)), node.value; expected != actual {
 		return errors.Errorf("node value - expected: %v, actual: %v", expected, actual)
 	}
 	if expected, actual := nodeType, node.nodeType; expected != actual {

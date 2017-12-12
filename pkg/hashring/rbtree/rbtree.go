@@ -44,11 +44,11 @@ func (t *RBTree) Size() int {
 
 // Insert inserts a value and string into the tree
 // Returns true on insertion and false if a duplicate exists
-func (t *RBTree) Insert(key int, str string) bool {
+func (t *RBTree) Insert(key int, value string) bool {
 	if t.root == nil {
 		t.root = &RBNode{
 			key:      key,
-			str:      str,
+			value:    value,
 			nodeType: Black,
 		}
 		t.size = 1
@@ -71,7 +71,7 @@ func (t *RBTree) Insert(key int, str string) bool {
 		if node == nil {
 			node = &RBNode{
 				key:      key,
-				str:      str,
+				value:    value,
 				nodeType: Red,
 			}
 			parent.setChild(direction, node)
@@ -186,7 +186,7 @@ func (t *RBTree) Delete(key int) bool {
 
 	if found != nil {
 		found.key = node.key
-		found.str = node.str
+		found.value = node.value
 		parent.setChild(parent.right == node, node.child(node.left == nil))
 		t.size--
 	}
@@ -222,19 +222,28 @@ func find(node *RBNode, n int, key int, m map[string]struct{}, s *[]string) {
 	}
 
 	if comparator >= 0 {
-		if _, ok := m[node.str]; !ok {
-			*s = append(*s, node.str)
+		if _, ok := m[node.value]; !ok {
+			*s = append(*s, node.value)
 		}
-		m[node.str] = struct{}{}
+		m[node.value] = struct{}{}
 	}
 
 	find(node.right, n, key, m, s)
 }
 
+// Search searches for a value in the redBlackTree, returns the string and true
+// if found or the empty string and false if val is not in the tree.
+func (t *RBTree) Search(key int) (string, bool) {
+	if t.root == nil {
+		return "", false
+	}
+	return t.root.search(key)
+}
+
 // RBNode is a RBTree node
 type RBNode struct {
 	key         int
-	str         string
+	value       string
 	left, right *RBNode
 	nodeType    NodeType
 }
@@ -252,6 +261,21 @@ func (n *RBNode) setChild(right bool, node *RBNode) {
 	} else {
 		n.left = node
 	}
+}
+
+func (n *RBNode) search(key int) (string, bool) {
+	if n.key == key {
+		return n.value, true
+	} else if key < n.key {
+		if n.left != nil {
+			return n.left.search(key)
+		}
+	} else {
+		if n.right != nil {
+			return n.right.search(key)
+		}
+	}
+	return "", false
 }
 
 func isRed(n *RBNode) bool {

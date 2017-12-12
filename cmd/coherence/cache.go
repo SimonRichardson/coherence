@@ -17,17 +17,18 @@ import (
 	"github.com/trussle/coherence/pkg/api"
 	"github.com/trussle/coherence/pkg/cluster"
 	"github.com/trussle/coherence/pkg/farm"
+	"github.com/trussle/coherence/pkg/hashring"
 	"github.com/trussle/coherence/pkg/members"
-	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/status"
 	"github.com/trussle/coherence/pkg/store"
 )
 
 const (
-	defaultCacheSize           = 1000
-	defaultCacheBuckets        = 10
-	defaultReplicationFactor   = 2
-	defaultMetricsRegistration = true
+	defaultCacheSize              = 1000
+	defaultCacheBuckets           = 10
+	defaultCacheReplicationFactor = 2
+	defaultNodeReplicationFactor  = 3
+	defaultMetricsRegistration    = true
 )
 
 func runCache(args []string) error {
@@ -41,7 +42,8 @@ func runCache(args []string) error {
 		clusterAdvertiseAddr   = flags.String("cluster.advertise-addr", "", "optional, explicit address to advertise in cluster")
 		cacheSize              = flags.Uint("cache.size", defaultCacheSize, "number items the cache should hold")
 		cacheBuckets           = flags.Uint("cache.buckets", defaultCacheBuckets, "number of buckets to use with the cache")
-		cacheReplicationFactor = flags.Int("cache.replication.factor", defaultReplicationFactor, "replication factor for remote configuration")
+		cacheReplicationFactor = flags.Int("cache.replication.factor", defaultCacheReplicationFactor, "replication factor for remote configuration")
+		nodeReplicationFactor  = flags.Int("node.replication.factor", defaultNodeReplicationFactor, "replication factor for node configuration")
 		metricsRegistration    = flags.Bool("metrics.registration", defaultMetricsRegistration, "Registration of metrics on launch")
 		clusterPeers           = stringslice{}
 	)
@@ -112,7 +114,7 @@ func runCache(args []string) error {
 
 	var (
 		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
-		nodeSet     = nodes.NewNodeSet(peer)
+		nodeSet     = hashring.NewNodeSet(peer, *nodeReplicationFactor, log.With(logger, "component", "nodeset"))
 		supervisor  = farm.NewReal(nodeSet)
 	)
 
@@ -133,7 +135,7 @@ func runCache(args []string) error {
 	}
 	{
 		g.Add(func() error {
-			nodeSet.Listen(func(reason nodes.Reason) {
+			nodeSet.Listen(func(reason hashring.Reason) {
 				level.Debug(logger).Log("component", "nodeset", "reason", reason.String())
 			})
 			return nodeSet.Run()

@@ -1,13 +1,17 @@
-package nodes
+package hashring
 
 import (
 	"fmt"
 	"sync"
 	"time"
 
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/trussle/coherence/pkg/client"
 	"github.com/trussle/coherence/pkg/cluster"
+	"github.com/trussle/coherence/pkg/nodes"
+	"github.com/trussle/coherence/pkg/selectors"
 )
 
 // Reason defines a type of reason a peer will notify the callback
@@ -32,27 +36,32 @@ const (
 // Snapshot defines a way to snapshot a series of nodes at a specific time.
 type Snapshot interface {
 
-	// Snapshot returns a set of nodes in a specific time. Nodes which are used from
-	// the Snapshot are not guaranteed to succeed for longer than their purpose.
+	// Snapshot returns a set of nodes in a specific time. Nodes which are used
+	// from the Snapshot are not guaranteed to succeed for longer than their
+	// purpose.
 	// It is not recommended to store the nodes locally as they may not be the same
 	// nodes over time.
-	Snapshot() []Node
+	Snapshot(selectors.Key) []nodes.Node
 }
 
 // NodeSet represents a set of nodes with in the cluster
 type NodeSet struct {
-	mutex sync.RWMutex
-	peer  cluster.Peer
-	nodes []Node
-	stop  chan chan struct{}
+	mutex  sync.RWMutex
+	peer   cluster.Peer
+	ring   *HashRing
+	nodes  map[string]nodes.Node
+	stop   chan chan struct{}
+	logger log.Logger
 }
 
 // NewNodeSet creates a NodeSet with the correct dependencies
-func NewNodeSet(peer cluster.Peer) *NodeSet {
+func NewNodeSet(peer cluster.Peer, replicationFactor int, logger log.Logger) *NodeSet {
 	return &NodeSet{
-		peer:  peer,
-		nodes: make([]Node, 0),
-		stop:  make(chan chan struct{}),
+		peer:   peer,
+		ring:   NewHashRing(replicationFactor),
+		nodes:  make(map[string]nodes.Node),
+		stop:   make(chan chan struct{}),
+		logger: logger,
 	}
 }
 
@@ -101,60 +110,39 @@ func (n *NodeSet) Listen(fn func(Reason)) {
 // the Snapshot are not guaranteed to succeed for longer than their purpose.
 // It is not recommended to store the nodes locally as they may not be the same
 // nodes over time.
-func (n *NodeSet) Snapshot() []Node {
+func (n *NodeSet) Snapshot(key selectors.Key) (nodes []nodes.Node) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
-	return n.nodes[0:]
+	values := n.ring.LookupN(key.String(), n.ring.replicationFactor)
+	for _, v := range values {
+		if node, ok := n.nodes[v]; ok {
+			nodes = append(nodes, node)
+		} else {
+			level.Warn(n.logger).Log("reason", "missing node", "key", key.String())
+		}
+	}
+
+	return
 }
 
 func (n *NodeSet) updateNodes(hosts []string) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
-	// We don't want to terminate old nodes, or swap out clients for them, as that
-	// means old requests will be in a unknown state for active transactions.
-	// So the strategy is reuse as much as possible and disguard the old.
-
-	// Work out which nodes to keep
-	m := make(map[string]Node)
-	for _, v := range n.nodes {
-		if r, ok := v.(remoteNode); ok {
-			if host := r.Host(); contains(hosts, host) {
-				m[host] = v
-			}
-		}
-	}
-
-	address := n.peer.Address()
-	// Add any new nodes that could be missing
 	for _, v := range hosts {
-		if _, ok := m[v]; !ok && v != address {
+		if n.ring.Contains(v) {
+			continue
+		}
+
+		if ok := n.ring.Add(v); ok {
 			var (
-				url    = fmt.Sprintf("http://%s", v)
-				client = client.New(cleanhttp.DefaultPooledClient(), url)
+				u = fmt.Sprintf("http://%s", v)
+				c = client.New(cleanhttp.DefaultPooledClient(), u)
 			)
-			m[url] = NewRemote(client)
+			n.nodes[v] = nodes.NewRemote(c)
 		}
 	}
 
-	// Create a slice of the nodes that have been created
-	var (
-		index int
-		nodes = make([]Node, len(m))
-	)
-	for _, v := range m {
-		nodes[index] = v
-		index++
-	}
-	n.nodes = nodes
-}
-
-func contains(a []string, b string) bool {
-	for _, v := range a {
-		if fmt.Sprintf("http://%s", v) == b {
-			return true
-		}
-	}
-	return false
+	// Go through and make sure that we have all the nodes in the ring.
 }

@@ -29,4 +29,7 @@ type Node interface {
 
 	// Score returns the value of the field in a key
 	Score(selectors.Key, selectors.Field) <-chan selectors.Element
+
+	// Hash returns a hash of the node
+	Hash() uint32
 }

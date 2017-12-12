@@ -5,6 +5,7 @@ import (
 	"testing/quick"
 
 	"github.com/golang/mock/gomock"
+	hashringMocks "github.com/trussle/coherence/pkg/hashring/mocks"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/nodes/mocks"
 	"github.com/trussle/coherence/pkg/selectors"
@@ -53,8 +54,8 @@ func TestRepair(t *testing.T) {
 				node.EXPECT().Insert(k, v).Return(ch)
 			}
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(gomock.Any()).Return([]nodes.Node{
 				node,
 			}).AnyTimes()
 
@@ -107,8 +108,8 @@ func TestRepair(t *testing.T) {
 				node.EXPECT().Delete(k, v).Return(ch)
 			}
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(gomock.Any()).Return([]nodes.Node{
 				node,
 			}).AnyTimes()
 

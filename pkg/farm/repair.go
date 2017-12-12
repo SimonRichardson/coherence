@@ -4,12 +4,13 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/trussle/coherence/pkg/hashring"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 
 type repairStrategy struct {
-	nodes nodes.Snapshot
+	nodes hashring.Snapshot
 }
 
 func (r *repairStrategy) Repair(members []selectors.KeyFieldValue) error {
@@ -17,7 +18,7 @@ func (r *repairStrategy) Repair(members []selectors.KeyFieldValue) error {
 	for _, v := range members {
 		// This can be optimised to send all of them at once, but could flood the
 		// hosts
-		clue, err := r.readScoreRepair(func(n nodes.Node) <-chan selectors.Element {
+		clue, err := r.readScoreRepair(v.Key, func(n nodes.Node) <-chan selectors.Element {
 			return n.Score(v.Key, v.Field)
 		})
 		if err != nil {
@@ -57,14 +58,14 @@ func (r *repairStrategy) Repair(members []selectors.KeyFieldValue) error {
 
 	var errs []error
 	for key, members := range inserts {
-		if err := r.write(func(n nodes.Node) <-chan selectors.Element {
+		if err := r.write(key, func(n nodes.Node) <-chan selectors.Element {
 			return n.Insert(key, members)
 		}); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	for key, members := range deletes {
-		if err := r.write(func(n nodes.Node) <-chan selectors.Element {
+		if err := r.write(key, func(n nodes.Node) <-chan selectors.Element {
 			return n.Delete(key, members)
 		}); err != nil {
 			errs = append(errs, err)
@@ -77,12 +78,12 @@ func (r *repairStrategy) Repair(members []selectors.KeyFieldValue) error {
 	return nil
 }
 
-func (r *repairStrategy) readScoreRepair(fn func(nodes.Node) <-chan selectors.Element) (selectors.Clue, error) {
+func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) (selectors.Clue, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs      []error
@@ -142,12 +143,12 @@ func (r *repairStrategy) readScoreRepair(fn func(nodes.Node) <-chan selectors.El
 	}, nil
 }
 
-func (r *repairStrategy) write(fn func(nodes.Node) <-chan selectors.Element) error {
+func (r *repairStrategy) write(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) error {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot()
+		nodes    = r.nodes.Snapshot(key)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error

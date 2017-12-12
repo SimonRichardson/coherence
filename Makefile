@@ -28,6 +28,10 @@ pkg/cluster/mocks/peer.go:
 	mockgen -package=mocks -destination=pkg/cluster/mocks/peer.go ${PATH_COHERENCE}/pkg/cluster Peer
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
 
+pkg/hashring/mocks/hashring.go:
+	mockgen -package=mocks -destination=pkg/hashring/mocks/hashring.go ${PATH_COHERENCE}/pkg/hashring Snapshot
+	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/hashring/mocks/hashring.go
+
 pkg/members/mocks/members.go:
 	mockgen -package=mocks -destination=pkg/members/mocks/members.go ${PATH_COHERENCE}/pkg/members Members,MemberList,Member
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/members/mocks/members.go
@@ -41,7 +45,7 @@ pkg/metrics/mocks/observer.go:
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/metrics/mocks/observer.go
 
 pkg/nodes/mocks/node.go:
-	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node,Snapshot
+	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node
 	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/nodes/mocks/node.go
 
 pkg/store/mocks/store.go:
@@ -52,6 +56,7 @@ pkg/store/mocks/store.go:
 .PHONY: build-mocks
 build-mocks: FORCE
 	@ $(MAKE) pkg/cluster/mocks/peer.go
+	@ $(MAKE) pkg/hashring/mocks/hashring.go
 	@ $(MAKE) pkg/members/mocks/members.go
 	@ $(MAKE) pkg/metrics/mocks/metrics.go
 	@ $(MAKE) pkg/metrics/mocks/observer.go
@@ -61,6 +66,7 @@ build-mocks: FORCE
 .PHONY: clean-mocks
 clean-mocks: FORCE
 	rm -f pkg/cluster/mocks/peer.go
+	rm -f pkg/hashring/mocks/hashring.go
 	rm -f pkg/members/mocks/members.go
 	rm -f pkg/metrics/mocks/metrics.go
 	rm -f pkg/metrics/mocks/observer.go

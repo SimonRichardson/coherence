@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
+	hashringMocks "github.com/trussle/coherence/pkg/hashring/mocks"
 	"github.com/trussle/coherence/pkg/nodes"
 	"github.com/trussle/coherence/pkg/nodes/mocks"
 	"github.com/trussle/coherence/pkg/selectors"
@@ -36,8 +37,8 @@ func TestRealInsert(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Insert(key, members).Return(ch).Times(2)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 				node,
 			})
@@ -76,8 +77,8 @@ func TestRealInsert(t *testing.T) {
 			node.EXPECT().Insert(key, members0).Return(ch)
 			node.EXPECT().Insert(key, members0).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 				node,
 			})
@@ -106,8 +107,8 @@ func TestRealInsert(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Insert(key, members).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -139,8 +140,8 @@ func TestRealInsert(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Insert(key, members).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -186,8 +187,8 @@ func TestRealDelete(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Delete(key, members).Return(ch).Times(2)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 				node,
 			})
@@ -226,8 +227,8 @@ func TestRealDelete(t *testing.T) {
 			node.EXPECT().Delete(key, members0).Return(ch)
 			node.EXPECT().Delete(key, members0).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 				node,
 			})
@@ -256,8 +257,8 @@ func TestRealDelete(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Delete(key, members).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -290,8 +291,8 @@ func TestRealDelete(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Delete(key, members).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -331,8 +332,8 @@ func TestRealSelect(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Select(key, member.Field).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -360,8 +361,8 @@ func TestRealSelect(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Select(key, member.Field).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -401,8 +402,8 @@ func TestRealKeys(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Keys().Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(defaultAllKey).Return([]nodes.Node{
 				node,
 			})
 
@@ -430,8 +431,8 @@ func TestRealKeys(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Keys().Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(defaultAllKey).Return([]nodes.Node{
 				node,
 			})
 
@@ -471,8 +472,8 @@ func TestRealSize(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Size(key).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -500,8 +501,8 @@ func TestRealSize(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Size(key).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -541,8 +542,8 @@ func TestRealMembers(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Members(key).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -570,8 +571,8 @@ func TestRealMembers(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Members(key).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -611,8 +612,8 @@ func TestRealScore(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Score(key, field).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
@@ -646,8 +647,8 @@ func TestRealScore(t *testing.T) {
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Score(key, field).Return(ch)
 
-			nodeSet := mocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot().Return([]nodes.Node{
+			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
+			nodeSet.EXPECT().Snapshot(key).Return([]nodes.Node{
 				node,
 			})
 
