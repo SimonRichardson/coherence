@@ -5,9 +5,9 @@ import (
 	"testing/quick"
 
 	"github.com/golang/mock/gomock"
-	hashringMocks "github.com/trussle/coherence/pkg/hashring/mocks"
-	"github.com/trussle/coherence/pkg/nodes"
-	"github.com/trussle/coherence/pkg/nodes/mocks"
+	hashringMocks "github.com/trussle/coherence/pkg/cluster/hashring/mocks"
+	"github.com/trussle/coherence/pkg/cluster/nodes"
+	"github.com/trussle/coherence/pkg/cluster/nodes/mocks"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 

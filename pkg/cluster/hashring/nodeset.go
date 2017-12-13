@@ -8,7 +8,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/trussle/coherence/pkg/api"
 	"github.com/trussle/coherence/pkg/cluster"
-	"github.com/trussle/coherence/pkg/nodes"
+	"github.com/trussle/coherence/pkg/cluster/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 

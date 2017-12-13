@@ -17,9 +17,9 @@ import (
 	"github.com/trussle/coherence/pkg/api"
 	"github.com/trussle/coherence/pkg/api/transports"
 	"github.com/trussle/coherence/pkg/cluster"
-	"github.com/trussle/coherence/pkg/farm"
-	"github.com/trussle/coherence/pkg/hashring"
-	"github.com/trussle/coherence/pkg/members"
+	"github.com/trussle/coherence/pkg/cluster/farm"
+	"github.com/trussle/coherence/pkg/cluster/hashring"
+	"github.com/trussle/coherence/pkg/cluster/members"
 	"github.com/trussle/coherence/pkg/status"
 	"github.com/trussle/coherence/pkg/store"
 )

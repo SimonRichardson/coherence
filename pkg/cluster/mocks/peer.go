@@ -7,7 +7,7 @@ package mocks
 import (
 	gomock "github.com/golang/mock/gomock"
 	cluster "github.com/trussle/coherence/pkg/cluster"
-	members "github.com/trussle/coherence/pkg/members"
+	members "github.com/trussle/coherence/pkg/cluster/members"
 	reflect "reflect"
 )
 

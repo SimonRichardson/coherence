@@ -10,7 +10,7 @@ import (
 	"github.com/golang/mock/gomock"
 	apiMocks "github.com/trussle/coherence/pkg/api/mocks"
 	"github.com/trussle/coherence/pkg/cluster/mocks"
-	"github.com/trussle/coherence/pkg/nodes"
+	"github.com/trussle/coherence/pkg/cluster/nodes"
 	"github.com/trussle/coherence/pkg/selectors"
 )
 

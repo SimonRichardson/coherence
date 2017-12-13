@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spaolacci/murmur3"
-	"github.com/trussle/coherence/pkg/hashring/rbtree"
+	"github.com/trussle/coherence/pkg/cluster/rbtree"
 )
 
 const (
