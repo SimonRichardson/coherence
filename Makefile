@@ -68,14 +68,7 @@ build-mocks: pkg/api/mocks/transport.go \
 
 .PHONY: clean-mocks
 clean-mocks: FORCE
-	rm -f pkg/api/mocks/transport.go
-	rm -f pkg/cluster/mocks/peer.go
-	rm -f pkg/cluster/hashring/mocks/hashring.go
-	rm -f pkg/cluster/members/mocks/members.go
-	rm -f pkg/cluster/nodes/mocks/node.go
-	rm -f pkg/metrics/mocks/metrics.go
-	rm -f pkg/metrics/mocks/observer.go
-	rm -f pkg/store/mocks/store.go
+	@ find . -type d -name 'mocks' -exec find {} -name '*.go' -delete -print \;
 
 .PHONY: clean
 clean: FORCE
