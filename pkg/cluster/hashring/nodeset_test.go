@@ -24,7 +24,7 @@ func TestNodeSet(t *testing.T) {
 		peer := mocks.NewMockPeer(ctrl)
 		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
-		nodeSet := NewNodeSet(peer, strategy, defaultReplicationFactor, log.NewNopLogger())
+		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
 		nodes := nodeSet.Snapshot(selectors.Key("a"))
 
 		if expected, actual := 0, len(nodes); expected != actual {
@@ -46,7 +46,7 @@ func TestNodeSet(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
-		nodeSet := NewNodeSet(peer, strategy, defaultReplicationFactor, log.NewNopLogger())
+		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
 		nodeSet.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
@@ -75,7 +75,7 @@ func TestNodeSet(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
-		nodeSet := NewNodeSet(peer, strategy, defaultReplicationFactor, log.NewNopLogger())
+		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
 		nodeSet.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",

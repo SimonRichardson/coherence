@@ -32,3 +32,4 @@ import:
   - package: github.com/trussle/uuid
   - package: github.com/spaolacci/murmur3
   - package: github.com/hashicorp/go-cleanhttp
+  - package: github.com/dgryski/go-farm

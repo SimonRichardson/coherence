@@ -136,6 +136,14 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
+	// Remove any dropped nodes
+	for k := range n.ring.hosts {
+		if !contains(hosts, k) {
+			n.ring.Remove(k)
+		}
+	}
+
+	// Add if it doesn't already exist
 	for _, v := range hosts {
 		if n.ring.Contains(v) {
 			continue
@@ -148,4 +156,13 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 
 	// Go through and make sure that we have all the nodes in the ring.
 	return nil
+}
+
+func contains(a []string, b string) bool {
+	for _, v := range a {
+		if v == b {
+			return true
+		}
+	}
+	return false
 }

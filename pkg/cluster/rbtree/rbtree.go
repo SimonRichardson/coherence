@@ -202,9 +202,15 @@ func (t *RBTree) Delete(key int) bool {
 // LookupNUniqueAt iterates through the tree from the last node that is smaller
 // than key or equal, and returns the next n unique values.
 func (t *RBTree) LookupNUniqueAt(n int, key int) []string {
-	res := new([]string)
-	find(t.root, n, key, make(map[string]struct{}), res)
-	return *res
+	var (
+		res    = make([]string, 0, n)
+		unique = make(map[string]struct{})
+	)
+	find(t.root, n, key, unique, &res)
+	if len(res) < n {
+		find(t.root, n, 0, unique, &res)
+	}
+	return res
 }
 
 func find(node *RBNode, n int, key int, m map[string]struct{}, s *[]string) {
