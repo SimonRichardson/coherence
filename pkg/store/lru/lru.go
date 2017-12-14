@@ -1,7 +1,7 @@
 package lru
 
 import (
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 // EvictionReason describes why the eviction happened

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 const (

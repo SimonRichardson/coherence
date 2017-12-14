@@ -1,20 +1,20 @@
 package store
 
-import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/SimonRichardson/coherence/pkg/selectors"
 
 // Store represents a in-memory Key/Value implementation
 type Store interface {
 
 	// Insert takes a key and value and stores with in the underlying store.
-	// Returns true if it's over writting an existing value.
+	// Returns ChangeSet of success and failure
 	Insert(selectors.Key, []selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Delete removes a value associated with the key.
-	// Returns true if the value is found when deleting.
+	// Returns ChangeSet of success and failure
 	Delete(selectors.Key, []selectors.FieldValueScore) (selectors.ChangeSet, error)
 
 	// Select retrieves a field and score associated with the store.
-	// Returns true if the value found
+	// Returns Field, Value and Score if the value found
 	Select(selectors.Key, selectors.Field) (selectors.FieldValueScore, error)
 
 	// Keys returns all the potential keys that are stored with in the store.

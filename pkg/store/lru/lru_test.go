@@ -6,8 +6,8 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store/lru"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store/lru"
 )
 
 func TestLRU_Add(t *testing.T) {

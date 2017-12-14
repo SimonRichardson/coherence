@@ -1,4 +1,4 @@
-package: github.com/trussle/coherence
+package: github.com/SimonRichardson/coherence
 import:
   - package: github.com/pkg/errors
   - package: github.com/go-kit/kit
@@ -32,3 +32,4 @@ import:
   - package: github.com/trussle/uuid
   - package: github.com/spaolacci/murmur3
   - package: github.com/hashicorp/go-cleanhttp
+  - package: github.com/dgryski/go-farm

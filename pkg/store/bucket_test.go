@@ -1,7 +1,7 @@
 package store
 
 import "testing"
-import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/SimonRichardson/coherence/pkg/selectors"
 import "testing/quick"
 
 func TestBucketInsertion(t *testing.T) {

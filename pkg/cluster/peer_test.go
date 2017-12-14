@@ -9,8 +9,8 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/members"
-	"github.com/trussle/coherence/pkg/members/mocks"
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
+	"github.com/SimonRichardson/coherence/pkg/cluster/members/mocks"
 	"github.com/trussle/harness/generators"
 	"github.com/trussle/uuid"
 )

@@ -1,5 +1,5 @@
-hash: bc49a56417ac8c34a00e760781be7e90cd89c2aefb722386bc29d221fb339758
-updated: 2017-11-29T09:41:05.335866451Z
+hash: c045b0ae935f245933cd7fb7a1436231c6152d342984931314cceaa646ef1787
+updated: 2017-12-14T11:59:22.473006328Z
 imports:
 - name: github.com/armon/go-metrics
   version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
@@ -7,6 +7,8 @@ imports:
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
+- name: github.com/dgryski/go-farm
+  version: ac7624ea8da311f2fbbd94401d8c1cf66089f9fb
 - name: github.com/go-kit/kit
   version: d67bb4c202e3b91377d1079b110a6c9ce23ab2f8
   subpackages:
@@ -29,7 +31,7 @@ imports:
 - name: github.com/hashicorp/errwrap
   version: 7554cd9344cec97297fa6649b055a8c98c2a1e55
 - name: github.com/hashicorp/go-cleanhttp
-  version: 3573b8b52aa7b37b9358d966a898feb387f62437
+  version: 06c9ea3a335b7443026f8124b22619524420291b
 - name: github.com/hashicorp/go-msgpack
   version: fa3f63826f7c23912c15263591e65d54d080b458
   subpackages:

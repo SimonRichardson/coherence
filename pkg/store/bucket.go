@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store/lru"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store/lru"
 )
 
 // Bucket conforms to the Key/Val store interface and provides locking mechanism

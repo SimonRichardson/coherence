@@ -11,10 +11,10 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	errs "github.com/trussle/coherence/pkg/http"
-	"github.com/trussle/coherence/pkg/metrics"
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store"
+	errs "github.com/SimonRichardson/coherence/pkg/api/http"
+	"github.com/SimonRichardson/coherence/pkg/metrics"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store"
 )
 
 const (

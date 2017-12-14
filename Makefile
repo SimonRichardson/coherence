@@ -1,4 +1,4 @@
-PATH_COHERENCE = github.com/trussle/coherence
+PATH_COHERENCE = github.com/SimonRichardson/coherence
 
 UNAME_S := $(shell uname -s)
 SED ?= sed -i
@@ -24,48 +24,51 @@ build: dist/coherence
 dist/coherence:
 	go build -o dist/coherence ${PATH_COHERENCE}/cmd/coherence
 
+pkg/api/mocks/transport.go:
+	mockgen -package=mocks -destination=pkg/api/mocks/transport.go ${PATH_COHERENCE}/pkg/api Transport,TransportStrategy
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/api/mocks/transport.go
+
 pkg/cluster/mocks/peer.go:
 	mockgen -package=mocks -destination=pkg/cluster/mocks/peer.go ${PATH_COHERENCE}/pkg/cluster Peer
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
 
-pkg/members/mocks/members.go:
-	mockgen -package=mocks -destination=pkg/members/mocks/members.go ${PATH_COHERENCE}/pkg/members Members,MemberList,Member
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/members/mocks/members.go
+pkg/cluster/hashring/mocks/hashring.go:
+	mockgen -package=mocks -destination=pkg/cluster/hashring/mocks/hashring.go ${PATH_COHERENCE}/pkg/cluster/hashring Snapshot
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/hashring/mocks/hashring.go
+
+pkg/cluster/members/mocks/members.go:
+	mockgen -package=mocks -destination=pkg/cluster/members/mocks/members.go ${PATH_COHERENCE}/pkg/cluster/members Members,MemberList,Member
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/members/mocks/members.go
+
+pkg/cluster/nodes/mocks/node.go:
+	mockgen -package=mocks -destination=pkg/cluster/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/cluster/nodes Node
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/nodes/mocks/node.go
 
 pkg/metrics/mocks/metrics.go:
 	mockgen -package=mocks -destination=pkg/metrics/mocks/metrics.go ${PATH_COHERENCE}/pkg/metrics Gauge,HistogramVec,Counter
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/metrics/mocks/metrics.go
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/metrics/mocks/metrics.go
 
 pkg/metrics/mocks/observer.go:
 	mockgen -package=mocks -destination=pkg/metrics/mocks/observer.go github.com/prometheus/client_golang/prometheus Observer
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/metrics/mocks/observer.go
-
-pkg/nodes/mocks/node.go:
-	mockgen -package=mocks -destination=pkg/nodes/mocks/node.go ${PATH_COHERENCE}/pkg/nodes Node,Snapshot
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/nodes/mocks/node.go
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/metrics/mocks/observer.go
 
 pkg/store/mocks/store.go:
 	mockgen -package=mocks -destination=pkg/store/mocks/store.go ${PATH_COHERENCE}/pkg/store Store
-	@ $(SED) 's/github.com\/trussle\/coherence\/vendor\///g' ./pkg/store/mocks/store.go
-
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/store/mocks/store.go
 
 .PHONY: build-mocks
-build-mocks: FORCE
-	@ $(MAKE) pkg/cluster/mocks/peer.go
-	@ $(MAKE) pkg/members/mocks/members.go
-	@ $(MAKE) pkg/metrics/mocks/metrics.go
-	@ $(MAKE) pkg/metrics/mocks/observer.go
-	@ $(MAKE) pkg/nodes/mocks/node.go
-	@ $(MAKE) pkg/store/mocks/store.go
-	
+build-mocks: pkg/api/mocks/transport.go \
+	pkg/cluster/mocks/peer.go \
+	pkg/cluster/hashring/mocks/hashring.go \
+	pkg/cluster/members/mocks/members.go \
+	pkg/cluster/nodes/mocks/node.go \
+	pkg/metrics/mocks/metrics.go \
+	pkg/metrics/mocks/observer.go \
+	pkg/store/mocks/store.go
+
 .PHONY: clean-mocks
 clean-mocks: FORCE
-	rm -f pkg/cluster/mocks/peer.go
-	rm -f pkg/members/mocks/members.go
-	rm -f pkg/metrics/mocks/metrics.go
-	rm -f pkg/metrics/mocks/observer.go
-	rm -f pkg/nodes/mocks/node.go
-	rm -f pkg/store/mocks/store.go
+	@ find . -type d -name 'mocks' -exec find {} -name '*.go' -delete -print \;
 
 .PHONY: clean
 clean: FORCE
@@ -112,20 +115,20 @@ endif
 build-docker:
 	@echo "Building '${TAG}' for '${BRANCH}'"
 	docker run --rm -v ${PWD}:/go/src/${PATH_COHERENCE} -w /go/src/${PATH_COHERENCE} iron/go:dev go build -o coherence ${PATH_COHERENCE}/cmd/coherence
-	docker build -t teamtrussle/coherence:${TAG} .
+	docker build -t stickupkid/coherence:${TAG} .
 
 .PHONY: push-docker-tag
 push-docker-tag: FORCE
 	@echo "Pushing '${TAG}' for '${BRANCH}'"
 	docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}
-	docker push teamtrussle/coherence:${TAG}
+	docker push stickupkid/coherence:${TAG}
 
 .PHONY: push-docker
 ifeq ($(TAG),latest)
 push-docker: FORCE
 	@echo "Pushing '${TAG}' for '${BRANCH}'"
 	docker login -u ${DOCKER_HUB_USERNAME} -p ${DOCKER_HUB_PASSWORD}
-	docker push teamtrussle/coherence:${TAG}
+	docker push stickupkid/coherence:${TAG}
 else
 push-docker: FORCE
 	@echo "Pushing requires branch '${BRANCH}' to be master"

@@ -4,9 +4,9 @@ Coherence repository
 
 ## Badges
 
-[![travis-ci](https://travis-ci.org/trussle/coherence.svg?branch=master)](https://travis-ci.org/trussle/coherence)
-[![Coverage Status](https://coveralls.io/repos/github/trussle/coherence/badge.svg?branch=master)](https://coveralls.io/github/trussle/coherence?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/trussle/coherence)](https://goreportcard.com/report/github.com/trussle/coherence)
+[![travis-ci](https://travis-ci.org/SimonRichardson/coherence.svg?branch=master)](https://travis-ci.org/SimonRichardson/coherence)
+[![Coverage Status](https://coveralls.io/repos/github/SimonRichardson/coherence/badge.svg?branch=master)](https://coveralls.io/github/SimonRichardson/coherence?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/SimonRichardson/coherence)](https://goreportcard.com/report/github.com/SimonRichardson/coherence)
 
 ## Introduction
 

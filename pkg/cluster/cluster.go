@@ -1,6 +1,6 @@
 package cluster
 
-import "github.com/trussle/coherence/pkg/members"
+import "github.com/SimonRichardson/coherence/pkg/cluster/members"
 
 // Reason defines a type of reason a peer will notify the callback
 type Reason string
