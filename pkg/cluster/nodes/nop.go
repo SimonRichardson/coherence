@@ -1,6 +1,6 @@
 package nodes
 
-import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/SimonRichardson/coherence/pkg/selectors"
 import "github.com/spaolacci/murmur3"
 
 type nop struct{}

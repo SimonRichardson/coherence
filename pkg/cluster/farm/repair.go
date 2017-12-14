@@ -4,9 +4,9 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/cluster/hashring"
-	"github.com/trussle/coherence/pkg/cluster/nodes"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/cluster/hashring"
+	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 type repairStrategy struct {

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 func TestChangeSetRecords(t *testing.T) {

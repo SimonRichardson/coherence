@@ -8,7 +8,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/cluster/members"
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 )
 
 const (

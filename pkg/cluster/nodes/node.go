@@ -1,7 +1,7 @@
 package nodes
 
 import (
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 // Node describes a type that can communicate with various node implementations

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	farm "github.com/dgryski/go-farm"
-	"github.com/trussle/coherence/pkg/cluster/rbtree"
+	"github.com/SimonRichardson/coherence/pkg/cluster/rbtree"
 )
 
 // HashRing stores strings on a consistent hash ring. HashRing internally uses

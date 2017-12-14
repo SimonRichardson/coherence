@@ -7,10 +7,10 @@ import (
 
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/cluster/hashring"
-	"github.com/trussle/coherence/pkg/cluster/nodes"
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store"
+	"github.com/SimonRichardson/coherence/pkg/cluster/hashring"
+	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store"
 )
 
 const (

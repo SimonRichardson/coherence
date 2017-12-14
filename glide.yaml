@@ -1,4 +1,4 @@
-package: github.com/trussle/coherence
+package: github.com/SimonRichardson/coherence
 import:
   - package: github.com/pkg/errors
   - package: github.com/go-kit/kit

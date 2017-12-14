@@ -7,7 +7,7 @@ import (
 	"testing/quick"
 
 	"github.com/go-kit/kit/log"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 func TestMemoryInsertion(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 const (

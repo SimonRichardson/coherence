@@ -1,7 +1,7 @@
 package nodes
 
 import "testing"
-import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/SimonRichardson/coherence/pkg/selectors"
 import "testing/quick"
 import "reflect"
 

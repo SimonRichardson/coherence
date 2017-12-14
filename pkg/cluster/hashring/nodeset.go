@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/trussle/coherence/pkg/api"
-	"github.com/trussle/coherence/pkg/cluster"
-	"github.com/trussle/coherence/pkg/cluster/nodes"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/api"
+	"github.com/SimonRichardson/coherence/pkg/cluster"
+	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 // Reason defines a type of reason a peer will notify the callback

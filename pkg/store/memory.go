@@ -7,7 +7,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 // TODO: We should run some sort of internal cleaning process to remove keys

@@ -7,8 +7,8 @@ import (
 	"testing/quick"
 
 	"github.com/golang/mock/gomock"
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store/mocks"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store/mocks"
 )
 
 func TestVirtualInsert(t *testing.T) {

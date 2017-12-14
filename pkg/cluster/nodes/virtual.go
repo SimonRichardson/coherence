@@ -2,8 +2,8 @@ package nodes
 
 import (
 	"github.com/spaolacci/murmur3"
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store"
 )
 
 type virtual struct {

@@ -4,7 +4,7 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 type changeSetRecords struct {

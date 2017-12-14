@@ -4,5 +4,5 @@ services:
   coherence:
     image: golang:1.8-alpine
     volumes:
-      - ./:/go/src/github.com/trussle/coherence
-    working_dir: /go/src/github.com/trussle/coherence
+      - ./:/go/src/github.com/SimonRichardson/coherence
+    working_dir: /go/src/github.com/SimonRichardson/coherence

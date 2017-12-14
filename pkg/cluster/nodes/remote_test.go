@@ -7,8 +7,8 @@ import (
 	"testing/quick"
 
 	"github.com/golang/mock/gomock"
-	apiMocks "github.com/trussle/coherence/pkg/api/mocks"
-	"github.com/trussle/coherence/pkg/selectors"
+	apiMocks "github.com/SimonRichardson/coherence/pkg/api/mocks"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 func TestRemoteInsert(t *testing.T) {

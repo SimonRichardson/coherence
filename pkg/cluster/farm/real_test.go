@@ -7,10 +7,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	hashringMocks "github.com/trussle/coherence/pkg/cluster/hashring/mocks"
-	"github.com/trussle/coherence/pkg/cluster/nodes"
-	"github.com/trussle/coherence/pkg/cluster/nodes/mocks"
-	"github.com/trussle/coherence/pkg/selectors"
+	hashringMocks "github.com/SimonRichardson/coherence/pkg/cluster/hashring/mocks"
+	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
+	"github.com/SimonRichardson/coherence/pkg/cluster/nodes/mocks"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 func TestRealInsert(t *testing.T) {

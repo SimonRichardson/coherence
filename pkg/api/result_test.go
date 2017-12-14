@@ -11,8 +11,8 @@ import (
 	"testing/quick"
 
 	"github.com/go-kit/kit/log"
-	errs "github.com/trussle/coherence/pkg/api/http"
-	"github.com/trussle/coherence/pkg/selectors"
+	errs "github.com/SimonRichardson/coherence/pkg/api/http"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 func TestChangeSetQueryResult(t *testing.T) {

@@ -1,7 +1,7 @@
 package farm
 
 import (
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 // TupleSet defines unique map of KeyField values

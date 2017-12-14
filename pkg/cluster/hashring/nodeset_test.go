@@ -8,10 +8,10 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
-	apiMocks "github.com/trussle/coherence/pkg/api/mocks"
-	"github.com/trussle/coherence/pkg/cluster/mocks"
-	"github.com/trussle/coherence/pkg/cluster/nodes"
-	"github.com/trussle/coherence/pkg/selectors"
+	apiMocks "github.com/SimonRichardson/coherence/pkg/api/mocks"
+	"github.com/SimonRichardson/coherence/pkg/cluster/mocks"
+	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 func TestNodeSet(t *testing.T) {

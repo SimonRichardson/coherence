@@ -1,6 +1,6 @@
 package store
 
-import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/SimonRichardson/coherence/pkg/selectors"
 
 // Store represents a in-memory Key/Value implementation
 type Store interface {

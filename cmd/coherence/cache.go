@@ -14,14 +14,14 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/trussle/coherence/pkg/api"
-	"github.com/trussle/coherence/pkg/api/transports"
-	"github.com/trussle/coherence/pkg/cluster"
-	"github.com/trussle/coherence/pkg/cluster/farm"
-	"github.com/trussle/coherence/pkg/cluster/hashring"
-	"github.com/trussle/coherence/pkg/cluster/members"
-	"github.com/trussle/coherence/pkg/status"
-	"github.com/trussle/coherence/pkg/store"
+	"github.com/SimonRichardson/coherence/pkg/api"
+	"github.com/SimonRichardson/coherence/pkg/api/transports"
+	"github.com/SimonRichardson/coherence/pkg/cluster"
+	"github.com/SimonRichardson/coherence/pkg/cluster/farm"
+	"github.com/SimonRichardson/coherence/pkg/cluster/hashring"
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
+	"github.com/SimonRichardson/coherence/pkg/status"
+	"github.com/SimonRichardson/coherence/pkg/store"
 )
 
 const (

@@ -1,6 +1,6 @@
 package api
 
-import "github.com/trussle/coherence/pkg/selectors"
+import "github.com/SimonRichardson/coherence/pkg/selectors"
 
 // TransportStrategy defines a way to create a transport
 type TransportStrategy interface {

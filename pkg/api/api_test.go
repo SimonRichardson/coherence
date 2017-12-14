@@ -15,9 +15,9 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	metricMocks "github.com/trussle/coherence/pkg/metrics/mocks"
-	"github.com/trussle/coherence/pkg/selectors"
-	storeMocks "github.com/trussle/coherence/pkg/store/mocks"
+	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	storeMocks "github.com/SimonRichardson/coherence/pkg/store/mocks"
 	"github.com/trussle/harness/matchers"
 )
 

@@ -5,8 +5,8 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/api"
-	"github.com/trussle/coherence/pkg/api/client"
+	"github.com/SimonRichardson/coherence/pkg/api"
+	"github.com/SimonRichardson/coherence/pkg/api/client"
 )
 
 // Strategy wraps a Transport protocol layer for querying requests.

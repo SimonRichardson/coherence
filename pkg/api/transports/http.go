@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/spaolacci/murmur3"
-	"github.com/trussle/coherence/pkg/api"
-	"github.com/trussle/coherence/pkg/api/client"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/api"
+	"github.com/SimonRichardson/coherence/pkg/api/client"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 type httpTransport struct {

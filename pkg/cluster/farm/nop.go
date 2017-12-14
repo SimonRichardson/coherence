@@ -2,8 +2,8 @@ package farm
 
 import (
 	"github.com/pkg/errors"
-	"github.com/trussle/coherence/pkg/selectors"
-	"github.com/trussle/coherence/pkg/store"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/store"
 )
 
 type nop struct{}

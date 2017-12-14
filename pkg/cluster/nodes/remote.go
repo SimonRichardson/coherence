@@ -1,8 +1,8 @@
 package nodes
 
 import (
-	"github.com/trussle/coherence/pkg/api"
-	"github.com/trussle/coherence/pkg/selectors"
+	"github.com/SimonRichardson/coherence/pkg/api"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 type remote struct {
