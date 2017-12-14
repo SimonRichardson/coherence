@@ -75,4 +75,41 @@ func TestHashRingLookup(t *testing.T) {
 			t.Error(err)
 		}
 	})
+
+	t.Run("lookup with larger corpus", func(t *testing.T) {
+		fn := func(a []generators.ASCII) bool {
+			if len(a) < 2 {
+				return true
+			}
+
+			ring := NewHashRing(10)
+			for _, v := range a {
+				ring.Add(v.String())
+			}
+
+			var (
+				key = a[0].String()
+				got = ring.LookupN(key, 2)
+			)
+
+			return len(got) == 2
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("lookup with empty value", func(t *testing.T) {
+		fn := func(a generators.ASCII) bool {
+			ring := NewHashRing(10)
+
+			want := []string{}
+			got := ring.LookupN(a.String(), 2)
+
+			return reflect.DeepEqual(want, got)
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
 }
