@@ -467,7 +467,7 @@ func TestLookupNUniqueAt(t *testing.T) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
-		if expected, actual := []string{"2", "3"}, tree.LookupNUniqueAt(3, 2); !reflect.DeepEqual(expected, actual) {
+		if expected, actual := []string{"2", "3", "1"}, tree.LookupNUniqueAt(3, 2); !reflect.DeepEqual(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
@@ -475,7 +475,7 @@ func TestLookupNUniqueAt(t *testing.T) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
-		if expected, actual := 0, len(tree.LookupNUniqueAt(10, 4)); expected != actual {
+		if expected, actual := 3, len(tree.LookupNUniqueAt(10, 4)); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 
