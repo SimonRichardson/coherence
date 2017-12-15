@@ -54,6 +54,10 @@ func TestRealInsert(t *testing.T) {
 
 	t.Run("insert with partial errors", func(t *testing.T) {
 		fn := func(key selectors.Key, members0, members1 []selectors.FieldValueScore) bool {
+			if len(members0) == 0 || len(members1) == 0 {
+				return true
+			}
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 

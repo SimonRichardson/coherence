@@ -1,5 +1,5 @@
 hash: 2ba38654377c6b9791eab984f9ecd5b6e5f9b6238d65b0e810fcb72081f47177
-updated: 2017-12-15T19:20:52.347380309Z
+updated: 2017-12-15T20:55:55.135837725Z
 imports:
 - name: github.com/armon/go-metrics
   version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
@@ -7,8 +7,6 @@ imports:
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
-- name: github.com/dgryski/go-farm
-  version: ac7624ea8da311f2fbbd94401d8c1cf66089f9fb
 - name: github.com/go-kit/kit
   version: d67bb4c202e3b91377d1079b110a6c9ce23ab2f8
   subpackages:

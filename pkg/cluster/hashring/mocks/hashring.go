@@ -5,10 +5,11 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	nodes "github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	selectors "github.com/SimonRichardson/coherence/pkg/selectors"
 	gomock "github.com/golang/mock/gomock"
-	reflect "reflect"
 )
 
 // MockSnapshot is a mock of Snapshot interface
