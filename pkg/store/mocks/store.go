@@ -85,18 +85,6 @@ func (mr *MockStoreMockRecorder) Members(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Members", reflect.TypeOf((*MockStore)(nil).Members), arg0)
 }
 
-// Repair mocks base method
-func (m *MockStore) Repair(arg0 []selectors.KeyFieldValue) error {
-	ret := m.ctrl.Call(m, "Repair", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Repair indicates an expected call of Repair
-func (mr *MockStoreMockRecorder) Repair(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockStore)(nil).Repair), arg0)
-}
-
 // Score mocks base method
 func (m *MockStore) Score(arg0 selectors.Key, arg1 selectors.Field) (selectors.Presence, error) {
 	ret := m.ctrl.Call(m, "Score", arg0, arg1)

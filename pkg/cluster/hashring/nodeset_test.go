@@ -2,16 +2,17 @@ package hashring
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/spaolacci/murmur3"
 
-	"github.com/go-kit/kit/log"
-	"github.com/golang/mock/gomock"
 	apiMocks "github.com/SimonRichardson/coherence/pkg/api/mocks"
 	"github.com/SimonRichardson/coherence/pkg/cluster/mocks"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/go-kit/kit/log"
+	"github.com/golang/mock/gomock"
 )
 
 func TestNodeSet(t *testing.T) {
@@ -25,7 +26,7 @@ func TestNodeSet(t *testing.T) {
 		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
 		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
 
 		if expected, actual := 0, len(nodes); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -52,11 +53,11 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
-		}, extractAddresses(nodes); !reflect.DeepEqual(expected, actual) {
+		}, extractAddresses(nodes); !match(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 	})
@@ -85,11 +86,11 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
-		}, extractAddresses(nodes); !reflect.DeepEqual(expected, actual) {
+		}, extractAddresses(nodes); !match(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
 	})
@@ -101,4 +102,14 @@ func extractAddresses(nodes []nodes.Node) []uint32 {
 		res = append(res, v.Hash())
 	}
 	return res
+}
+
+func match(a, b []uint32) bool {
+	sort.Slice(a, func(i, j int) bool {
+		return a[i] < a[j]
+	})
+	sort.Slice(b, func(i, j int) bool {
+		return b[i] < b[j]
+	})
+	return reflect.DeepEqual(a, b)
 }

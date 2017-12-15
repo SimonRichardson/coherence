@@ -3,10 +3,10 @@ package farm
 import (
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/cluster/hashring"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/pkg/errors"
 )
 
 type repairStrategy struct {
@@ -83,7 +83,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs      []error
@@ -113,7 +113,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 
 	// We should just send everything again, as we have no idea what the condition
 	// of the clusters are in.
-	if !consensus(len(nodes), returned) {
+	if !consensus(selectors.Consensus, len(nodes), returned) {
 		return selectors.Clue{}, errors.Errorf("unable to perform repair")
 	}
 
@@ -139,7 +139,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 		Ignore: !found,
 		Insert: wasInserted,
 		Score:  highestScore,
-		Quorum: consensus(len(nodes), present),
+		Quorum: consensus(selectors.Consensus, len(nodes), present),
 	}, nil
 }
 
@@ -148,7 +148,7 @@ func (r *repairStrategy) write(key selectors.Key, fn func(nodes.Node) <-chan sel
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error

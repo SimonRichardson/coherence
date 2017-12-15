@@ -28,7 +28,4 @@ type Store interface {
 
 	// Score returns the specific score for the field with in the key.
 	Score(selectors.Key, selectors.Field) (selectors.Presence, error)
-
-	// Repair attempts to repair the store depending on the elements
-	Repair([]selectors.KeyFieldValue) error
 }

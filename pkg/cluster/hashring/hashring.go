@@ -3,8 +3,8 @@ package hashring
 import (
 	"fmt"
 
-	farm "github.com/dgryski/go-farm"
 	"github.com/SimonRichardson/coherence/pkg/cluster/rbtree"
+	"github.com/spaolacci/murmur3"
 )
 
 // HashRing stores strings on a consistent hash ring. HashRing internally uses
@@ -38,7 +38,7 @@ func (r *HashRing) Add(host string) bool {
 	for i := 0; i < r.replicationFactor; i++ {
 		var (
 			key  = fmt.Sprintf("%s%d", host, i)
-			hash = farm.Fingerprint32([]byte(key))
+			hash = murmur3.Sum32([]byte(key))
 		)
 		added = added && r.tree.Insert(int(hash), host)
 	}
@@ -58,7 +58,7 @@ func (r *HashRing) Remove(host string) bool {
 	for i := 0; i < r.replicationFactor; i++ {
 		var (
 			key  = fmt.Sprintf("%s%d", host, i)
-			hash = farm.Fingerprint32([]byte(key))
+			hash = murmur3.Sum32([]byte(key))
 		)
 		removed = removed && r.tree.Delete(int(hash))
 	}
@@ -72,7 +72,7 @@ func (r *HashRing) Remove(host string) bool {
 // of virtual nodes are skipped to maintain a list of unique servers. If there
 // are less servers than N, we simply return all existing servers.
 func (r *HashRing) LookupN(key string, n int) []string {
-	hash := farm.Fingerprint32([]byte(key))
+	hash := murmur3.Sum32([]byte(key))
 	return r.tree.LookupNUniqueAt(n, int(hash))
 }
 
@@ -83,7 +83,25 @@ func (r *HashRing) Contains(key string) bool {
 		return true
 	}
 
-	hash := farm.Fingerprint32([]byte(key))
+	hash := murmur3.Sum32([]byte(key))
 	_, ok := r.tree.Search(int(hash))
 	return ok
+}
+
+// Hosts returns the hosts in a slice.
+func (r *HashRing) Hosts() []string {
+	var (
+		idx int
+		res = make([]string, len(r.hosts))
+	)
+	for k := range r.hosts {
+		res[idx] = k
+		idx++
+	}
+	return res
+}
+
+// Len returns the number of unique hosts
+func (r *HashRing) Len() int {
+	return len(r.hosts)
 }

@@ -41,7 +41,7 @@ func TestUnionDifference(t *testing.T) {
 
 			union, difference := UnionDifference([]TupleSet{
 				tupleSet,
-			})
+			}, selectors.Consensus)
 
 			return fieldValueScoreEqual(members, union) && len(difference) == 0
 		}
@@ -58,7 +58,7 @@ func TestUnionDifference(t *testing.T) {
 			union, difference := UnionDifference([]TupleSet{
 				tupleSet,
 				tupleSet,
-			})
+			}, selectors.Consensus)
 
 			return fieldValueScoreEqual(members, union) && len(difference) == 0
 		}
@@ -75,7 +75,7 @@ func TestUnionDifference(t *testing.T) {
 			union, difference := UnionDifference([]TupleSet{
 				tupleSet,
 				tupleSet,
-			})
+			}, selectors.Consensus)
 
 			return fieldValueScoreEqual(members, union) && len(difference) == 0
 		}
@@ -120,7 +120,7 @@ func TestUnionDifference(t *testing.T) {
 			ts0,
 			ts1,
 			ts1,
-		})
+		}, selectors.Consensus)
 
 		// expectations
 		want := []selectors.FieldValueScore{
@@ -187,7 +187,7 @@ func TestUnionDifference(t *testing.T) {
 			ts0,
 			ts1,
 			ts1,
-		})
+		}, selectors.Consensus)
 
 		// expectations
 		want := []selectors.FieldValueScore{
@@ -239,7 +239,7 @@ func TestUnionDifference(t *testing.T) {
 		// perform the union and difference
 		union, difference := UnionDifference([]TupleSet{
 			ts0,
-		})
+		}, selectors.Consensus)
 
 		// expectations
 		want := []selectors.FieldValueScore{
@@ -299,7 +299,7 @@ func TestUnionDifference(t *testing.T) {
 		union, difference := UnionDifference([]TupleSet{
 			ts0,
 			ts1,
-		})
+		}, selectors.Consensus)
 
 		// expectations
 		want := []selectors.FieldValueScore{

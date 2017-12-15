@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	errs "github.com/SimonRichardson/coherence/pkg/api/http"
+	"github.com/SimonRichardson/coherence/pkg/cluster/farm"
+	"github.com/SimonRichardson/coherence/pkg/metrics"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	errs "github.com/SimonRichardson/coherence/pkg/api/http"
-	"github.com/SimonRichardson/coherence/pkg/metrics"
-	"github.com/SimonRichardson/coherence/pkg/store"
 )
 
 // These are the status API URL paths.
@@ -21,7 +21,7 @@ const (
 
 // API serves the status API
 type API struct {
-	store    store.Store
+	farm     farm.Farm
 	logger   log.Logger
 	clients  metrics.Gauge
 	duration metrics.HistogramVec
@@ -29,13 +29,13 @@ type API struct {
 }
 
 // NewAPI creates a API with the correct dependencies.
-func NewAPI(store store.Store,
+func NewAPI(farm farm.Farm,
 	logger log.Logger,
 	clients metrics.Gauge,
 	duration metrics.HistogramVec,
 ) *API {
 	return &API{
-		store:    store,
+		farm:     farm,
 		logger:   logger,
 		clients:  clients,
 		duration: duration,
@@ -87,7 +87,7 @@ func (a *API) handleLiveness(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	if _, err := a.store.Keys(); err == nil {
+	if _, err := a.farm.Keys(); err == nil {
 		w.WriteHeader(http.StatusOK)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)

@@ -1,4 +1,4 @@
-package api
+package farm
 
 import (
 	"bytes"
@@ -12,12 +12,12 @@ import (
 	"testing"
 	"testing/quick"
 
+	farmMocks "github.com/SimonRichardson/coherence/pkg/cluster/farm/mocks"
+	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
-	"github.com/SimonRichardson/coherence/pkg/selectors"
-	storeMocks "github.com/SimonRichardson/coherence/pkg/store/mocks"
 	"github.com/trussle/harness/matchers"
 )
 
@@ -33,9 +33,9 @@ func TestInsertAPI(t *testing.T) {
 				clients  = metricMocks.NewMockGauge(ctrl)
 				duration = metricMocks.NewMockHistogramVec(ctrl)
 				observer = metricMocks.NewMockObserver(ctrl)
-				store    = storeMocks.NewMockStore(ctrl)
+				farm     = farmMocks.NewMockFarm(ctrl)
 
-				api    = NewAPI(store, log.NewNopLogger(), clients, duration)
+				api    = NewAPI(farm, log.NewNopLogger(), clients, duration)
 				server = httptest.NewServer(api)
 			)
 			defer api.Close()
@@ -81,9 +81,9 @@ func TestInsertAPI(t *testing.T) {
 				clients  = metricMocks.NewMockGauge(ctrl)
 				duration = metricMocks.NewMockHistogramVec(ctrl)
 				observer = metricMocks.NewMockObserver(ctrl)
-				store    = storeMocks.NewMockStore(ctrl)
+				farm     = farmMocks.NewMockFarm(ctrl)
 
-				api    = NewAPI(store, log.NewNopLogger(), clients, duration)
+				api    = NewAPI(farm, log.NewNopLogger(), clients, duration)
 				server = httptest.NewServer(api)
 			)
 			defer api.Close()
@@ -94,7 +94,7 @@ func TestInsertAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/insert", "500").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
+			farm.EXPECT().Insert(key, members, MatchQuorum(selectors.Strong)).Return(selectors.ChangeSet{}, errors.New("bad"))
 
 			input := MembersInput{
 				Members: members,
@@ -127,9 +127,9 @@ func TestInsertAPI(t *testing.T) {
 				clients  = metricMocks.NewMockGauge(ctrl)
 				duration = metricMocks.NewMockHistogramVec(ctrl)
 				observer = metricMocks.NewMockObserver(ctrl)
-				store    = storeMocks.NewMockStore(ctrl)
+				farm     = farmMocks.NewMockFarm(ctrl)
 
-				api    = NewAPI(store, log.NewNopLogger(), clients, duration)
+				api    = NewAPI(farm, log.NewNopLogger(), clients, duration)
 				server = httptest.NewServer(api)
 			)
 			defer api.Close()
@@ -140,7 +140,7 @@ func TestInsertAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/insert", "200").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{
+			farm.EXPECT().Insert(key, members, MatchQuorum(selectors.Strong)).Return(selectors.ChangeSet{
 				Success: extractFields(members),
 				Failure: make([]selectors.Field, 0),
 			}, nil)
@@ -208,9 +208,9 @@ func TestDeleteAPI(t *testing.T) {
 				clients  = metricMocks.NewMockGauge(ctrl)
 				duration = metricMocks.NewMockHistogramVec(ctrl)
 				observer = metricMocks.NewMockObserver(ctrl)
-				store    = storeMocks.NewMockStore(ctrl)
+				farm     = farmMocks.NewMockFarm(ctrl)
 
-				api    = NewAPI(store, log.NewNopLogger(), clients, duration)
+				api    = NewAPI(farm, log.NewNopLogger(), clients, duration)
 				server = httptest.NewServer(api)
 			)
 			defer api.Close()
@@ -256,9 +256,9 @@ func TestDeleteAPI(t *testing.T) {
 				clients  = metricMocks.NewMockGauge(ctrl)
 				duration = metricMocks.NewMockHistogramVec(ctrl)
 				observer = metricMocks.NewMockObserver(ctrl)
-				store    = storeMocks.NewMockStore(ctrl)
+				farm     = farmMocks.NewMockFarm(ctrl)
 
-				api    = NewAPI(store, log.NewNopLogger(), clients, duration)
+				api    = NewAPI(farm, log.NewNopLogger(), clients, duration)
 				server = httptest.NewServer(api)
 			)
 			defer api.Close()
@@ -269,7 +269,7 @@ func TestDeleteAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/delete", "500").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
+			farm.EXPECT().Delete(key, members, MatchQuorum(selectors.Strong)).Return(selectors.ChangeSet{}, errors.New("bad"))
 
 			input := MembersInput{
 				Members: members,
@@ -302,9 +302,9 @@ func TestDeleteAPI(t *testing.T) {
 				clients  = metricMocks.NewMockGauge(ctrl)
 				duration = metricMocks.NewMockHistogramVec(ctrl)
 				observer = metricMocks.NewMockObserver(ctrl)
-				store    = storeMocks.NewMockStore(ctrl)
+				farm     = farmMocks.NewMockFarm(ctrl)
 
-				api    = NewAPI(store, log.NewNopLogger(), clients, duration)
+				api    = NewAPI(farm, log.NewNopLogger(), clients, duration)
 				server = httptest.NewServer(api)
 			)
 			defer api.Close()
@@ -315,7 +315,7 @@ func TestDeleteAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/delete", "200").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{
+			farm.EXPECT().Delete(key, members, MatchQuorum(selectors.Strong)).Return(selectors.ChangeSet{
 				Success: extractFields(members),
 				Failure: make([]selectors.Field, 0),
 			}, nil)
@@ -396,3 +396,21 @@ func unique(a []selectors.Field) []selectors.Field {
 
 	return res
 }
+
+type quorumMatcher struct {
+	value selectors.Quorum
+}
+
+func (m quorumMatcher) Matches(x interface{}) bool {
+	if v, ok := x.(selectors.Quorum); ok {
+		return v == m.value
+	}
+	return false
+}
+
+func (m quorumMatcher) String() string {
+	return fmt.Sprintf("is quorum %s", m.value.String())
+}
+
+// MatchQuorum checks to see if the value is the value quorum value
+func MatchQuorum(v selectors.Quorum) gomock.Matcher { return quorumMatcher{v} }

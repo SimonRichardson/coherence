@@ -5,12 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SimonRichardson/resilience/breaker"
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/cluster/hashring"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
-	"github.com/SimonRichardson/coherence/pkg/store"
+	"github.com/SimonRichardson/resilience/breaker"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -26,7 +25,7 @@ type real struct {
 }
 
 // NewReal creates a farm that talks to various nodes
-func NewReal(nodes hashring.Snapshot) store.Store {
+func NewReal(nodes hashring.Snapshot) Farm {
 	return &real{
 		nodes:          nodes,
 		repairStrategy: &repairStrategy{nodes},
@@ -34,11 +33,14 @@ func NewReal(nodes hashring.Snapshot) store.Store {
 	}
 }
 
-func (r *real) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (r *real) Insert(key selectors.Key,
+	members []selectors.FieldValueScore,
+	quorum selectors.Quorum,
+) (selectors.ChangeSet, error) {
 	var changeSet selectors.ChangeSet
 	err := r.circuit.Run(func() error {
 		var err error
-		changeSet, err = r.write(key, func(n nodes.Node) <-chan selectors.Element {
+		changeSet, err = r.write(key, quorum, func(n nodes.Node) <-chan selectors.Element {
 			return n.Insert(key, members)
 		})
 		return err
@@ -49,11 +51,14 @@ func (r *real) Insert(key selectors.Key, members []selectors.FieldValueScore) (s
 	return changeSet, err
 }
 
-func (r *real) Delete(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (r *real) Delete(key selectors.Key,
+	members []selectors.FieldValueScore,
+	quorum selectors.Quorum,
+) (selectors.ChangeSet, error) {
 	var changeSet selectors.ChangeSet
 	err := r.circuit.Run(func() error {
 		var err error
-		changeSet, err = r.write(key, func(n nodes.Node) <-chan selectors.Element {
+		changeSet, err = r.write(key, quorum, func(n nodes.Node) <-chan selectors.Element {
 			return n.Delete(key, members)
 		})
 		return err
@@ -64,8 +69,11 @@ func (r *real) Delete(key selectors.Key, members []selectors.FieldValueScore) (s
 	return changeSet, err
 }
 
-func (r *real) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
-	return r.read(key, func(n nodes.Node) <-chan selectors.Element {
+func (r *real) Select(key selectors.Key,
+	field selectors.Field,
+	quorum selectors.Quorum,
+) (selectors.FieldValueScore, error) {
+	return r.read(key, quorum, func(n nodes.Node) <-chan selectors.Element {
 		return n.Select(key, field)
 	})
 }
@@ -98,12 +106,15 @@ func (r *real) Repair(members []selectors.KeyFieldValue) error {
 	return r.repairStrategy.Repair(members)
 }
 
-func (r *real) write(key selectors.Key, fn func(nodes.Node) <-chan selectors.Element) (selectors.ChangeSet, error) {
+func (r *real) write(key selectors.Key,
+	quorum selectors.Quorum,
+	fn func(nodes.Node) <-chan selectors.Element,
+) (selectors.ChangeSet, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, quorum)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -133,7 +144,7 @@ func (r *real) write(key selectors.Key, fn func(nodes.Node) <-chan selectors.Ele
 
 	// Handle how we meet consensus, if there is an error and we've still met
 	// consensus, then send back a partial error so it can handle read repairs.
-	if consensus(len(nodes), returned) {
+	if consensus(quorum, len(nodes), returned) {
 		if len(errs) > 0 {
 			return selectors.ChangeSet{}, errPartial{errors.Wrap(joinErrors(errs), "partial")}
 		} else if err := records.Err(); err != nil {
@@ -152,13 +163,14 @@ func (r *real) write(key selectors.Key, fn func(nodes.Node) <-chan selectors.Ele
 }
 
 func (r *real) read(key selectors.Key,
+	quorum selectors.Quorum,
 	fn func(nodes.Node) <-chan selectors.Element,
 ) (selectors.FieldValueScore, error) {
 	var (
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, quorum)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -187,7 +199,7 @@ func (r *real) read(key selectors.Key,
 			result,
 		}))
 	}
-	union, difference := UnionDifference(results)
+	union, difference := UnionDifference(results, quorum)
 
 	go r.Repair(FieldValueScoresToKeyField(key, difference))
 
@@ -204,7 +216,7 @@ func (r *real) readKeys(key selectors.Key, fn func(nodes.Node) <-chan selectors.
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -248,7 +260,7 @@ func (r *real) readSize(key selectors.Key, fn func(nodes.Node) <-chan selectors.
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -292,7 +304,7 @@ func (r *real) readMembers(key selectors.Key, fn func(nodes.Node) <-chan selecto
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -336,7 +348,7 @@ func (r *real) readScore(key selectors.Key, fn func(nodes.Node) <-chan selectors
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -438,8 +450,16 @@ func mergeKeyFieldMembers(key selectors.Key, fields []selectors.Field, members [
 	return res
 }
 
-func consensus(total, returned int) bool {
-	return float64(returned)/float64(total) >= .51
+func consensus(quorum selectors.Quorum, total, returned int) bool {
+	switch quorum {
+	case selectors.One:
+		return returned > 0
+	case selectors.Strong:
+		return returned == total
+	case selectors.Consensus:
+		return float64(returned)/float64(total) >= .51
+	}
+	return false
 }
 
 type errPartial struct {

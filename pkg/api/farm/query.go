@@ -1,12 +1,12 @@
-package api
+package farm
 
 import (
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -25,7 +25,8 @@ type FieldParams interface {
 
 // KeyQueryParams defines all the dimensions of a query.
 type KeyQueryParams struct {
-	key selectors.Key
+	key    selectors.Key
+	quorum selectors.Quorum
 }
 
 // Key returns the key value from the parameters
@@ -47,13 +48,26 @@ func (qp *KeyQueryParams) DecodeFrom(u *url.URL, h http.Header, rb queryBehavior
 	}
 	qp.key = selectors.Key(key)
 
+	var (
+		err    error
+		quorum = u.Query().Get("quorum")
+	)
+	if quorum != "" {
+		if qp.quorum, err = selectors.ParseQuorum(quorum); err != nil {
+			return errors.Errorf("expected 'quorum' but got %q", quorum)
+		}
+	} else {
+		qp.quorum = selectors.Strong
+	}
+
 	return nil
 }
 
 // KeyFieldQueryParams defines all the dimensions of a query.
 type KeyFieldQueryParams struct {
-	key   selectors.Key
-	field selectors.Field
+	key    selectors.Key
+	field  selectors.Field
+	quorum selectors.Quorum
 }
 
 // Key returns the key value from the parameters
@@ -85,6 +99,18 @@ func (qp *KeyFieldQueryParams) DecodeFrom(u *url.URL, h http.Header, rb queryBeh
 		return errors.Errorf("expected 'field' but got %q", field)
 	}
 	qp.field = selectors.Field(field)
+
+	var (
+		err    error
+		quorum = u.Query().Get("quorum")
+	)
+	if quorum != "" {
+		if qp.quorum, err = selectors.ParseQuorum(quorum); err != nil {
+			return errors.Errorf("expected 'quorum' but got %q", quorum)
+		}
+	} else {
+		qp.quorum = selectors.Strong
+	}
 
 	return nil
 }

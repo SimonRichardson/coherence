@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/trussle/harness/generators"
-
+	"github.com/pkg/errors"
 	"github.com/spaolacci/murmur3"
+	"github.com/trussle/harness/generators"
 )
 
 // Key represents a Key in a cache
@@ -311,5 +311,36 @@ func (c Clue) SetKeyFieldValue(key Key, field Field, value []byte) Clue {
 		Insert: c.Insert,
 		Score:  c.Score,
 		Quorum: c.Quorum,
+	}
+}
+
+// Quorum defines the types of different consensus algorithms we want to achieve
+// These are various strategy patterns.
+type Quorum string
+
+const (
+	// One defines the need for only one node to be satisfied
+	One Quorum = "one"
+
+	// Strong defines the need for all nodes to be read and // written against,
+	// anything less is a failure
+	Strong Quorum = "strong"
+
+	// Consensus defines the need for only 51% or more nodes to be read and
+	// written against, anything less is a failure
+	Consensus Quorum = "consensus"
+)
+
+func (q Quorum) String() string {
+	return string(q)
+}
+
+// ParseQuorum returns a valid Quorum otherwise returns an error
+func ParseQuorum(s string) (Quorum, error) {
+	switch s {
+	case One.String(), Strong.String(), Consensus.String():
+		return Quorum(s), nil
+	default:
+		return Quorum(""), errors.Errorf("unknown quorum %q", s)
 	}
 }
