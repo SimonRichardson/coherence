@@ -113,7 +113,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 
 	// We should just send everything again, as we have no idea what the condition
 	// of the clusters are in.
-	if !consensus(len(nodes), returned) {
+	if !consensus(selectors.Consensus, len(nodes), returned) {
 		return selectors.Clue{}, errors.Errorf("unable to perform repair")
 	}
 
@@ -139,7 +139,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 		Ignore: !found,
 		Insert: wasInserted,
 		Score:  highestScore,
-		Quorum: consensus(len(nodes), present),
+		Quorum: consensus(selectors.Consensus, len(nodes), present),
 	}, nil
 }
 

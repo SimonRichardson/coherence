@@ -87,3 +87,21 @@ func (r *HashRing) Contains(key string) bool {
 	_, ok := r.tree.Search(int(hash))
 	return ok
 }
+
+// Hosts returns the hosts in a slice.
+func (r *HashRing) Hosts() []string {
+	var (
+		idx int
+		res = make([]string, len(r.hosts))
+	)
+	for k := range r.hosts {
+		res[idx] = k
+		idx++
+	}
+	return res
+}
+
+// Len returns the number of unique hosts
+func (r *HashRing) Len() int {
+	return len(r.hosts)
+}

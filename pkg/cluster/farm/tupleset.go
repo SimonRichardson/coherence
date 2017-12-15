@@ -17,7 +17,7 @@ func MakeTupleSet(members []selectors.FieldValueScore) TupleSet {
 }
 
 // UnionDifference returns the union and difference from a slice of TupleSets
-func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.FieldValueScore) {
+func UnionDifference(sets []TupleSet, quorum selectors.Quorum) ([]selectors.FieldValueScore, []selectors.FieldValueScore) {
 	var (
 		expectedCount = len(sets)
 		scores        = make(map[selectors.Field]selectors.ValueScore)
@@ -52,7 +52,7 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.
 	)
 
 	for member, value := range scores {
-		if count, ok := counts[member]; ok && consensus(expectedCount, count) {
+		if count, ok := counts[member]; ok && consensus(quorum, expectedCount, count) {
 			union = append(union, selectors.FieldValueScore{
 				Field: member,
 				Value: value.Value,
@@ -63,7 +63,7 @@ func UnionDifference(sets []TupleSet) ([]selectors.FieldValueScore, []selectors.
 
 	for member, count := range counts {
 		// Drop anything that has only ever been replicated to one node
-		if count < expectedCount && consensus(expectedCount, count) {
+		if count < expectedCount && consensus(quorum, expectedCount, count) {
 			vs := scores[member]
 
 			difference = append(difference, selectors.FieldValueScore{

@@ -144,7 +144,7 @@ func (r *real) write(key selectors.Key,
 
 	// Handle how we meet consensus, if there is an error and we've still met
 	// consensus, then send back a partial error so it can handle read repairs.
-	if consensus(len(nodes), returned) {
+	if consensus(quorum, len(nodes), returned) {
 		if len(errs) > 0 {
 			return selectors.ChangeSet{}, errPartial{errors.Wrap(joinErrors(errs), "partial")}
 		} else if err := records.Err(); err != nil {
@@ -199,7 +199,7 @@ func (r *real) read(key selectors.Key,
 			result,
 		}))
 	}
-	union, difference := UnionDifference(results)
+	union, difference := UnionDifference(results, quorum)
 
 	go r.Repair(FieldValueScoresToKeyField(key, difference))
 
@@ -450,8 +450,16 @@ func mergeKeyFieldMembers(key selectors.Key, fields []selectors.Field, members [
 	return res
 }
 
-func consensus(total, returned int) bool {
-	return float64(returned)/float64(total) >= .51
+func consensus(quorum selectors.Quorum, total, returned int) bool {
+	switch quorum {
+	case selectors.One:
+		return returned > 0
+	case selectors.Strong:
+		return returned == total
+	case selectors.Consensus:
+		return float64(returned)/float64(total) >= .51
+	}
+	return false
 }
 
 type errPartial struct {
