@@ -13,7 +13,7 @@ func TestNopInsert(t *testing.T) {
 	t.Run("insert", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
 			farm := NewNop()
-			changeSet, err := farm.Insert(key, members)
+			changeSet, err := farm.Insert(key, members, selectors.Strong)
 			if err != nil {
 				t.Error(err)
 			}
@@ -41,7 +41,7 @@ func TestNopDelete(t *testing.T) {
 	t.Run("delete", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
 			farm := NewNop()
-			changeSet, err := farm.Delete(key, members)
+			changeSet, err := farm.Delete(key, members, selectors.Strong)
 			if err != nil {
 				t.Error(err)
 			}
@@ -69,7 +69,7 @@ func TestNopSelect(t *testing.T) {
 	t.Run("select", func(t *testing.T) {
 		fn := func(key selectors.Key, field selectors.Field) bool {
 			farm := NewNop()
-			_, err := farm.Select(key, field)
+			_, err := farm.Select(key, field, selectors.Strong)
 			return err != nil
 		}
 		if err := quick.Check(fn, nil); err != nil {

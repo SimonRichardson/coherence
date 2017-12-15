@@ -35,13 +35,13 @@ func (m *MockSnapshot) EXPECT() *MockSnapshotMockRecorder {
 }
 
 // Snapshot mocks base method
-func (m *MockSnapshot) Snapshot(arg0 selectors.Key) []nodes.Node {
-	ret := m.ctrl.Call(m, "Snapshot", arg0)
+func (m *MockSnapshot) Snapshot(arg0 selectors.Key, arg1 selectors.Quorum) []nodes.Node {
+	ret := m.ctrl.Call(m, "Snapshot", arg0, arg1)
 	ret0, _ := ret[0].([]nodes.Node)
 	return ret0
 }
 
 // Snapshot indicates an expected call of Snapshot
-func (mr *MockSnapshotMockRecorder) Snapshot(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Snapshot", reflect.TypeOf((*MockSnapshot)(nil).Snapshot), arg0)
+func (mr *MockSnapshotMockRecorder) Snapshot(arg0, arg1 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Snapshot", reflect.TypeOf((*MockSnapshot)(nil).Snapshot), arg0, arg1)
 }

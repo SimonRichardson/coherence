@@ -6,10 +6,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/SimonRichardson/coherence/pkg/cluster/farm/mocks"
+	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
-	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
-	"github.com/SimonRichardson/coherence/pkg/store/mocks"
 	"github.com/trussle/harness/matchers"
 )
 
@@ -24,8 +24,8 @@ func TestAPI(t *testing.T) {
 			clients  = metricMocks.NewMockGauge(ctrl)
 			duration = metricMocks.NewMockHistogramVec(ctrl)
 			observer = metricMocks.NewMockObserver(ctrl)
-			store    = mocks.NewMockStore(ctrl)
-			api      = NewAPI(store, log.NewNopLogger(), clients, duration)
+			farm     = mocks.NewMockFarm(ctrl)
+			api      = NewAPI(farm, log.NewNopLogger(), clients, duration)
 			server   = httptest.NewServer(api)
 		)
 		defer server.Close()
@@ -54,8 +54,8 @@ func TestAPI(t *testing.T) {
 			clients  = metricMocks.NewMockGauge(ctrl)
 			duration = metricMocks.NewMockHistogramVec(ctrl)
 			observer = metricMocks.NewMockObserver(ctrl)
-			store    = mocks.NewMockStore(ctrl)
-			api      = NewAPI(store, log.NewNopLogger(), clients, duration)
+			farm     = mocks.NewMockFarm(ctrl)
+			api      = NewAPI(farm, log.NewNopLogger(), clients, duration)
 			server   = httptest.NewServer(api)
 		)
 		defer server.Close()
@@ -66,7 +66,7 @@ func TestAPI(t *testing.T) {
 		duration.EXPECT().WithLabelValues("GET", "/ready", "200").Return(observer).Times(1)
 		observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-		store.EXPECT().Keys().Times(1)
+		farm.EXPECT().Keys().Times(1)
 
 		response, err := http.Get(fmt.Sprintf("%s/ready", server.URL))
 		if err != nil {

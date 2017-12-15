@@ -4,12 +4,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/cluster"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 )
 
 // Reason defines a type of reason a peer will notify the callback
@@ -39,7 +39,7 @@ type Snapshot interface {
 	// purpose.
 	// It is not recommended to store the nodes locally as they may not be the same
 	// nodes over time.
-	Snapshot(selectors.Key) []nodes.Node
+	Snapshot(selectors.Key, selectors.Quorum) []nodes.Node
 }
 
 // NodeSet represents a set of nodes with in the cluster
@@ -116,7 +116,7 @@ func (n *NodeSet) Listen(fn func(Reason)) {
 // the Snapshot are not guaranteed to succeed for longer than their purpose.
 // It is not recommended to store the nodes locally as they may not be the same
 // nodes over time.
-func (n *NodeSet) Snapshot(key selectors.Key) (nodes []nodes.Node) {
+func (n *NodeSet) Snapshot(key selectors.Key, quorum selectors.Quorum) (nodes []nodes.Node) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 

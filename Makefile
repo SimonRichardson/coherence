@@ -32,6 +32,10 @@ pkg/cluster/mocks/peer.go:
 	mockgen -package=mocks -destination=pkg/cluster/mocks/peer.go ${PATH_COHERENCE}/pkg/cluster Peer
 	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/mocks/peer.go
 
+pkg/cluster/farm/mocks/farm.go:
+	mockgen -package=mocks -destination=pkg/cluster/farm/mocks/farm.go ${PATH_COHERENCE}/pkg/cluster/farm Farm
+	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/farm/mocks/farm.go
+
 pkg/cluster/hashring/mocks/hashring.go:
 	mockgen -package=mocks -destination=pkg/cluster/hashring/mocks/hashring.go ${PATH_COHERENCE}/pkg/cluster/hashring Snapshot
 	@ $(SED) 's/github.com\/SimonRichardson\/coherence\/vendor\///g' ./pkg/cluster/hashring/mocks/hashring.go
@@ -59,6 +63,7 @@ pkg/store/mocks/store.go:
 .PHONY: build-mocks
 build-mocks: pkg/api/mocks/transport.go \
 	pkg/cluster/mocks/peer.go \
+	pkg/cluster/farm/mocks/farm.go \
 	pkg/cluster/hashring/mocks/hashring.go \
 	pkg/cluster/members/mocks/members.go \
 	pkg/cluster/nodes/mocks/node.go \

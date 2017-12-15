@@ -1,4 +1,4 @@
-package api
+package store
 
 import (
 	"encoding/json"
@@ -185,4 +185,5 @@ const (
 	httpHeaderDuration    = "X-Duration"
 	httpHeaderKey         = "X-Key"
 	httpHeaderField       = "X-Field"
+	httpHeaderQuorum      = "X-Quorum"
 )

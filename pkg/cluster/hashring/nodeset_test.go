@@ -6,12 +6,12 @@ import (
 
 	"github.com/spaolacci/murmur3"
 
-	"github.com/go-kit/kit/log"
-	"github.com/golang/mock/gomock"
 	apiMocks "github.com/SimonRichardson/coherence/pkg/api/mocks"
 	"github.com/SimonRichardson/coherence/pkg/cluster/mocks"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/go-kit/kit/log"
+	"github.com/golang/mock/gomock"
 )
 
 func TestNodeSet(t *testing.T) {
@@ -25,7 +25,7 @@ func TestNodeSet(t *testing.T) {
 		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
 		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
 
 		if expected, actual := 0, len(nodes); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -52,7 +52,7 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
@@ -85,7 +85,7 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot(selectors.Key("a"))
+		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),

@@ -7,14 +7,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/SimonRichardson/flagset"
-	"github.com/SimonRichardson/gexec"
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
-	"github.com/pborman/uuid"
-	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/SimonRichardson/coherence/pkg/api"
+	apiFarm "github.com/SimonRichardson/coherence/pkg/api/farm"
+	apiStore "github.com/SimonRichardson/coherence/pkg/api/store"
 	"github.com/SimonRichardson/coherence/pkg/api/transports"
 	"github.com/SimonRichardson/coherence/pkg/cluster"
 	"github.com/SimonRichardson/coherence/pkg/cluster/farm"
@@ -22,6 +16,13 @@ import (
 	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 	"github.com/SimonRichardson/coherence/pkg/status"
 	"github.com/SimonRichardson/coherence/pkg/store"
+	"github.com/SimonRichardson/flagset"
+	"github.com/SimonRichardson/gexec"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
+	"github.com/pborman/uuid"
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
@@ -153,7 +154,7 @@ func runCache(args []string) error {
 	}
 	{
 		g.Add(func() error {
-			storeAPI := api.NewAPI(
+			storeAPI := apiStore.NewAPI(
 				persistence,
 				log.With(logger, "component", "store_api"),
 				connectedClients.WithLabelValues("api"),
@@ -161,14 +162,17 @@ func runCache(args []string) error {
 			)
 			defer storeAPI.Close()
 
-			mux := http.NewServeMux()
-			mux.Handle("/store/", http.StripPrefix("/store", storeAPI))
-			mux.Handle("/cache/", http.StripPrefix("/cache", api.NewAPI(
+			farmAPI := apiFarm.NewAPI(
 				supervisor,
-				log.With(logger, "component", "cache_api"),
+				log.With(logger, "component", "farm_api"),
 				connectedClients.WithLabelValues("api"),
 				apiDuration,
-			)))
+			)
+			defer farmAPI.Close()
+
+			mux := http.NewServeMux()
+			mux.Handle("/store/", http.StripPrefix("/store", storeAPI))
+			mux.Handle("/cache/", http.StripPrefix("/cache", farmAPI))
 			mux.Handle("/status/", http.StripPrefix("/status", status.NewAPI(
 				supervisor,
 				log.With(logger, "component", "status_api"),

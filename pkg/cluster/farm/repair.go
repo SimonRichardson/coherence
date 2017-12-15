@@ -3,10 +3,10 @@ package farm
 import (
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/cluster/hashring"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/pkg/errors"
 )
 
 type repairStrategy struct {
@@ -83,7 +83,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs      []error
@@ -148,7 +148,7 @@ func (r *repairStrategy) write(key selectors.Key, fn func(nodes.Node) <-chan sel
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key)
+		nodes    = r.nodes.Snapshot(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error

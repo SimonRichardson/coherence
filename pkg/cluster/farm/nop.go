@@ -1,31 +1,36 @@
 package farm
 
 import (
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
-	"github.com/SimonRichardson/coherence/pkg/store"
+	"github.com/pkg/errors"
 )
 
 type nop struct{}
 
 // NewNop creates a new nop farm
-func NewNop() store.Store {
+func NewNop() Farm {
 	return nop{}
 }
 
-func (nop) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (nop) Insert(key selectors.Key,
+	members []selectors.FieldValueScore,
+	quorum selectors.Quorum,
+) (selectors.ChangeSet, error) {
 	return selectors.ChangeSet{
 		Success: make([]selectors.Field, 0),
 		Failure: extractFields(members),
 	}, nil
 }
-func (nop) Delete(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
+func (nop) Delete(key selectors.Key,
+	members []selectors.FieldValueScore,
+	quorum selectors.Quorum,
+) (selectors.ChangeSet, error) {
 	return selectors.ChangeSet{
 		Success: make([]selectors.Field, 0),
 		Failure: extractFields(members),
 	}, nil
 }
-func (nop) Select(selectors.Key, selectors.Field) (selectors.FieldValueScore, error) {
+func (nop) Select(selectors.Key, selectors.Field, selectors.Quorum) (selectors.FieldValueScore, error) {
 	return selectors.FieldValueScore{}, selectors.NewNotFoundError(errors.New("not found"))
 }
 func (nop) Keys() ([]selectors.Key, error)                   { return nil, nil }
