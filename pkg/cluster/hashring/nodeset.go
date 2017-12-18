@@ -1,7 +1,6 @@
 package hashring
 
 import (
-	"math/rand"
 	"sync"
 	"time"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 )
 
 // Reason defines a type of reason a peer will notify the callback
@@ -36,12 +34,20 @@ const (
 // Snapshot defines a way to snapshot a series of nodes at a specific time.
 type Snapshot interface {
 
-	// Snapshot returns a set of nodes in a specific time. Nodes which are used
-	// from the Snapshot are not guaranteed to succeed for longer than their
+	// Write returns a set of nodes for a specific time. Nodes which are used
+	// from the Read Snapshot are not guaranteed to succeed for longer than their
 	// purpose.
 	// It is not recommended to store the nodes locally as they may not be the same
 	// nodes over time.
-	Snapshot(selectors.Key, selectors.Quorum) []nodes.Node
+	// The function commits the values to the blooms once they've been written
+	Write(selectors.Key) ([]nodes.Node, func() error)
+
+	// Read returns a set of nodes for a specific time. Nodes which are used
+	// from the Read Snapshot are not guaranteed to succeed for longer than their
+	// purpose.
+	// It is not recommended to store the nodes locally as they may not be the same
+	// nodes over time.
+	Read(selectors.Key, selectors.Quorum) []nodes.Node
 }
 
 type node struct {
@@ -119,41 +125,70 @@ func (n *NodeSet) Listen(fn func(Reason)) {
 	})
 }
 
-// Snapshot returns a set of nodes in a specific time. Nodes which are used from
-// the Snapshot are not guaranteed to succeed for longer than their purpose.
-// It is not recommended to store the nodes locally as they may not be the same
-// nodes over time.
-func (n *NodeSet) Snapshot(key selectors.Key, quorum selectors.Quorum) (nodes []nodes.Node) {
+func (n *NodeSet) Write(key selectors.Key) ([]nodes.Node, func() error) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
-	var hosts []string
+	var (
+		k     = key.String()
+		hosts = n.ring.Hosts()
+
+		num    = len(hosts)
+		blooms = make([]*bloom.Bloom, num)
+		nodes  = make([]nodes.Node, num)
+	)
+
+	// Go through all the hosts and add a key to the nodes
+	for k, v := range hosts {
+		if node, ok := n.nodes[v]; ok {
+			nodes[k] = node.node
+			blooms[k] = node.bloom
+		}
+	}
+
+	return nodes, func() (err error) {
+		for _, v := range blooms {
+			if err = v.Add(k); err != nil {
+				return
+			}
+		}
+		return
+	}
+}
+
+// Read returns a set of nodes in a specific time. Nodes which are used from
+// the Read are not guaranteed to succeed for longer than their purpose.
+// It is not recommended to store the nodes locally as they may not be the same
+// nodes over time.
+func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []nodes.Node) {
+	n.mutex.RLock()
+	defer n.mutex.RUnlock()
+
+	var (
+		hosts []string
+		k     = key.String()
+	)
 	switch quorum {
 	case selectors.One:
-		h := n.ring.Hosts()
-		if num := len(h); num > 0 {
-			i := rand.Intn(num)
-			hosts = []string{h[i]}
+		// Make sure we select a node that has at least a chance of selection
+		for _, v := range n.ring.Hosts() {
+			if node, ok := n.nodes[v]; ok {
+				if ok, _ := node.bloom.Contains(k); ok {
+					hosts = []string{
+						v,
+					}
+					break
+				}
+			}
 		}
 
 	case selectors.Strong:
 		hosts = n.ring.Hosts()
 
 	case selectors.Consensus:
-		// This is correct atm, because we're write strong and read consensus in
-		// this setup atm.
+		// This is wrong!
 		hosts = n.ring.LookupN(key.String(), n.ring.Len())
-	}
-
-	for _, v := range hosts {
-		if v, ok := n.nodes[v]; ok {
-			// Make sure that a node has the potential to have a key
-			if ok, _ = v.bloom.Contains(key.String()); ok {
-				nodes = append(nodes, v.node)
-			}
-		} else {
-			level.Warn(n.logger).Log("reason", "missing node", "key", key.String())
-		}
+		hosts = n.filter(hosts, key.String())
 	}
 
 	// TODO: what happens if there are no nodes!
@@ -161,6 +196,17 @@ func (n *NodeSet) Snapshot(key selectors.Key, quorum selectors.Quorum) (nodes []
 	// if we get 2 nodes out of 5 then we should enlist a random node to ensure
 	// a better consensus.
 
+	return
+}
+
+func (n *NodeSet) filter(hosts []string, key string) (res []string) {
+	for _, v := range hosts {
+		if node, ok := n.nodes[v]; ok {
+			if ok, _ := node.bloom.Contains(key); ok {
+				res = append(res, v)
+			}
+		}
+	}
 	return
 }
 
