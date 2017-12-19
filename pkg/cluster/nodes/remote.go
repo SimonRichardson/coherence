@@ -23,9 +23,9 @@ func (r *remote) Insert(key selectors.Key, fields []selectors.FieldValueScore) <
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Insert(key, fields); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewChangeSetElement(value)
+			ch <- selectors.NewChangeSetElement(r.hash, value)
 		}
 	}()
 	return ch
@@ -36,9 +36,9 @@ func (r *remote) Delete(key selectors.Key, fields []selectors.FieldValueScore) <
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Delete(key, fields); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewChangeSetElement(value)
+			ch <- selectors.NewChangeSetElement(r.hash, value)
 		}
 	}()
 	return ch
@@ -49,9 +49,9 @@ func (r *remote) Select(key selectors.Key, field selectors.Field) <-chan selecto
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Select(key, field); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewFieldValueScoreElement(value)
+			ch <- selectors.NewFieldValueScoreElement(r.hash, value)
 		}
 	}()
 	return ch
@@ -62,9 +62,9 @@ func (r *remote) Keys() <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Keys(); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewKeysElement(value)
+			ch <- selectors.NewKeysElement(r.hash, value)
 		}
 	}()
 	return ch
@@ -75,9 +75,9 @@ func (r *remote) Size(key selectors.Key) <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Size(key); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewInt64Element(value)
+			ch <- selectors.NewInt64Element(r.hash, value)
 		}
 	}()
 	return ch
@@ -88,9 +88,9 @@ func (r *remote) Members(key selectors.Key) <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Members(key); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewFieldsElement(value)
+			ch <- selectors.NewFieldsElement(r.hash, value)
 		}
 	}()
 	return ch
@@ -101,9 +101,9 @@ func (r *remote) Score(key selectors.Key, field selectors.Field) <-chan selector
 	go func() {
 		defer close(ch)
 		if value, err := r.transport.Score(key, field); err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(r.hash, err)
 		} else {
-			ch <- selectors.NewPresenceElement(value)
+			ch <- selectors.NewPresenceElement(r.hash, value)
 		}
 	}()
 	return ch

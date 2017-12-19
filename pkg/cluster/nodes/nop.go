@@ -3,6 +3,10 @@ package nodes
 import "github.com/SimonRichardson/coherence/pkg/selectors"
 import "github.com/spaolacci/murmur3"
 
+const (
+	defaultHash = 0
+)
+
 type nop struct{}
 
 // NewNop creates a nop Node
@@ -15,7 +19,7 @@ func (nop) Insert(key selectors.Key, members []selectors.FieldValueScore) <-chan
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+		ch <- selectors.NewChangeSetElement(defaultHash, selectors.ChangeSet{
 			Success: make([]selectors.Field, 0),
 			Failure: extractFields(members),
 		})
@@ -28,7 +32,7 @@ func (nop) Delete(key selectors.Key, members []selectors.FieldValueScore) <-chan
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+		ch <- selectors.NewChangeSetElement(defaultHash, selectors.ChangeSet{
 			Success: make([]selectors.Field, 0),
 			Failure: extractFields(members),
 		})
@@ -41,7 +45,7 @@ func (nop) Select(key selectors.Key, field selectors.Field) <-chan selectors.Ele
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewFieldValueScoreElement(selectors.FieldValueScore{
+		ch <- selectors.NewFieldValueScoreElement(defaultHash, selectors.FieldValueScore{
 			Field: field,
 			Value: nil,
 			Score: -1,
@@ -55,7 +59,7 @@ func (nop) Keys() <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewKeysElement(make([]selectors.Key, 0))
+		ch <- selectors.NewKeysElement(defaultHash, make([]selectors.Key, 0))
 	}()
 	return ch
 }
@@ -65,7 +69,7 @@ func (nop) Size(selectors.Key) <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewInt64Element(0)
+		ch <- selectors.NewInt64Element(defaultHash, 0)
 	}()
 	return ch
 }
@@ -75,7 +79,7 @@ func (nop) Members(selectors.Key) <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewFieldsElement(make([]selectors.Field, 0))
+		ch <- selectors.NewFieldsElement(defaultHash, make([]selectors.Field, 0))
 	}()
 	return ch
 }
@@ -85,7 +89,7 @@ func (nop) Score(selectors.Key, selectors.Field) <-chan selectors.Element {
 	go func() {
 		defer close(ch)
 
-		ch <- selectors.NewPresenceElement(selectors.Presence{
+		ch <- selectors.NewPresenceElement(defaultHash, selectors.Presence{
 			Inserted: false,
 			Present:  false,
 			Score:    -1,

@@ -32,22 +32,31 @@ const (
 // Element combines a submitted key with the resulting values. If there was an
 // error while selecting a key, the error field will be populated.
 type Element interface {
+
+	// Type returns the element type, so a switch can be performed on it
 	Type() ElementType
+
+	// Hash returns the associated hash the element came from
+	Hash() uint32
 }
 
 // ErrorElement defines a struct that is a container for errors.
 type ErrorElement struct {
-	typ ElementType
-	err error
+	typ  ElementType
+	hash uint32
+	err  error
 }
 
 // NewErrorElement creates a new ErrorElement
-func NewErrorElement(err error) *ErrorElement {
-	return &ErrorElement{ErrorElementType, err}
+func NewErrorElement(hash uint32, err error) *ErrorElement {
+	return &ErrorElement{ErrorElementType, hash, err}
 }
 
 // Type defines the type associated with the ErrorElement
 func (e *ErrorElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the ErrorElement
+func (e *ErrorElement) Hash() uint32 { return e.hash }
 
 // Error defines the error associated with the ErrorElement
 func (e *ErrorElement) Error() error { return e.err }
@@ -66,17 +75,21 @@ func ErrorFromElement(e Element) error {
 
 // Int64Element defines a struct that is a container for errors.
 type Int64Element struct {
-	typ ElementType
-	val int64
+	typ  ElementType
+	hash uint32
+	val  int64
 }
 
 // NewInt64Element creates a new Int64Element
-func NewInt64Element(val int64) *Int64Element {
-	return &Int64Element{Int64ElementType, val}
+func NewInt64Element(hash uint32, val int64) *Int64Element {
+	return &Int64Element{Int64ElementType, hash, val}
 }
 
 // Type defines the type associated with the Int64Element
 func (e *Int64Element) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the Int64Element
+func (e *Int64Element) Hash() uint32 { return e.hash }
 
 // Int64 defines the int64 associated with the 6464Element
 func (e *Int64Element) Int64() int64 { return e.val }
@@ -95,17 +108,21 @@ func Int64FromElement(e Element) int64 {
 
 // KeysElement defines a struct that is a container for errors.
 type KeysElement struct {
-	typ ElementType
-	val []Key
+	typ  ElementType
+	hash uint32
+	val  []Key
 }
 
 // NewKeysElement creates a new KeysElement
-func NewKeysElement(val []Key) *KeysElement {
-	return &KeysElement{KeysElementType, val}
+func NewKeysElement(hash uint32, val []Key) *KeysElement {
+	return &KeysElement{KeysElementType, hash, val}
 }
 
 // Type defines the type associated with the KeysElement
 func (e *KeysElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the KeysElement
+func (e *KeysElement) Hash() uint32 { return e.hash }
 
 // Keys defines the []Key associated with the KeysElement
 func (e *KeysElement) Keys() []Key { return e.val }
@@ -124,17 +141,21 @@ func KeysFromElement(e Element) []Key {
 
 // FieldsElement defines a struct that is a container for errors.
 type FieldsElement struct {
-	typ ElementType
-	val []Field
+	typ  ElementType
+	hash uint32
+	val  []Field
 }
 
 // NewFieldsElement creates a new FieldsElement
-func NewFieldsElement(val []Field) *FieldsElement {
-	return &FieldsElement{FieldsElementType, val}
+func NewFieldsElement(hash uint32, val []Field) *FieldsElement {
+	return &FieldsElement{FieldsElementType, hash, val}
 }
 
 // Type defines the type associated with the FieldsElement
 func (e *FieldsElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the FieldsElement
+func (e *FieldsElement) Hash() uint32 { return e.hash }
 
 // Fields defines the []Field associated with the FieldsElement
 func (e *FieldsElement) Fields() []Field { return e.val }
@@ -153,17 +174,21 @@ func FieldsFromElement(e Element) []Field {
 
 // ChangeSetElement defines a struct that is a container for errors.
 type ChangeSetElement struct {
-	typ ElementType
-	val ChangeSet
+	typ  ElementType
+	hash uint32
+	val  ChangeSet
 }
 
 // NewChangeSetElement creates a new ChangeSetElement
-func NewChangeSetElement(val ChangeSet) *ChangeSetElement {
-	return &ChangeSetElement{ChangeSetElementType, val}
+func NewChangeSetElement(hash uint32, val ChangeSet) *ChangeSetElement {
+	return &ChangeSetElement{ChangeSetElementType, hash, val}
 }
 
 // Type defines the type associated with the ChangeSetElement
 func (e *ChangeSetElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the ChangeSetElement
+func (e *ChangeSetElement) Hash() uint32 { return e.hash }
 
 // ChangeSet defines the changeSet associated with the ChangeSetElement
 func (e *ChangeSetElement) ChangeSet() ChangeSet { return e.val }
@@ -182,17 +207,21 @@ func ChangeSetFromElement(e Element) ChangeSet {
 
 // PresenceElement defines a struct that is a container for errors.
 type PresenceElement struct {
-	typ ElementType
-	val Presence
+	typ  ElementType
+	hash uint32
+	val  Presence
 }
 
 // NewPresenceElement creates a new PresenceElement
-func NewPresenceElement(val Presence) *PresenceElement {
-	return &PresenceElement{PresenceElementType, val}
+func NewPresenceElement(hash uint32, val Presence) *PresenceElement {
+	return &PresenceElement{PresenceElementType, hash, val}
 }
 
 // Type defines the type associated with the PresenceElement
 func (e *PresenceElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the PresenceElement
+func (e *PresenceElement) Hash() uint32 { return e.hash }
 
 // Presence defines the presence associated with the PresenceElement
 func (e *PresenceElement) Presence() Presence { return e.val }
@@ -211,17 +240,21 @@ func PresenceFromElement(e Element) Presence {
 
 // FieldScoreElement defines a struct that is a container for errors.
 type FieldScoreElement struct {
-	typ ElementType
-	val FieldScore
+	typ  ElementType
+	hash uint32
+	val  FieldScore
 }
 
 // NewFieldScoreElement creates a new FieldScoreElement
-func NewFieldScoreElement(val FieldScore) *FieldScoreElement {
-	return &FieldScoreElement{FieldScoreElementType, val}
+func NewFieldScoreElement(hash uint32, val FieldScore) *FieldScoreElement {
+	return &FieldScoreElement{FieldScoreElementType, hash, val}
 }
 
 // Type defines the type associated with the FieldScoreElement
 func (e *FieldScoreElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the FieldScoreElement
+func (e *FieldScoreElement) Hash() uint32 { return e.hash }
 
 // FieldScore defines the fieldScore associated with the FieldScoreElement
 func (e *FieldScoreElement) FieldScore() FieldScore { return e.val }
@@ -240,17 +273,21 @@ func FieldScoreFromElement(e Element) FieldScore {
 
 // FieldValueScoreElement defines a struct that is a container for errors.
 type FieldValueScoreElement struct {
-	typ ElementType
-	val FieldValueScore
+	typ  ElementType
+	hash uint32
+	val  FieldValueScore
 }
 
 // NewFieldValueScoreElement creates a new FieldValueScoreElement
-func NewFieldValueScoreElement(val FieldValueScore) *FieldValueScoreElement {
-	return &FieldValueScoreElement{FieldValueScoreElementType, val}
+func NewFieldValueScoreElement(hash uint32, val FieldValueScore) *FieldValueScoreElement {
+	return &FieldValueScoreElement{FieldValueScoreElementType, hash, val}
 }
 
 // Type defines the type associated with the FieldValueScoreElement
 func (e *FieldValueScoreElement) Type() ElementType { return e.typ }
+
+// Hash defines the hash associated with the FieldValueScoreElement
+func (e *FieldValueScoreElement) Hash() uint32 { return e.hash }
 
 // FieldValueScore defines the fieldValueScore associated with the FieldValueScoreElement
 func (e *FieldValueScoreElement) FieldValueScore() FieldValueScore { return e.val }

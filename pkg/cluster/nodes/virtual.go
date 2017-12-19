@@ -1,9 +1,9 @@
 package nodes
 
 import (
-	"github.com/spaolacci/murmur3"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/SimonRichardson/coherence/pkg/store"
+	"github.com/spaolacci/murmur3"
 )
 
 type virtual struct {
@@ -26,10 +26,10 @@ func (v *virtual) Insert(key selectors.Key, members []selectors.FieldValueScore)
 
 		changeSet, err := v.store.Insert(key, members)
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewChangeSetElement(changeSet)
+		ch <- selectors.NewChangeSetElement(defaultHash, changeSet)
 	}()
 	return ch
 }
@@ -41,10 +41,10 @@ func (v *virtual) Delete(key selectors.Key, members []selectors.FieldValueScore)
 
 		changeSet, err := v.store.Delete(key, members)
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewChangeSetElement(changeSet)
+		ch <- selectors.NewChangeSetElement(defaultHash, changeSet)
 	}()
 	return ch
 }
@@ -56,10 +56,10 @@ func (v *virtual) Select(key selectors.Key, field selectors.Field) <-chan select
 
 		member, err := v.store.Select(key, field)
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewFieldValueScoreElement(member)
+		ch <- selectors.NewFieldValueScoreElement(defaultHash, member)
 	}()
 	return ch
 }
@@ -71,10 +71,10 @@ func (v *virtual) Keys() <-chan selectors.Element {
 
 		keys, err := v.store.Keys()
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewKeysElement(keys)
+		ch <- selectors.NewKeysElement(defaultHash, keys)
 	}()
 	return ch
 }
@@ -86,10 +86,10 @@ func (v *virtual) Size(key selectors.Key) <-chan selectors.Element {
 
 		size, err := v.store.Size(key)
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewInt64Element(size)
+		ch <- selectors.NewInt64Element(defaultHash, size)
 	}()
 	return ch
 }
@@ -101,10 +101,10 @@ func (v *virtual) Members(key selectors.Key) <-chan selectors.Element {
 
 		members, err := v.store.Members(key)
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewFieldsElement(members)
+		ch <- selectors.NewFieldsElement(defaultHash, members)
 	}()
 	return ch
 }
@@ -116,10 +116,10 @@ func (v *virtual) Score(key selectors.Key, field selectors.Field) <-chan selecto
 
 		score, err := v.store.Score(key, field)
 		if err != nil {
-			ch <- selectors.NewErrorElement(err)
+			ch <- selectors.NewErrorElement(defaultHash, err)
 			return
 		}
-		ch <- selectors.NewPresenceElement(score)
+		ch <- selectors.NewPresenceElement(defaultHash, score)
 	}()
 	return ch
 }

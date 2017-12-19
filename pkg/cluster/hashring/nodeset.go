@@ -1,6 +1,7 @@
 package hashring
 
 import (
+	"math/rand"
 	"sync"
 	"time"
 
@@ -30,25 +31,6 @@ const (
 const (
 	defaultIterationTime = time.Second
 )
-
-// Snapshot defines a way to snapshot a series of nodes at a specific time.
-type Snapshot interface {
-
-	// Write returns a set of nodes for a specific time. Nodes which are used
-	// from the Read Snapshot are not guaranteed to succeed for longer than their
-	// purpose.
-	// It is not recommended to store the nodes locally as they may not be the same
-	// nodes over time.
-	// The function commits the values to the blooms once they've been written
-	Write(selectors.Key) ([]nodes.Node, func() error)
-
-	// Read returns a set of nodes for a specific time. Nodes which are used
-	// from the Read Snapshot are not guaranteed to succeed for longer than their
-	// purpose.
-	// It is not recommended to store the nodes locally as they may not be the same
-	// nodes over time.
-	Read(selectors.Key, selectors.Quorum) []nodes.Node
-}
 
 type node struct {
 	node  nodes.Node
@@ -125,16 +107,15 @@ func (n *NodeSet) Listen(fn func(Reason)) {
 	})
 }
 
-func (n *NodeSet) Write(key selectors.Key) ([]nodes.Node, func() error) {
+func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Node, func([]uint32) error) {
 	n.mutex.RLock()
-	defer n.mutex.RUnlock()
 
 	var (
 		k     = key.String()
 		hosts = n.ring.Hosts()
 
 		num    = len(hosts)
-		blooms = make([]*bloom.Bloom, num)
+		blooms = make(map[uint32]*bloom.Bloom, num)
 		nodes  = make([]nodes.Node, num)
 	)
 
@@ -142,14 +123,23 @@ func (n *NodeSet) Write(key selectors.Key) ([]nodes.Node, func() error) {
 	for k, v := range hosts {
 		if node, ok := n.nodes[v]; ok {
 			nodes[k] = node.node
-			blooms[k] = node.bloom
+			blooms[node.node.Hash()] = node.bloom
 		}
 	}
 
-	return nodes, func() (err error) {
-		for _, v := range blooms {
-			if err = v.Add(k); err != nil {
-				return
+	n.mutex.RUnlock()
+
+	// The function finishes the write by adding the key to the bloom on success
+	// of the write.
+	return nodes, func(hosts []uint32) (err error) {
+		n.mutex.Lock()
+		defer n.mutex.Unlock()
+
+		for _, v := range hosts {
+			if bloom, ok := blooms[v]; ok {
+				if err = bloom.Add(k); err != nil {
+					return
+				}
 			}
 		}
 		return
@@ -171,11 +161,12 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 	switch quorum {
 	case selectors.One:
 		// Make sure we select a node that has at least a chance of selection
-		for _, v := range n.ring.Hosts() {
-			if node, ok := n.nodes[v]; ok {
+		h := n.ring.Hosts()
+		for _, i := range rand.Perm(len(h)) {
+			if node, ok := n.nodes[h[i]]; ok {
 				if ok, _ := node.bloom.Contains(k); ok {
 					hosts = []string{
-						v,
+						h[i],
 					}
 					break
 				}
