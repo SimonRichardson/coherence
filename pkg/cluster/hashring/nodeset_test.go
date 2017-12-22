@@ -15,7 +15,7 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-func TestNodeSet(t *testing.T) {
+func TestNodeSetRead(t *testing.T) {
 	t.Parallel()
 
 	t.Run("snapshot", func(t *testing.T) {
@@ -26,7 +26,7 @@ func TestNodeSet(t *testing.T) {
 		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
 		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
+		nodes := nodeSet.Read(selectors.Key("a"), selectors.Strong)
 
 		if expected, actual := 0, len(nodes); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -53,7 +53,7 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
+		nodes := nodeSet.Read(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
@@ -86,12 +86,109 @@ func TestNodeSet(t *testing.T) {
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Snapshot(selectors.Key("a"), selectors.Strong)
+		nodes := nodeSet.Read(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
 		}, extractAddresses(nodes); !match(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+	})
+}
+
+func TestNodeSetWrite(t *testing.T) {
+	t.Parallel()
+
+	t.Run("snapshot", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		peer := mocks.NewMockPeer(ctrl)
+		strategy := apiMocks.NewMockTransportStrategy(ctrl)
+
+		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
+		nodes, _ := nodeSet.Write(selectors.Key("a"), selectors.Strong)
+
+		if expected, actual := 0, len(nodes); expected != actual {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+	})
+
+	t.Run("updateNodes", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		peer := mocks.NewMockPeer(ctrl)
+
+		a, b := murmur3.Sum32([]byte("0.0.0.0:8080")), murmur3.Sum32([]byte("0.0.0.0:8081"))
+
+		transport := apiMocks.NewMockTransport(ctrl)
+		transport.EXPECT().Hash().Return(a)
+		transport.EXPECT().Hash().Return(b)
+
+		strategy := apiMocks.NewMockTransportStrategy(ctrl)
+		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
+		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
+
+		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
+		nodeSet.updateNodes([]string{
+			"0.0.0.0:8080",
+			"0.0.0.0:8081",
+		})
+
+		want := []uint32{
+			a,
+			b,
+		}
+
+		nodes, finish := nodeSet.Write(selectors.Key("a"), selectors.Strong)
+		if expected, actual := want, extractAddresses(nodes); !match(expected, actual) {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+
+		if expected, actual := true, finish(want) == nil; expected != actual {
+			t.Errorf("expected: %t, actual: %t", expected, actual)
+		}
+	})
+
+	t.Run("updateNodes twice, has no duplicates", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		peer := mocks.NewMockPeer(ctrl)
+
+		a, b := murmur3.Sum32([]byte("0.0.0.0:8080")), murmur3.Sum32([]byte("0.0.0.0:8081"))
+
+		transport := apiMocks.NewMockTransport(ctrl)
+		transport.EXPECT().Hash().Return(a)
+		transport.EXPECT().Hash().Return(b)
+
+		strategy := apiMocks.NewMockTransportStrategy(ctrl)
+		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
+		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
+
+		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
+		nodeSet.updateNodes([]string{
+			"0.0.0.0:8080",
+			"0.0.0.0:8081",
+		})
+		nodeSet.updateNodes([]string{
+			"0.0.0.0:8080",
+			"0.0.0.0:8081",
+		})
+
+		want := []uint32{
+			a,
+			b,
+		}
+
+		nodes, finish := nodeSet.Write(selectors.Key("a"), selectors.Strong)
+		if expected, actual := want, extractAddresses(nodes); !match(expected, actual) {
+			t.Errorf("expected: %v, actual: %v", expected, actual)
+		}
+
+		if expected, actual := true, finish(want) == nil; expected != actual {
+			t.Errorf("expected: %t, actual: %t", expected, actual)
 		}
 	})
 }

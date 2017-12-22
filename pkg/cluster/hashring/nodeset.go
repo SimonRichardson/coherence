@@ -177,15 +177,16 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 		hosts = n.ring.Hosts()
 
 	case selectors.Consensus:
-		// This is wrong!
-		hosts = n.ring.LookupN(key.String(), n.ring.Len())
+		num := (n.ring.Len() / 2) + 1
+		hosts = n.ring.LookupN(key.String(), num)
 		hosts = n.filter(hosts, key.String())
 	}
 
-	// TODO: what happens if there are no nodes!
-	// Check to make sure that we have some sort of quorum over the nodeset i.e.
-	// if we get 2 nodes out of 5 then we should enlist a random node to ensure
-	// a better consensus.
+	for _, v := range hosts {
+		if node, ok := n.nodes[v]; ok {
+			nodes = append(nodes, node.node)
+		}
+	}
 
 	return
 }

@@ -118,7 +118,7 @@ func (r *real) write(key selectors.Key,
 		elements      = make(chan selectors.Element, len(nodes))
 
 		errs    []error
-		hosts   []string
+		hashes  []uint32
 		records = &changeSetRecords{}
 		wg      = &sync.WaitGroup{}
 	)
@@ -142,11 +142,11 @@ func (r *real) write(key selectors.Key,
 		changeSet := selectors.ChangeSetFromElement(element)
 		records.Add(changeSet)
 
-		hosts = append(hosts, element.Host())
+		hashes = append(hashes, element.Hash())
 	}
 
 	// Finish and close the snapshot back to the node set
-	go finish(hosts)
+	go finish(hashes)
 
 	// Handle how we meet consensus, if there is an error and we've still met
 	// consensus, then send back a partial error so it can handle read repairs.
