@@ -23,15 +23,17 @@ func TestRepair(t *testing.T) {
 
 			node := mocks.NewMockNode(ctrl)
 			for _, v := range members {
+				hash := v.Key.Hash()
+
 				ch := make(chan selectors.Element)
-				go func() {
+				go func(hash uint32) {
 					defer close(ch)
-					ch <- selectors.NewPresenceElement(selectors.Presence{
+					ch <- selectors.NewPresenceElement(hash, selectors.Presence{
 						Inserted: true,
 						Present:  true,
 						Score:    2,
 					})
-				}()
+				}(hash)
 
 				node.EXPECT().Score(v.Key, v.Field).Return(ch)
 				m[v.Key] = append(m[v.Key], selectors.FieldValueScore{
@@ -42,20 +44,25 @@ func TestRepair(t *testing.T) {
 			}
 
 			for k, v := range m {
+				hash := k.Hash()
+
 				ch := make(chan selectors.Element)
-				go func() {
+				go func(hash uint32) {
 					defer close(ch)
-					ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+					ch <- selectors.NewChangeSetElement(hash, selectors.ChangeSet{
 						Success: extractFields(v),
 						Failure: make([]selectors.Field, 0),
 					})
-				}()
+				}(hash)
 
 				node.EXPECT().Insert(k, v).Return(ch)
 			}
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(gomock.Any(), selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(gomock.Any(), selectors.Strong).Return([]nodes.Node{
+				node,
+			}).AnyTimes()
+			nodeSet.EXPECT().Read(gomock.Any(), selectors.Strong).Return([]nodes.Node{
 				node,
 			}).AnyTimes()
 
@@ -77,15 +84,17 @@ func TestRepair(t *testing.T) {
 
 			node := mocks.NewMockNode(ctrl)
 			for _, v := range members {
+				hash := v.Key.Hash()
+
 				ch := make(chan selectors.Element)
-				go func() {
+				go func(hash uint32) {
 					defer close(ch)
-					ch <- selectors.NewPresenceElement(selectors.Presence{
+					ch <- selectors.NewPresenceElement(hash, selectors.Presence{
 						Inserted: false,
 						Present:  true,
 						Score:    2,
 					})
-				}()
+				}(hash)
 
 				node.EXPECT().Score(v.Key, v.Field).Return(ch)
 				m[v.Key] = append(m[v.Key], selectors.FieldValueScore{
@@ -96,20 +105,25 @@ func TestRepair(t *testing.T) {
 			}
 
 			for k, v := range m {
+				hash := k.Hash()
+
 				ch := make(chan selectors.Element)
-				go func() {
+				go func(hash uint32) {
 					defer close(ch)
-					ch <- selectors.NewChangeSetElement(selectors.ChangeSet{
+					ch <- selectors.NewChangeSetElement(hash, selectors.ChangeSet{
 						Success: extractFields(v),
 						Failure: make([]selectors.Field, 0),
 					})
-				}()
+				}(hash)
 
 				node.EXPECT().Delete(k, v).Return(ch)
 			}
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(gomock.Any(), selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(gomock.Any(), selectors.Strong).Return([]nodes.Node{
+				node,
+			}).AnyTimes()
+			nodeSet.EXPECT().Read(gomock.Any(), selectors.Strong).Return([]nodes.Node{
 				node,
 			}).AnyTimes()
 
