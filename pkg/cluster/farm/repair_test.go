@@ -61,7 +61,7 @@ func TestRepair(t *testing.T) {
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
 			nodeSet.EXPECT().Write(gomock.Any(), selectors.Strong).Return([]nodes.Node{
 				node,
-			}).AnyTimes()
+			}, func([]uint32) error { return nil }).AnyTimes()
 			nodeSet.EXPECT().Read(gomock.Any(), selectors.Strong).Return([]nodes.Node{
 				node,
 			}).AnyTimes()
@@ -122,7 +122,7 @@ func TestRepair(t *testing.T) {
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
 			nodeSet.EXPECT().Write(gomock.Any(), selectors.Strong).Return([]nodes.Node{
 				node,
-			}).AnyTimes()
+			}, func([]uint32) error { return nil }).AnyTimes()
 			nodeSet.EXPECT().Read(gomock.Any(), selectors.Strong).Return([]nodes.Node{
 				node,
 			}).AnyTimes()

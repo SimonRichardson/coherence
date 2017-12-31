@@ -160,26 +160,17 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 	)
 	switch quorum {
 	case selectors.One:
-		// Make sure we select a node that has at least a chance of selection
-		h := n.ring.Hosts()
-		for _, i := range rand.Perm(len(h)) {
-			if node, ok := n.nodes[h[i]]; ok {
-				if ok, _ := node.bloom.Contains(k); ok {
-					hosts = []string{
-						h[i],
-					}
-					break
-				}
-			}
+		hosts = n.filter(n.shuffle(), k)
+		if len(hosts) > 0 {
+			hosts = hosts[:1]
 		}
 
 	case selectors.Strong:
-		hosts = n.ring.Hosts()
+		hosts = n.shuffle()
 
 	case selectors.Consensus:
-		num := (n.ring.Len() / 2) + 1
-		hosts = n.ring.LookupN(key.String(), num)
-		hosts = n.filter(hosts, key.String())
+		hosts = n.ring.LookupN(k, (n.ring.Len()/2)+1)
+		hosts = n.filter(hosts, k)
 	}
 
 	for _, v := range hosts {
@@ -198,6 +189,14 @@ func (n *NodeSet) filter(hosts []string, key string) (res []string) {
 				res = append(res, v)
 			}
 		}
+	}
+	return
+}
+
+func (n *NodeSet) shuffle() (res []string) {
+	h := n.ring.Hosts()
+	for _, i := range rand.Perm(len(h)) {
+		res = append(res, h[i])
 	}
 	return
 }

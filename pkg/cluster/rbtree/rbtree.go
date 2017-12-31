@@ -1,5 +1,12 @@
 package rbtree
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strings"
+)
+
 // NodeType describes which type the node represents
 type NodeType int
 
@@ -11,6 +18,13 @@ func (n NodeType) IsRed() bool {
 // IsBlack returns if the NodeType is Black
 func (n NodeType) IsBlack() bool {
 	return n == Black
+}
+
+func (n NodeType) String() string {
+	if n.IsRed() {
+		return "Red"
+	}
+	return "Black"
 }
 
 const (
@@ -244,6 +258,45 @@ func (t *RBTree) Search(key int) (string, bool) {
 		return "", false
 	}
 	return t.root.search(key)
+}
+
+func (t *RBTree) String() string {
+	if t.root == nil {
+		return ""
+	}
+
+	var b bytes.Buffer
+	t.string(t.root, 0, &b)
+	return b.String()
+}
+
+func (t *RBTree) string(node *RBNode, level int, buf io.Writer) {
+	var joint string
+	if node.left == nil && node.right == nil {
+		joint = "└"
+	} else {
+		joint = "└"
+	}
+
+	line := fmt.Sprintf("%s── <%s> %s\n", joint, node.nodeType.String(), node.value)
+	if _, err := buf.Write([]byte(line)); err != nil {
+		panic(err)
+	}
+
+	if node.left != nil {
+		line := fmt.Sprintf("%s ", strings.Repeat("  ", level))
+		if _, err := buf.Write([]byte(line)); err != nil {
+			panic(err)
+		}
+		t.string(node.left, level+1, buf)
+	}
+	if node.right != nil {
+		line := fmt.Sprintf("%s ", strings.Repeat("  ", level))
+		if _, err := buf.Write([]byte(line)); err != nil {
+			panic(err)
+		}
+		t.string(node.right, level+1, buf)
+	}
 }
 
 // RBNode is a RBTree node

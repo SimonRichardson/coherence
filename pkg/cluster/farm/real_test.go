@@ -43,7 +43,7 @@ func TestRealInsert(t *testing.T) {
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Insert(key, members, selectors.Strong)
@@ -89,7 +89,7 @@ func TestRealInsert(t *testing.T) {
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Insert(key, members0, selectors.Strong)
@@ -120,7 +120,7 @@ func TestRealInsert(t *testing.T) {
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Insert(key, members, selectors.Strong)
@@ -155,7 +155,7 @@ func TestRealInsert(t *testing.T) {
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			changeSet, err := farm.Insert(key, members, selectors.Strong)
@@ -205,7 +205,7 @@ func TestRealDelete(t *testing.T) {
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Delete(key, members, selectors.Strong)
@@ -247,7 +247,7 @@ func TestRealDelete(t *testing.T) {
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Delete(key, members0, selectors.Strong)
@@ -278,7 +278,7 @@ func TestRealDelete(t *testing.T) {
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Delete(key, members, selectors.Strong)
@@ -314,7 +314,7 @@ func TestRealDelete(t *testing.T) {
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
 			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			changeSet, err := farm.Delete(key, members, selectors.Strong)
