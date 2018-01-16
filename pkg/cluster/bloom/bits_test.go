@@ -1,12 +1,9 @@
 package bloom
 
 import (
-	"math"
+	"math/rand"
 	"testing"
 	"testing/quick"
-
-	"github.com/spaolacci/murmur3"
-	"github.com/trussle/uuid"
 )
 
 func TestBits(t *testing.T) {
@@ -22,10 +19,21 @@ func TestBits(t *testing.T) {
 		}
 	})
 
+	t.Run("contains", func(t *testing.T) {
+		fn := func(a uint) bool {
+			h := a % 1024
+			bits := NewBits(1024)
+			return !bits.Contains(h)
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
 	t.Run("set", func(t *testing.T) {
-		fn := func(a uuid.UUID) bool {
-			h := uint(murmur3.Sum32(a.Bytes()))
-			bits := NewBits(uuid.EncodedSize * 1024)
+		fn := func(a uint) bool {
+			h := a % 1024
+			bits := NewBits(1024)
 			bits.Set(h)
 			return bits.Contains(h)
 		}
@@ -36,16 +44,18 @@ func TestBits(t *testing.T) {
 }
 
 func benchmarkBits(t *testing.B, amount int) {
-	b := NewBits(math.MaxUint32)
+	max := uint(1024 * 1024)
+	b := NewBits(max)
+
+	t.ResetTimer()
 
 	res := true
 	for i := 0; i < t.N; i++ {
 		for j := 0; j < amount; j++ {
-			a := uuid.MustNew()
-			h := uint(murmur3.Sum32(a.Bytes()))
-			b.Set(h)
+			a := uint(rand.Uint32()) % max
+			b.Set(a)
 
-			res = res && b.Contains(h)
+			res = res && b.Contains(a)
 		}
 	}
 }
