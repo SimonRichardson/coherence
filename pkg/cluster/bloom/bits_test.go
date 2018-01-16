@@ -30,6 +30,20 @@ func TestBits(t *testing.T) {
 		}
 	})
 
+	t.Run("contains negative", func(t *testing.T) {
+		fn := func(a uint) bool {
+			var (
+				h = a % 1024
+				j = h + 1
+			)
+			bits := NewBits(h)
+			return !bits.Contains(j)
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
 	t.Run("set", func(t *testing.T) {
 		fn := func(a uint) bool {
 			h := a % 1024
@@ -41,6 +55,22 @@ func TestBits(t *testing.T) {
 			t.Error(err)
 		}
 	})
+
+	t.Run("set regrowth", func(t *testing.T) {
+		fn := func(a uint) bool {
+			var (
+				h = a % 1024
+				j = h + 1
+			)
+			bits := NewBits(h)
+			bits.Set(j)
+			return bits.Contains(j)
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
 }
 
 func benchmarkBits(t *testing.B, amount int) {
