@@ -1,12 +1,18 @@
-hash: 2ba38654377c6b9791eab984f9ecd5b6e5f9b6238d65b0e810fcb72081f47177
-updated: 2017-12-15T20:55:55.135837725Z
+hash: 95362e2219294170f5e53d15501a553aaa8dc68fa87e7ba42f52838fadb47d79
+updated: 2018-01-17T11:39:34.364180469Z
 imports:
+- name: github.com/armon/circbuf
+  version: bbbad097214e2918d8543d5201d12bfd7bca254d
 - name: github.com/armon/go-metrics
   version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
+- name: github.com/armon/go-radix
+  version: 1fca145dffbcaa8fe914309b1ec0cfc67500fe61
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
+- name: github.com/bgentry/speakeasy
+  version: 4aabc24848ce5fd31929f7d1e4ea74d3709c14cd
 - name: github.com/go-kit/kit
   version: d67bb4c202e3b91377d1079b110a6c9ce23ab2f8
   subpackages:
@@ -38,15 +44,30 @@ imports:
   version: 83588e72410abfbe4df460eeb6f30841ae47d4c4
 - name: github.com/hashicorp/go-sockaddr
   version: 9b4c5fa5b10a683339a270d664474b9f4aee62fc
+- name: github.com/hashicorp/go-syslog
+  version: 326bf4a7f709d263f964a6a96558676b103f3534
+- name: github.com/hashicorp/go.net
+  version: 104dcad90073cd8d1e6828b2af19185b60cf3e29
+  subpackages:
+  - internal/iana
+  - ipv4
+  - ipv6
+- name: github.com/hashicorp/logutils
+  version: 0dc08b1671f34c4250ce212759ebd880f743d883
+- name: github.com/hashicorp/mdns
+  version: 4e527d9d808175f132f949523e640c699e4253bb
 - name: github.com/hashicorp/memberlist
   version: 687988a0b5daaf7ed5051e5e374aef27f8254822
 - name: github.com/hashicorp/serf
   version: c20a0b1b1ea9eb8168bcdec0116688fa9254e449
   subpackages:
+  - cmd/serf/command/agent
   - coordinate
   - serf
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/mattn/go-isatty
+  version: 6ca4dbf54d38eea1a992b3c722a76a5d1c4cb25c
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -55,10 +76,20 @@ imports:
   version: a5852667e3c36e2e0b0a69ab43869e00e95aacdf
   subpackages:
   - internal/socket
+- name: github.com/mitchellh/cli
+  version: 33edc47170b5df54d2588696d590c5e20ee583fe
+- name: github.com/mitchellh/mapstructure
+  version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
 - name: github.com/pborman/uuid
   version: 1b00554d822231195d1babd97ff4a781231955c9
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
+- name: github.com/posener/complete
+  version: 22fe9ceed3cf977d68b29512decde01f6930f171
+  subpackages:
+  - cmd
+  - cmd/install
+  - match
 - name: github.com/prometheus/client_golang
   version: 94ff84a9a6ebb5e6eb9172897c221a64df3443bc
   subpackages:
@@ -105,4 +136,8 @@ imports:
   - matchers
 - name: github.com/trussle/uuid
   version: 23bc856a10519000ea4c17b77520ab48c3d3bbfd
+- name: golang.org/x/sys
+  version: fff93fa7cd278d84afc205751523809c464168ab
+  subpackages:
+  - unix
 testImports: []

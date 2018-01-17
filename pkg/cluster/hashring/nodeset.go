@@ -13,6 +13,12 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
+const (
+	// defaultBloomCapacity is bounded by the amount of data that we can send over
+	// via gossip
+	defaultBloomCapacity = 1024
+)
+
 // Reason defines a type of reason a peer will notify the callback
 type Reason string
 
@@ -221,7 +227,7 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 		if ok := n.ring.Add(v); ok {
 			n.nodes[v] = node{
 				node:  nodes.NewRemote(n.transport.Apply(v)),
-				bloom: bloom.New(1000, 4),
+				bloom: bloom.New(defaultBloomCapacity, 4),
 			}
 		}
 	}

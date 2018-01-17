@@ -11,6 +11,7 @@ func (nopMembers) Leave() error                    { return nil }
 func (nopMembers) MemberList() MemberList          { return nopMemberList{} }
 func (nopMembers) Walk(func(PeerInfo) error) error { return nil }
 func (nopMembers) Close() error                    { return nil }
+func (nopMembers) Listen(fn EventHandler) error    { return nil }
 
 type nopMemberList struct{}
 

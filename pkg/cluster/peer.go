@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
-	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 )
 
 const (
