@@ -7,7 +7,6 @@ import (
 
 	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
 )
 
@@ -35,10 +34,8 @@ func ParsePeerType(t string) (members.PeerType, error) {
 
 // peer represents the node with in the cluster.
 type peer struct {
-	members  members.Members
-	stop     chan chan struct{}
-	callback func(Reason)
-	logger   log.Logger
+	members members.Members
+	logger  log.Logger
 }
 
 // NewPeer creates or joins a cluster with the existing peers.
@@ -50,56 +47,18 @@ func NewPeer(
 ) Peer {
 	return &peer{
 		members: members,
-		stop:    make(chan chan struct{}),
-		callback: func(Reason) {
-			level.Warn(logger).Log("reason", "alone")
-		},
-		logger: logger,
-	}
-}
-
-func (p *peer) run() {
-	ticker := time.NewTicker(defaultMembersBroadcastInterval)
-	defer ticker.Stop()
-
-	var (
-		state   Reason
-		members = p.members.MemberList()
-	)
-	for {
-		select {
-		case <-ticker.C:
-			// Notify the callback if below a threshold.
-			num := members.NumMembers()
-			if num <= defaultLowMembersThreshold && state != ReasonAlone {
-				p.callback(ReasonAlone)
-				state = ReasonAlone
-			} else if num > defaultLowMembersThreshold && state != ReasonAccompanied {
-				p.callback(ReasonAccompanied)
-				state = ReasonAccompanied
-			}
-
-		case c := <-p.stop:
-			close(c)
-			return
-		}
+		logger:  logger,
 	}
 }
 
 // Close out the API
-func (p *peer) Close() {
-	c := make(chan struct{})
-	p.stop <- c
-	<-c
-}
+func (p *peer) Close() {}
 
 func (p *peer) Join() (int, error) {
 	numNodes, err := p.members.Join()
 	if err != nil {
 		return 0, err
 	}
-
-	go p.run()
 
 	return numNodes, nil
 }
@@ -154,9 +113,8 @@ func (p *peer) Current(peerType members.PeerType, includeLocal bool) (res []stri
 	return
 }
 
-func (p *peer) Listen(fn func(Reason)) error {
-	p.callback = fn
-	return nil
+func (p *peer) Listen(fn members.EventHandler) error {
+	return p.members.Listen(fn)
 }
 
 func memberNames(m []members.Member) []string {

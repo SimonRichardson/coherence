@@ -11,7 +11,7 @@ func TestBits(t *testing.T) {
 
 	t.Run("len", func(t *testing.T) {
 		fn := func(a uint) bool {
-			b := (a % 1024) * 10
+			b := (a % 512) * 10
 			return NewBits(b).Len() == b
 		}
 		if err := quick.Check(fn, nil); err != nil {
@@ -21,8 +21,8 @@ func TestBits(t *testing.T) {
 
 	t.Run("contains", func(t *testing.T) {
 		fn := func(a uint) bool {
-			h := a % 1024
-			bits := NewBits(1024)
+			h := a % 512
+			bits := NewBits(512)
 			return !bits.Contains(h)
 		}
 		if err := quick.Check(fn, nil); err != nil {
@@ -33,7 +33,7 @@ func TestBits(t *testing.T) {
 	t.Run("contains negative", func(t *testing.T) {
 		fn := func(a uint) bool {
 			var (
-				h = a % 1024
+				h = a % 512
 				j = h + 1
 			)
 			bits := NewBits(h)
@@ -46,8 +46,8 @@ func TestBits(t *testing.T) {
 
 	t.Run("set", func(t *testing.T) {
 		fn := func(a uint) bool {
-			h := a % 1024
-			bits := NewBits(1024)
+			h := a % 512
+			bits := NewBits(512)
 			bits.Set(h)
 			return bits.Contains(h)
 		}
@@ -59,7 +59,7 @@ func TestBits(t *testing.T) {
 	t.Run("set regrowth", func(t *testing.T) {
 		fn := func(a uint) bool {
 			var (
-				h = a % 1024
+				h = a % 512
 				j = h + 1
 			)
 			bits := NewBits(h)
@@ -74,7 +74,7 @@ func TestBits(t *testing.T) {
 }
 
 func benchmarkBits(t *testing.B, amount int) {
-	max := uint(1024 * 1024)
+	max := uint(256 * 2)
 	b := NewBits(max)
 
 	t.ResetTimer()

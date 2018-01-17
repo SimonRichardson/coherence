@@ -70,6 +70,18 @@ func (mr *MockMembersMockRecorder) Leave() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Leave", reflect.TypeOf((*MockMembers)(nil).Leave))
 }
 
+// Listen mocks base method
+func (m *MockMembers) Listen(arg0 members.EventHandler) error {
+	ret := m.ctrl.Call(m, "Listen", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Listen indicates an expected call of Listen
+func (mr *MockMembersMockRecorder) Listen(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Listen", reflect.TypeOf((*MockMembers)(nil).Listen), arg0)
+}
+
 // MemberList mocks base method
 func (m *MockMembers) MemberList() members.MemberList {
 	ret := m.ctrl.Call(m, "MemberList")

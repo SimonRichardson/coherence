@@ -30,6 +30,10 @@ func NewRealMembers(config Config, logger log.Logger) (Members, error) {
 		return nil, err
 	}
 
+	if err := agent.Start(); err != nil {
+		return nil, err
+	}
+
 	return &realMembers{
 		config:  config,
 		agent:   agent,

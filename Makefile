@@ -95,6 +95,7 @@ documentation:
 
 .PHONY: coverage-tests
 coverage-tests:
+	@ mkdir -p bin
 	docker-compose run coherence go test -covermode=count -coverprofile=bin/coverage.out -v -tags=integration ${COVER_PKG}
 
 .PHONY: coverage-view

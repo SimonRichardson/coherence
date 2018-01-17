@@ -144,8 +144,9 @@ func runCache(args []string) error {
 	}
 	{
 		g.Add(func() error {
-			nodeSet.Listen(func(reason hashring.Reason) {
-				level.Debug(logger).Log("component", "nodeset", "reason", reason.String())
+			nodeSet.Listen(func(event members.Event) error {
+				level.Debug(logger).Log("component", "nodeset", "event", event)
+				return nil
 			})
 			return nodeSet.Run()
 		}, func(error) {

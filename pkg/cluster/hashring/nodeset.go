@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
+
 	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/cluster"
 	"github.com/SimonRichardson/coherence/pkg/cluster/bloom"
@@ -16,22 +18,7 @@ import (
 const (
 	// defaultBloomCapacity is bounded by the amount of data that we can send over
 	// via gossip
-	defaultBloomCapacity = 1024
-)
-
-// Reason defines a type of reason a peer will notify the callback
-type Reason string
-
-func (r Reason) String() string {
-	return string(r)
-}
-
-const (
-	// ReasonAlone represents a peer that is alone and an action is required.
-	ReasonAlone Reason = "alone"
-
-	// ReasonAccompanied represents a peer that is not alone, but accompanied.
-	ReasonAccompanied Reason = "accompanied"
+	defaultBloomCapacity = 468
 )
 
 const (
@@ -102,15 +89,8 @@ func (n *NodeSet) Stop() {
 }
 
 // Listen gives feed back from the underlying peers
-func (n *NodeSet) Listen(fn func(Reason)) {
-	n.peer.Listen(func(reason cluster.Reason) {
-		switch reason {
-		case cluster.ReasonAlone:
-			fn(ReasonAlone)
-		case cluster.ReasonAccompanied:
-			fn(ReasonAccompanied)
-		}
-	})
+func (n *NodeSet) Listen(fn members.EventHandler) error {
+	return n.peer.Listen(fn)
 }
 
 func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Node, func([]uint32) error) {

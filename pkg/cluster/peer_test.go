@@ -6,11 +6,11 @@ import (
 	"testing"
 	"testing/quick"
 
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
+	"github.com/SimonRichardson/coherence/pkg/cluster/members/mocks"
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	"github.com/SimonRichardson/coherence/pkg/cluster/members"
-	"github.com/SimonRichardson/coherence/pkg/cluster/members/mocks"
 	"github.com/trussle/harness/generators"
 	"github.com/trussle/uuid"
 )
@@ -53,18 +53,10 @@ func TestPeer(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var (
-			members    = mocks.NewMockMembers(ctrl)
-			memberlist = mocks.NewMockMemberList(ctrl)
-		)
-
+		members := mocks.NewMockMembers(ctrl)
 		members.EXPECT().
 			Join().
 			Return(1, nil).
-			Times(1)
-		members.EXPECT().
-			MemberList().
-			Return(memberlist).
 			Times(1)
 
 		p := NewPeer(members, log.NewNopLogger())

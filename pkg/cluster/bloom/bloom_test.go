@@ -11,15 +11,15 @@ func TestBloom(t *testing.T) {
 	t.Parallel()
 
 	t.Run("cap", func(t *testing.T) {
-		bloom := New(1024, 4)
-		if expected, actual := uint(1024), bloom.Cap(); expected != actual {
+		bloom := New(512, 4)
+		if expected, actual := uint(512), bloom.Cap(); expected != actual {
 			t.Errorf("expected: %d, actual: %d", expected, actual)
 		}
 	})
 
 	t.Run("add", func(t *testing.T) {
 		fn := func(a uuid.UUID) bool {
-			bloom := New(1024*1024, 4)
+			bloom := New(256*2, 4)
 			return bloom.Add(a.String()) == nil
 		}
 		if err := quick.Check(fn, nil); err != nil {
@@ -29,7 +29,7 @@ func TestBloom(t *testing.T) {
 
 	t.Run("contains nothing", func(t *testing.T) {
 		fn := func(a uuid.UUID) bool {
-			bloom := New(1024*1024, 4)
+			bloom := New(256*2, 4)
 			ok, err := bloom.Contains(a.String())
 			if err != nil {
 				t.Error(err)
@@ -43,7 +43,7 @@ func TestBloom(t *testing.T) {
 
 	t.Run("contains something", func(t *testing.T) {
 		fn := func(a uuid.UUID) bool {
-			bloom := New(1024*1024, 4)
+			bloom := New(256*2, 4)
 			if err := bloom.Add(a.String()); err != nil {
 				t.Fatal(err)
 			}
@@ -65,7 +65,7 @@ func TestBloom(t *testing.T) {
 				return true
 			}
 
-			bloom := New(1024*1024, 4)
+			bloom := New(256*2, 4)
 			for _, v := range a {
 				if err := bloom.Add(v.String()); err != nil {
 					t.Fatal(err)

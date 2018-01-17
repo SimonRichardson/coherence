@@ -5,7 +5,6 @@
 package mocks
 
 import (
-	cluster "github.com/SimonRichardson/coherence/pkg/cluster"
 	members "github.com/SimonRichardson/coherence/pkg/cluster/members"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -107,7 +106,7 @@ func (mr *MockPeerMockRecorder) Leave() *gomock.Call {
 }
 
 // Listen mocks base method
-func (m *MockPeer) Listen(arg0 func(cluster.Reason)) error {
+func (m *MockPeer) Listen(arg0 members.EventHandler) error {
 	ret := m.ctrl.Call(m, "Listen", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
