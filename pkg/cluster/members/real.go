@@ -165,7 +165,7 @@ func (h realEventHandler) handleMemberEvent(event serf.MemberEvent) {
 		})
 	}
 
-	h.processEvent(NewMembersEvent(t, m))
+	h.processEvent(NewMemberEvent(t, m))
 }
 
 func (h realEventHandler) processEvent(event Event) {
