@@ -100,14 +100,14 @@ func runCache(args []string) error {
 	}
 	level.Debug(logger).Log("API", fmt.Sprintf("%s://%s", apiNetwork, apiAddress))
 
-	apiAddress, apiPort, err := parseClusterAddr(*apiAddr, defaultAPIPort)
+	clusterAPIAddress, clusterAPIPort, err := parseClusterAddr(*apiAddr, defaultAPIPort)
 	if err != nil {
 		return err
 	}
 
 	peer, err := configureRemoteCache(logger,
 		*cacheReplicationFactor,
-		apiAddress, apiPort,
+		clusterAPIAddress, clusterAPIPort,
 		*clusterBindAddr,
 		*clusterAdvertiseAddr,
 		clusterPeers.Slice(),
@@ -123,8 +123,13 @@ func runCache(args []string) error {
 
 	var (
 		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
-		nodeSet     = hashring.NewNodeSet(peer, transport, *nodeReplicationFactor, log.With(logger, "component", "nodeset"))
-		supervisor  = farm.NewReal(nodeSet)
+		nodeSet     = hashring.NewNodeSet(peer,
+			transport,
+			*nodeReplicationFactor,
+			apiAddress,
+			log.With(logger, "component", "nodeset"),
+		)
+		supervisor = farm.NewReal(nodeSet)
 	)
 
 	// Execution group.
@@ -199,7 +204,7 @@ type EventHandler struct {
 	logger log.Logger
 }
 
-func (e EventHandler) (event members.Event) error {
+func (e EventHandler) HandleEvent(event members.Event) error {
 	level.Debug(e.logger).Log("component", "nodeset", "event", event)
 	return nil
 }

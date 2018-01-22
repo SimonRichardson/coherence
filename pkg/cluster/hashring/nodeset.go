@@ -6,74 +6,53 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-kit/kit/log/level"
-
-	"github.com/SimonRichardson/coherence/pkg/cluster/members"
-
 	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/cluster"
-	"github.com/SimonRichardson/coherence/pkg/cluster/bloom"
+	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
+	"github.com/spaolacci/murmur3"
 )
 
 const (
 	// defaultBloomCapacity is bounded by the amount of data that we can send over
 	// via gossip
-	defaultBloomCapacity = 468
+	defaultBloomCapacity = 256
 )
 
 const (
 	defaultIterationTime = time.Second
 )
 
-type node struct {
-	node  nodes.Node
-	bloom *bloom.Bloom
-	local bool
-}
-
-func (n node) Contains(data string) bool {
-	ok, err := n.bloom.Contains(data)
-	if err != nil {
-		return false
-	}
-	return ok
-}
-
-func (n node) IsLocal() bool {
-	return n.local
-}
-
-func (n node) Hash() uint32 {
-	return n.node.Hash()
-}
-
 // NodeSet represents a set of nodes with in the cluster
 type NodeSet struct {
-	mutex     sync.RWMutex
-	peer      cluster.Peer
-	transport api.TransportStrategy
-	ring      *HashRing
-	nodes     map[string]node
-	stop      chan chan struct{}
-	logger    log.Logger
+	mutex        sync.RWMutex
+	peer         cluster.Peer
+	transport    api.TransportStrategy
+	localAPIAddr string
+	ring         *HashRing
+	nodes        *Nodes
+	stop         chan chan struct{}
+	logger       log.Logger
 }
 
 // NewNodeSet creates a NodeSet with the correct dependencies
 func NewNodeSet(peer cluster.Peer,
 	transport api.TransportStrategy,
 	replicationFactor int,
+	localAPIAddr string,
 	logger log.Logger,
 ) *NodeSet {
 	return &NodeSet{
-		peer:      peer,
-		transport: transport,
-		ring:      NewHashRing(replicationFactor),
-		nodes:     make(map[string]node),
-		stop:      make(chan chan struct{}),
-		logger:    logger,
+		peer:         peer,
+		transport:    transport,
+		localAPIAddr: localAPIAddr,
+		ring:         NewHashRing(replicationFactor),
+		nodes:        NewNodes(murmur3.Sum32([]byte(localAPIAddr))),
+		stop:         make(chan chan struct{}),
+		logger:       logger,
 	}
 }
 
@@ -83,6 +62,7 @@ func (n *NodeSet) Run() error {
 	// Register the node to handle user events
 	eh := NodeSetEventHandler{
 		nodeSet: n,
+		logger:  log.With(n.logger, "component", "nodeset event handler"),
 	}
 	n.peer.RegisterEventHandler(eh)
 	defer n.peer.DeregisterEventHandler(eh)
@@ -127,41 +107,18 @@ func (n *NodeSet) DeregisterEventHandler(fn members.EventHandler) error {
 }
 
 func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Node, func([]uint32) error) {
-	n.mutex.RLock()
+	res := n.Read(key, quorum)
 
-	var (
-		k     = key.String()
-		hosts = n.ring.Hosts()
-
-		num    = len(hosts)
-		blooms = make(map[uint32]*bloom.Bloom, num)
-		nodes  = make([]nodes.Node, num)
-	)
-
-	// Go through all the hosts and add a key to the nodes
-	for k, v := range hosts {
-		if node, ok := n.nodes[v]; ok {
-			nodes[k] = node.node
-			blooms[node.node.Hash()] = node.bloom
-		}
-	}
-
-	n.mutex.RUnlock()
-
-	// The function finishes the write by adding the key to the bloom on success
-	// of the write.
-	return nodes, func(hosts []uint32) (err error) {
-		n.mutex.Lock()
-		defer n.mutex.Unlock()
-
-		for _, v := range hosts {
-			if bloom, ok := blooms[v]; ok {
-				if err = bloom.Add(k); err != nil {
-					return
+	// Once finished, we commit the key to the bloom.
+	return res, func(h []uint32) error {
+		for _, v := range h {
+			if actor, ok := n.nodes.GetByHash(v); ok {
+				if err := actor.bloom.Add(key.String()); err != nil {
+					level.Error(n.logger).Log("err", err)
 				}
 			}
 		}
-		return
+		return nil
 	}
 }
 
@@ -188,12 +145,31 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 		hosts = n.shuffle()
 
 	case selectors.Consensus:
-		hosts = n.ring.LookupN(k, (n.ring.Len()/2)+1)
+		// For consensus, we would like to attempt to get hosts that have at least
+		// a chance of knowing the key exists.
+		min := (n.ring.Len() / 2) + 1
+		hosts = n.ring.LookupN(k, min)
 		hosts = n.filter(hosts, k)
+
+		// If there isn't enough hosts, attempt to brute force a get.
+		if len(hosts) < min {
+			for _, v := range n.ring.Hosts() {
+				if contains(hosts, v) {
+					continue
+				}
+				node, ok := n.nodes.Get(k)
+				if !ok {
+					continue
+				}
+				if ok := node.Contains(k); ok {
+					hosts = append(hosts, v)
+				}
+			}
+		}
 	}
 
 	for _, v := range hosts {
-		if node, ok := n.nodes[v]; ok {
+		if node, ok := n.nodes.Get(v); ok {
 			nodes = append(nodes, node.node)
 		}
 	}
@@ -203,7 +179,7 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 
 func (n *NodeSet) filter(hosts []string, key string) (res []string) {
 	for _, v := range hosts {
-		if node, ok := n.nodes[v]; ok {
+		if node, ok := n.nodes.Get(v); ok {
 			if ok := node.Contains(key); ok {
 				res = append(res, v)
 			}
@@ -228,6 +204,7 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 	for k := range n.ring.hosts {
 		if !contains(hosts, k) {
 			n.ring.Remove(k)
+			n.nodes.Remove(k)
 		}
 	}
 
@@ -240,11 +217,7 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 
 		if ok := n.ring.Add(v); ok {
 			addition = true
-			n.nodes[v] = node{
-				node:  nodes.NewRemote(n.transport.Apply(v)),
-				bloom: bloom.New(defaultBloomCapacity, 4),
-				local: false,
-			}
+			n.nodes.Set(v, NewNode(n.transport.Apply(v)))
 		}
 	}
 
@@ -260,12 +233,7 @@ func (n *NodeSet) dispatchBloomEvent() {
 	// Every new addition to the node ring, send an bloom filter event.
 	// Note: under network issues we should throttle this so it doesn't become
 	// a run-a-way event
-	local, ok := n.localNode()
-	if !ok {
-		return
-	}
-
-	bits, err := local.bloom.Read()
+	bits, err := n.nodes.LocalBloom().Read()
 	if err != nil {
 		level.Error(n.logger).Log("err", err)
 		return
@@ -273,7 +241,7 @@ func (n *NodeSet) dispatchBloomEvent() {
 
 	payload, err := json.Marshal(bloomEventPayload{
 		Name:  n.peer.Name(),
-		Hash:  local.Hash(),
+		Hash:  n.nodes.LocalHash(),
 		Bloom: bits,
 	})
 	if err != nil {
@@ -283,15 +251,6 @@ func (n *NodeSet) dispatchBloomEvent() {
 	if err := n.peer.DispatchEvent(members.NewUserEvent(BloomEventType, payload)); err != nil {
 		level.Error(n.logger).Log("err", err)
 	}
-}
-
-func (n *NodeSet) localNode() (node, bool) {
-	for _, v := range n.nodes {
-		if v.IsLocal() {
-			return v, true
-		}
-	}
-	return node{}, false
 }
 
 type bloomEventPayload struct {
@@ -324,13 +283,8 @@ func (h NodeSetEventHandler) HandleEvent(e members.Event) error {
 
 			level.Info(h.logger).Log("eventhandled", "bloom-event-type", "from", payload.Name)
 
-			for _, v := range h.nodeSet.nodes {
-				if v.Hash() == payload.Hash {
-					if err := v.bloom.Write(payload.Bloom); err != nil {
-						return err
-					}
-					break
-				}
+			if err := h.nodeSet.nodes.Update(payload.Hash, payload.Bloom); err != nil {
+				level.Error(h.logger).Log("err", err)
 			}
 		}
 	}
