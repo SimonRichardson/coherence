@@ -384,10 +384,25 @@ func ingestMembers(reader io.ReadCloser) ([]selectors.FieldValueScore, error) {
 		return nil, err
 	}
 
-	return input.Members, nil
+	res := make([]selectors.FieldValueScore, len(input.Members))
+	for k, v := range input.Members {
+		res[k] = selectors.FieldValueScore{
+			Field: selectors.Field(v.Field),
+			Value: v.Value,
+			Score: v.Score,
+		}
+	}
+
+	return res, nil
 }
 
 // MembersInput defines a simple type for marshalling and unmarshalling members
 type MembersInput struct {
-	Members []selectors.FieldValueScore `json:"members"`
+	Members []FieldValueScore `json:"members"`
+}
+
+type FieldValueScore struct {
+	Field string `json:"field"`
+	Value []byte `json:"value"`
+	Score int64  `json:"score"`
 }

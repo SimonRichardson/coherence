@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/spaolacci/murmur3"
 	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/api/client"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/spaolacci/murmur3"
 )
 
 type httpTransport struct {

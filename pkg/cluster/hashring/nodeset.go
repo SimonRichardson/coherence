@@ -23,7 +23,8 @@ const (
 )
 
 const (
-	defaultIterationTime = time.Second
+	defaultDiscoveryDuration = time.Second
+	defaultBroadcastDuration = time.Second * 5
 )
 
 // NodeSet represents a set of nodes with in the cluster
@@ -68,12 +69,15 @@ func (n *NodeSet) Run() error {
 	defer n.peer.DeregisterEventHandler(eh)
 
 	// Iterate through the nodes
-	ticker := time.NewTicker(defaultIterationTime)
-	defer ticker.Stop()
+	discoveryTicker := time.NewTicker(defaultDiscoveryDuration)
+	defer discoveryTicker.Stop()
+
+	broadcastTicker := time.NewTicker(defaultBroadcastDuration)
+	defer broadcastTicker.Stop()
 
 	for {
 		select {
-		case <-ticker.C:
+		case <-discoveryTicker.C:
 			hosts, err := n.peer.Current(cluster.PeerTypeStore, true)
 			if err != nil {
 				continue
@@ -81,6 +85,9 @@ func (n *NodeSet) Run() error {
 			if err := n.updateNodes(hosts); err != nil {
 				return err
 			}
+
+		case <-broadcastTicker.C:
+			n.dispatchBloomEvent()
 
 		case c := <-n.stop:
 			close(c)
@@ -111,9 +118,14 @@ func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Nod
 
 	// Once finished, we commit the key to the bloom.
 	return res, func(h []uint32) error {
+		k := key.String()
+
+		// Set the local bloom
+		n.nodes.LocalBloom().Add(k)
+
 		for _, v := range h {
 			if actor, ok := n.nodes.GetByHash(v); ok {
-				if err := actor.bloom.Add(key.String()); err != nil {
+				if err := actor.bloom.Add(k); err != nil {
 					level.Error(n.logger).Log("err", err)
 				}
 			}

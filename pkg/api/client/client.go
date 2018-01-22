@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
-	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 const (
@@ -65,7 +65,7 @@ func (c *Client) Get(u string) (b []byte, err error) {
 func (c *Client) Post(u string, p []byte) (b []byte, err error) {
 	err = c.circuit.Run(func() error {
 
-		resp, err := c.client.Post(fmt.Sprintf("%s%s", c.host, u), "application/javascript", bytes.NewReader(p))
+		resp, err := c.client.Post(fmt.Sprintf("%s%s", c.host, u), "application/json", bytes.NewReader(p))
 		if err != nil {
 			return err
 		}
