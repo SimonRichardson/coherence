@@ -1,5 +1,10 @@
 package bloom
 
+import (
+	"bytes"
+	"encoding/binary"
+)
+
 // the wordSize of a bit set
 const wordSize = uint(64)
 
@@ -43,6 +48,32 @@ func (b *Bits) Contains(i uint) bool {
 
 func (b *Bits) Len() uint {
 	return b.len
+}
+
+func (b *Bits) Write(bits []byte) error {
+	var (
+		reader = bytes.NewReader(bits)
+		buf    []uint64
+	)
+	for reader.Len() > 0 {
+		var u uint64
+		if err := binary.Read(reader, binary.LittleEndian, &u); err != nil {
+			return err
+		}
+		buf = append(buf, u)
+	}
+	b.b = buf
+	return nil
+}
+
+func (b *Bits) Read() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	for _, v := range b.b {
+		if err := binary.Write(buf, binary.LittleEndian, v); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
 }
 
 func requiredLen(len uint) int {

@@ -4,6 +4,7 @@ import "github.com/SimonRichardson/coherence/pkg/cluster/members"
 
 // Peer represents the node with in the cluster.
 type Peer interface {
+	members.EventBus
 
 	// Join the cluster
 	Join() (int, error)
@@ -28,10 +29,6 @@ type Peer interface {
 	// Current API host:ports for the given type of node.
 	// Bool defines if you want to include the current local node.
 	Current(peerType members.PeerType, includeLocal bool) ([]string, error)
-
-	// Listen registers a callback for potential issues with the peer. For example
-	// if the peer is on it's own.
-	Listen(members.EventHandler) error
 
 	// Close and shutdown the peer
 	Close()

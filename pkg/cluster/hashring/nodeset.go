@@ -1,9 +1,12 @@
 package hashring
 
 import (
+	"encoding/json"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/go-kit/kit/log/level"
 
 	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 
@@ -28,6 +31,23 @@ const (
 type node struct {
 	node  nodes.Node
 	bloom *bloom.Bloom
+	local bool
+}
+
+func (n node) Contains(data string) bool {
+	ok, err := n.bloom.Contains(data)
+	if err != nil {
+		return false
+	}
+	return ok
+}
+
+func (n node) IsLocal() bool {
+	return n.local
+}
+
+func (n node) Hash() uint32 {
+	return n.node.Hash()
 }
 
 // NodeSet represents a set of nodes with in the cluster
@@ -60,6 +80,14 @@ func NewNodeSet(peer cluster.Peer,
 // Run the NodeSet snapshot selection process, this is required to get a valid
 // picture of the cluster at large.
 func (n *NodeSet) Run() error {
+	// Register the node to handle user events
+	eh := NodeSetEventHandler{
+		nodeSet: n,
+	}
+	n.peer.RegisterEventHandler(eh)
+	defer n.peer.DeregisterEventHandler(eh)
+
+	// Iterate through the nodes
 	ticker := time.NewTicker(defaultIterationTime)
 	defer ticker.Stop()
 
@@ -88,9 +116,14 @@ func (n *NodeSet) Stop() {
 	<-c
 }
 
-// Listen gives feed back from the underlying peers
-func (n *NodeSet) Listen(fn members.EventHandler) error {
-	return n.peer.Listen(fn)
+// RegisterEventHandler gives feed back from the underlying peers
+func (n *NodeSet) RegisterEventHandler(fn members.EventHandler) error {
+	return n.peer.RegisterEventHandler(fn)
+}
+
+// DeregisterEventHandler removes feed back from the underlying peers
+func (n *NodeSet) DeregisterEventHandler(fn members.EventHandler) error {
+	return n.peer.DeregisterEventHandler(fn)
 }
 
 func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Node, func([]uint32) error) {
@@ -171,7 +204,7 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 func (n *NodeSet) filter(hosts []string, key string) (res []string) {
 	for _, v := range hosts {
 		if node, ok := n.nodes[v]; ok {
-			if ok, _ := node.bloom.Contains(key); ok {
+			if ok := node.Contains(key); ok {
 				res = append(res, v)
 			}
 		}
@@ -199,20 +232,108 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 	}
 
 	// Add if it doesn't already exist
+	var addition bool
 	for _, v := range hosts {
 		if n.ring.Contains(v) {
 			continue
 		}
 
 		if ok := n.ring.Add(v); ok {
+			addition = true
 			n.nodes[v] = node{
 				node:  nodes.NewRemote(n.transport.Apply(v)),
 				bloom: bloom.New(defaultBloomCapacity, 4),
+				local: false,
 			}
 		}
 	}
 
+	if addition {
+		n.dispatchBloomEvent()
+	}
+
 	// Go through and make sure that we have all the nodes in the ring.
+	return nil
+}
+
+func (n *NodeSet) dispatchBloomEvent() {
+	// Every new addition to the node ring, send an bloom filter event.
+	// Note: under network issues we should throttle this so it doesn't become
+	// a run-a-way event
+	local, ok := n.localNode()
+	if !ok {
+		return
+	}
+
+	bits, err := local.bloom.Read()
+	if err != nil {
+		level.Error(n.logger).Log("err", err)
+		return
+	}
+
+	payload, err := json.Marshal(bloomEventPayload{
+		Name:  n.peer.Name(),
+		Hash:  local.Hash(),
+		Bloom: bits,
+	})
+	if err != nil {
+		level.Error(n.logger).Log("err", err)
+	}
+
+	if err := n.peer.DispatchEvent(members.NewUserEvent(BloomEventType, payload)); err != nil {
+		level.Error(n.logger).Log("err", err)
+	}
+}
+
+func (n *NodeSet) localNode() (node, bool) {
+	for _, v := range n.nodes {
+		if v.IsLocal() {
+			return v, true
+		}
+	}
+	return node{}, false
+}
+
+type bloomEventPayload struct {
+	Name  string `json:"name"`
+	Hash  uint32 `json:"hash"`
+	Bloom []byte `json:"bloom"`
+}
+
+// BloomEventType is a event type where the underlying bloom filter is broadcast
+// to other nodes, to help improve the hashring.
+const BloomEventType = "bloom"
+
+// NodeSetEventHandler holds a reference to the nodeSet so that we can
+// effectively deal with the events comming in from the cluster.
+type NodeSetEventHandler struct {
+	nodeSet *NodeSet
+	logger  log.Logger
+}
+
+// HandleEvent handles the member events comming from the cluster.
+func (h NodeSetEventHandler) HandleEvent(e members.Event) error {
+	switch t := e.(type) {
+	case *members.UserEvent:
+		// Handle the bloom event type
+		if t.Name == BloomEventType {
+			var payload bloomEventPayload
+			if err := json.Unmarshal(t.Payload, &payload); err != nil {
+				return err
+			}
+
+			level.Info(h.logger).Log("eventhandled", "bloom-event-type", "from", payload.Name)
+
+			for _, v := range h.nodeSet.nodes {
+				if v.Hash() == payload.Hash {
+					if err := v.bloom.Write(payload.Bloom); err != nil {
+						return err
+					}
+					break
+				}
+			}
+		}
+	}
 	return nil
 }
 

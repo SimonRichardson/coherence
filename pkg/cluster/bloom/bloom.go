@@ -49,6 +49,17 @@ func (b *Bloom) Cap() uint {
 	return b.cap
 }
 
+// Write a series of underlying bytes to the bloom. This wipes out any previous
+// additions and starts from scratch.
+func (b *Bloom) Write(bits []byte) error {
+	return b.b.Write(bits)
+}
+
+// Read from the underlying bytes of the bloom.
+func (b *Bloom) Read() ([]byte, error) {
+	return b.b.Read()
+}
+
 func hash(data string) ([4]uint64, error) {
 	h := murmur3.New128()
 	if _, err := h.Write([]byte(data)); err != nil {

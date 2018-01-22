@@ -3,6 +3,7 @@ package members
 import (
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -17,28 +18,32 @@ const (
 )
 
 type realMembers struct {
-	config  Config
-	agent   *agent.Agent
-	members *serf.Serf
-	logger  log.Logger
+	config        Config
+	mutex         sync.Mutex
+	agent         *agent.Agent
+	members       *serf.Serf
+	eventHandlers map[EventHandler]agent.EventHandler
+	logger        log.Logger
 }
 
 // NewRealMembers creates a new members list to join.
 func NewRealMembers(config Config, logger log.Logger) (Members, error) {
-	agent, err := agent.Create(transformConfig(config))
+	actor, err := agent.Create(transformConfig(config))
 	if err != nil {
 		return nil, err
 	}
 
-	if err := agent.Start(); err != nil {
+	if err := actor.Start(); err != nil {
 		return nil, err
 	}
 
 	return &realMembers{
-		config:  config,
-		agent:   agent,
-		members: agent.Serf(),
-		logger:  logger,
+		config:        config,
+		mutex:         sync.Mutex{},
+		agent:         actor,
+		members:       actor.Serf(),
+		eventHandlers: make(map[EventHandler]agent.EventHandler),
+		logger:        logger,
 	}, nil
 }
 
@@ -79,12 +84,39 @@ func (r *realMembers) Close() error {
 	return r.members.Shutdown()
 }
 
-func (r *realMembers) Listen(fn EventHandler) error {
-	r.agent.RegisterEventHandler(realEventHandler{
+func (r *realMembers) RegisterEventHandler(fn EventHandler) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	eh := realEventHandler{
 		fn:     fn,
 		logger: log.With(r.logger, "component", "event_handler"),
-	})
+	}
+
+	r.eventHandlers[fn] = eh
+	r.agent.RegisterEventHandler(eh)
 	return nil
+}
+
+func (r *realMembers) DeregisterEventHandler(fn EventHandler) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if eh, ok := r.eventHandlers[fn]; ok {
+		delete(r.eventHandlers, fn)
+		r.agent.DeregisterEventHandler(eh)
+	}
+
+	return nil
+}
+
+func (r *realMembers) DispatchEvent(e Event) error {
+	switch t := e.(type) {
+	case *UserEvent:
+		return r.agent.UserEvent(t.Name, t.Payload, true)
+	default:
+		return errors.Errorf("Unsupported event type %v", e.Type())
+	}
 }
 
 type realMemberList struct {
@@ -177,7 +209,7 @@ func (h realEventHandler) processEvent(event Event) {
 		return
 	}
 
-	if err := h.fn(event); err != nil {
+	if err := h.fn.HandleEvent(event); err != nil {
 		level.Warn(h.logger).Log("err", err)
 	}
 }

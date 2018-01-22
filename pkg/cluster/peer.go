@@ -113,8 +113,16 @@ func (p *peer) Current(peerType members.PeerType, includeLocal bool) (res []stri
 	return
 }
 
-func (p *peer) Listen(fn members.EventHandler) error {
-	return p.members.Listen(fn)
+func (p *peer) RegisterEventHandler(fn members.EventHandler) error {
+	return p.members.RegisterEventHandler(fn)
+}
+
+func (p *peer) DeregisterEventHandler(fn members.EventHandler) error {
+	return p.members.DeregisterEventHandler(fn)
+}
+
+func (p *peer) DispatchEvent(e members.Event) error {
+	return p.members.DispatchEvent(e)
 }
 
 func memberNames(m []members.Member) []string {

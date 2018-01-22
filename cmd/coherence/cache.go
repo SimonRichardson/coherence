@@ -143,13 +143,15 @@ func runCache(args []string) error {
 		})
 	}
 	{
+		// Register the event handler on the nodeset
+		eh := EventHandler{
+			logger: logger,
+		}
 		g.Add(func() error {
-			nodeSet.Listen(func(event members.Event) error {
-				level.Debug(logger).Log("component", "nodeset", "event", event)
-				return nil
-			})
+			nodeSet.RegisterEventHandler(eh)
 			return nodeSet.Run()
 		}, func(error) {
+			nodeSet.DeregisterEventHandler(eh)
 			nodeSet.Stop()
 		})
 	}
@@ -191,6 +193,15 @@ func runCache(args []string) error {
 	}
 	gexec.Interrupt(g)
 	return g.Run()
+}
+
+type EventHandler struct {
+	logger log.Logger
+}
+
+func (e EventHandler) (event members.Event) error {
+	level.Debug(e.logger).Log("component", "nodeset", "event", event)
+	return nil
 }
 
 func configureRemoteCache(logger log.Logger,
