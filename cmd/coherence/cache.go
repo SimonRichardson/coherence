@@ -270,6 +270,6 @@ type membersLogOutput struct {
 }
 
 func (m membersLogOutput) Write(b []byte) (int, error) {
-	level.Debug(m.logger).Log("fwd_msg", string(b))
+	//level.Debug(m.logger).Log("fwd_msg", string(b))
 	return len(b), nil
 }

@@ -89,7 +89,9 @@ func (n *NodeSet) Run() error {
 			}
 
 		case <-broadcastTicker.C:
-			n.dispatchBloomEvent()
+			for _, v := range n.nodes.Hashes() {
+				n.dispatchBloomEvent(v)
+			}
 
 		case c := <-n.stop:
 			close(c)
@@ -233,24 +235,25 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 	}
 
 	if addition {
-		n.dispatchBloomEvent()
+		// Send the local hash, so people are aware
+		n.dispatchBloomEvent(n.nodes.LocalHash())
 	}
 
 	// Go through and make sure that we have all the nodes in the ring.
 	return nil
 }
 
-func (n *NodeSet) dispatchBloomEvent() {
+func (n *NodeSet) dispatchBloomEvent(hash uint32) {
 	// Every new addition to the node ring, send an bloom filter event.
 	// Note: under network issues we should throttle this so it doesn't become
 	// a run-a-way event
-	local, ok := n.nodes.LocalBloom()
+	node, ok := n.nodes.GetByHash(hash)
 	if !ok {
 		return
 	}
 
 	buf := new(bytes.Buffer)
-	if _, err := local.Write(buf); err != nil {
+	if _, err := node.bloom.Write(buf); err != nil {
 		level.Error(n.logger).Log("err", err)
 		return
 	}

@@ -9,18 +9,21 @@ import (
 	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/cluster/bloom"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
+	"github.com/SimonRichardson/resilience/clock"
 	"github.com/spaolacci/murmur3"
 )
 
 type Node struct {
 	node  nodes.Node
 	bloom *bloom.Bloom
+	clock clock.Clock
 }
 
 func NewNode(transport api.Transport) *Node {
 	return &Node{
 		node:  nodes.NewRemote(transport),
 		bloom: bloom.New(defaultBloomCapacity, 4),
+		clock: clock.NewLamportClock(),
 	}
 }
 
@@ -34,6 +37,24 @@ func (n *Node) Contains(data string) bool {
 
 func (n *Node) Hash() uint32 {
 	return n.node.Hash()
+}
+
+func (n *Node) Time() uint64 {
+	return n.clock.Now().Value()
+}
+
+func (n *Node) Update(payload []byte) error {
+	// Go throw and merge the blooms
+	bits := new(bloom.Bloom)
+	if _, err := bits.Read(bytes.NewReader(payload)); err != nil {
+		return err
+	}
+
+	if err := n.bloom.Union(bits); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Nodes struct {
@@ -95,15 +116,17 @@ func (n *Nodes) LocalHash() uint32 {
 	return n.localHash
 }
 
-// LocalBloom returns the current underlying bloom
-func (n *Nodes) LocalBloom() (*bloom.Bloom, bool) {
-	for k, v := range n.remotes {
-		fmt.Println(k, v.Hash(), n.localHash, murmur3.Sum32([]byte(k)))
-		if v.Hash() == n.localHash {
-			return v.bloom, true
-		}
+// Hashes returns a slice of hashes in the nodeset
+func (n *Nodes) Hashes() []uint32 {
+	var (
+		c   int
+		res = make([]uint32, len(n.hashes))
+	)
+	for k := range n.hashes {
+		res[c] = k
+		c++
 	}
-	return nil, false
+	return res
 }
 
 // Update the payload of a hash node
@@ -111,13 +134,7 @@ func (n *Nodes) LocalBloom() (*bloom.Bloom, bool) {
 func (n *Nodes) Update(hash uint32, payload []byte) error {
 	for _, v := range n.remotes {
 		if v.Hash() == hash {
-			// Go throw and merge the blooms
-			bits := new(bloom.Bloom)
-			if _, err := bits.Read(bytes.NewReader(payload)); err != nil {
-				return err
-			}
-
-			if err := v.bloom.Union(bits); err != nil {
+			if err := v.Update(payload); err != nil {
 				return err
 			}
 		}
