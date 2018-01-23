@@ -123,13 +123,13 @@ func runCache(args []string) error {
 
 	var (
 		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
-		nodeSet     = hashring.NewNodeSet(peer,
+		cluster     = hashring.NewCluster(peer,
 			transport,
 			*nodeReplicationFactor,
 			apiAddress,
-			log.With(logger, "component", "nodeset"),
+			log.With(logger, "component", "cluster"),
 		)
-		supervisor = farm.NewReal(nodeSet)
+		supervisor = farm.NewReal(cluster)
 	)
 
 	// Execution group.
@@ -153,11 +153,11 @@ func runCache(args []string) error {
 			logger: logger,
 		}
 		g.Add(func() error {
-			nodeSet.RegisterEventHandler(eh)
-			return nodeSet.Run()
+			cluster.RegisterEventHandler(eh)
+			return cluster.Run()
 		}, func(error) {
-			nodeSet.DeregisterEventHandler(eh)
-			nodeSet.Stop()
+			cluster.DeregisterEventHandler(eh)
+			cluster.Stop()
 		})
 	}
 	{
@@ -205,7 +205,7 @@ type EventHandler struct {
 }
 
 func (e EventHandler) HandleEvent(event members.Event) error {
-	level.Debug(e.logger).Log("component", "nodeset", "event", event)
+	level.Debug(e.logger).Log("component", "cluster", "event", event)
 	return nil
 }
 

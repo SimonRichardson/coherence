@@ -29,43 +29,43 @@ const (
 	defaultBroadcastDuration = time.Second * 5
 )
 
-// NodeSet represents a set of nodes with in the cluster
-type NodeSet struct {
+// Cluster represents a set of nodes with in the cluster
+type Cluster struct {
 	mutex        sync.RWMutex
 	peer         cluster.Peer
 	transport    api.TransportStrategy
 	localAPIAddr string
 	ring         *HashRing
-	nodes        *Nodes
+	actors       *Actors
 	stop         chan chan struct{}
 	logger       log.Logger
 }
 
-// NewNodeSet creates a NodeSet with the correct dependencies
-func NewNodeSet(peer cluster.Peer,
+// NewCluster creates a Cluster with the correct dependencies
+func NewCluster(peer cluster.Peer,
 	transport api.TransportStrategy,
 	replicationFactor int,
 	localAPIAddr string,
 	logger log.Logger,
-) *NodeSet {
-	return &NodeSet{
+) *Cluster {
+	return &Cluster{
 		peer:         peer,
 		transport:    transport,
 		localAPIAddr: localAPIAddr,
 		ring:         NewHashRing(replicationFactor),
-		nodes:        NewNodes(murmur3.Sum32([]byte(localAPIAddr))),
+		actors:       NewActors(murmur3.Sum32([]byte(localAPIAddr))),
 		stop:         make(chan chan struct{}),
 		logger:       logger,
 	}
 }
 
-// Run the NodeSet snapshot selection process, this is required to get a valid
+// Run the Cluster snapshot selection process, this is required to get a valid
 // picture of the cluster at large.
-func (n *NodeSet) Run() error {
+func (n *Cluster) Run() error {
 	// Register the node to handle user events
-	eh := NodeSetEventHandler{
-		nodeSet: n,
-		logger:  log.With(n.logger, "component", "nodeset event handler"),
+	eh := ClusterEventHandler{
+		cluster: n,
+		logger:  log.With(n.logger, "component", "cluster-event-handler"),
 	}
 	n.peer.RegisterEventHandler(eh)
 	defer n.peer.DeregisterEventHandler(eh)
@@ -89,7 +89,7 @@ func (n *NodeSet) Run() error {
 			}
 
 		case <-broadcastTicker.C:
-			for _, v := range n.nodes.Hashes() {
+			for _, v := range n.actors.Hashes() {
 				n.dispatchBloomEvent(v)
 			}
 
@@ -100,24 +100,24 @@ func (n *NodeSet) Run() error {
 	}
 }
 
-// Stop the NodeSet snapshot selection process
-func (n *NodeSet) Stop() {
+// Stop the Cluster snapshot selection process
+func (n *Cluster) Stop() {
 	c := make(chan struct{})
 	n.stop <- c
 	<-c
 }
 
 // RegisterEventHandler gives feed back from the underlying peers
-func (n *NodeSet) RegisterEventHandler(fn members.EventHandler) error {
+func (n *Cluster) RegisterEventHandler(fn members.EventHandler) error {
 	return n.peer.RegisterEventHandler(fn)
 }
 
 // DeregisterEventHandler removes feed back from the underlying peers
-func (n *NodeSet) DeregisterEventHandler(fn members.EventHandler) error {
+func (n *Cluster) DeregisterEventHandler(fn members.EventHandler) error {
 	return n.peer.DeregisterEventHandler(fn)
 }
 
-func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Node, func([]uint32) error) {
+func (n *Cluster) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Node, func([]uint32) error) {
 	res := n.Read(key, quorum)
 
 	// Once finished, we commit the key to the bloom.
@@ -125,8 +125,8 @@ func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Nod
 		k := key.String()
 
 		for _, v := range h {
-			if actor, ok := n.nodes.GetByHash(v); ok {
-				if err := actor.bloom.Add(k); err != nil {
+			if actor, ok := n.actors.GetByHash(v); ok {
+				if err := actor.Add(k); err != nil {
 					level.Error(n.logger).Log("err", err)
 				}
 			}
@@ -139,7 +139,7 @@ func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Nod
 // the Read are not guaranteed to succeed for longer than their purpose.
 // It is not recommended to store the nodes locally as they may not be the same
 // nodes over time.
-func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []nodes.Node) {
+func (n *Cluster) Read(key selectors.Key, quorum selectors.Quorum) (nodes []nodes.Node) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
@@ -170,7 +170,7 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 				if contains(hosts, v) {
 					continue
 				}
-				node, ok := n.nodes.Get(k)
+				node, ok := n.actors.Get(k)
 				if !ok {
 					continue
 				}
@@ -182,7 +182,7 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 	}
 
 	for _, v := range hosts {
-		if node, ok := n.nodes.Get(v); ok {
+		if node, ok := n.actors.Get(v); ok {
 			nodes = append(nodes, node.node)
 		}
 	}
@@ -190,9 +190,9 @@ func (n *NodeSet) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 	return
 }
 
-func (n *NodeSet) filter(hosts []string, key string) (res []string) {
+func (n *Cluster) filter(hosts []string, key string) (res []string) {
 	for _, v := range hosts {
-		if node, ok := n.nodes.Get(v); ok {
+		if node, ok := n.actors.Get(v); ok {
 			if ok := node.Contains(key); ok {
 				res = append(res, v)
 			}
@@ -201,7 +201,7 @@ func (n *NodeSet) filter(hosts []string, key string) (res []string) {
 	return
 }
 
-func (n *NodeSet) shuffle() (res []string) {
+func (n *Cluster) shuffle() (res []string) {
 	h := n.ring.Hosts()
 	for _, i := range rand.Perm(len(h)) {
 		res = append(res, h[i])
@@ -209,7 +209,7 @@ func (n *NodeSet) shuffle() (res []string) {
 	return
 }
 
-func (n *NodeSet) updateNodes(hosts []string) error {
+func (n *Cluster) updateNodes(hosts []string) error {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
@@ -217,7 +217,7 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 	for k := range n.ring.hosts {
 		if !contains(hosts, k) {
 			n.ring.Remove(k)
-			n.nodes.Remove(k)
+			n.actors.Remove(k)
 		}
 	}
 
@@ -230,37 +230,37 @@ func (n *NodeSet) updateNodes(hosts []string) error {
 
 		if ok := n.ring.Add(v); ok {
 			addition = true
-			n.nodes.Set(v, NewNode(n.transport.Apply(v)))
+			n.actors.Set(v, NewActor(n.transport.Apply(v)))
 		}
 	}
 
 	if addition {
 		// Send the local hash, so people are aware
-		n.dispatchBloomEvent(n.nodes.LocalHash())
+		n.dispatchBloomEvent(n.actors.LocalHash())
 	}
 
 	// Go through and make sure that we have all the nodes in the ring.
 	return nil
 }
 
-func (n *NodeSet) dispatchBloomEvent(hash uint32) {
-	// Every new addition to the node ring, send an bloom filter event.
+func (n *Cluster) dispatchBloomEvent(hash uint32) {
+	// Every new addition to the actor ring, send an bloom filter event.
 	// Note: under network issues we should throttle this so it doesn't become
 	// a run-a-way event
-	node, ok := n.nodes.GetByHash(hash)
+	actor, ok := n.actors.GetByHash(hash)
 	if !ok {
 		return
 	}
 
 	buf := new(bytes.Buffer)
-	if _, err := node.bloom.Write(buf); err != nil {
+	if _, err := actor.bloom.Write(buf); err != nil {
 		level.Error(n.logger).Log("err", err)
 		return
 	}
 
 	payload, err := json.Marshal(bloomEventPayload{
 		Name:  n.peer.Name(),
-		Hash:  n.nodes.LocalHash(),
+		Hash:  n.actors.LocalHash(),
 		Bloom: buf.Bytes(),
 	})
 	if err != nil {
@@ -271,7 +271,7 @@ func (n *NodeSet) dispatchBloomEvent(hash uint32) {
 		level.Error(n.logger).Log("err", err)
 	}
 
-	fmt.Println(n.nodes.String())
+	fmt.Println(n.actors.String())
 }
 
 type bloomEventPayload struct {
@@ -284,15 +284,15 @@ type bloomEventPayload struct {
 // to other nodes, to help improve the hashring.
 const BloomEventType = "bloom"
 
-// NodeSetEventHandler holds a reference to the nodeSet so that we can
+// ClusterEventHandler holds a reference to the cluster so that we can
 // effectively deal with the events comming in from the cluster.
-type NodeSetEventHandler struct {
-	nodeSet *NodeSet
+type ClusterEventHandler struct {
+	cluster *Cluster
 	logger  log.Logger
 }
 
 // HandleEvent handles the member events comming from the cluster.
-func (h NodeSetEventHandler) HandleEvent(e members.Event) error {
+func (h ClusterEventHandler) HandleEvent(e members.Event) error {
 	switch t := e.(type) {
 	case *members.UserEvent:
 		// Handle the bloom event type
@@ -304,7 +304,7 @@ func (h NodeSetEventHandler) HandleEvent(e members.Event) error {
 
 			level.Info(h.logger).Log("eventhandled", "bloom-event-type", "from", payload.Name)
 
-			if err := h.nodeSet.nodes.Update(payload.Hash, payload.Bloom); err != nil {
+			if err := h.cluster.actors.Update(payload.Hash, payload.Bloom); err != nil {
 				level.Error(h.logger).Log("err", err)
 			}
 		}

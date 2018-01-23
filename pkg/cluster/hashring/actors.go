@@ -13,21 +13,21 @@ import (
 	"github.com/spaolacci/murmur3"
 )
 
-type Node struct {
+type Actor struct {
 	node  nodes.Node
 	bloom *bloom.Bloom
 	clock clock.Clock
 }
 
-func NewNode(transport api.Transport) *Node {
-	return &Node{
+func NewActor(transport api.Transport) *Actor {
+	return &Actor{
 		node:  nodes.NewRemote(transport),
 		bloom: bloom.New(defaultBloomCapacity, 4),
 		clock: clock.NewLamportClock(),
 	}
 }
 
-func (n *Node) Contains(data string) bool {
+func (n *Actor) Contains(data string) bool {
 	ok, err := n.bloom.Contains(data)
 	if err != nil {
 		return false
@@ -35,15 +35,26 @@ func (n *Node) Contains(data string) bool {
 	return ok
 }
 
-func (n *Node) Hash() uint32 {
+func (n *Actor) Hash() uint32 {
 	return n.node.Hash()
 }
 
-func (n *Node) Time() uint64 {
-	return n.clock.Now().Value()
+func (n *Actor) Time() clock.Time {
+	return n.clock.Now()
 }
 
-func (n *Node) Update(payload []byte) error {
+func (n *Actor) Add(data string) error {
+	err := n.bloom.Add(data)
+	if err != nil {
+		return err
+	}
+
+	n.clock.Increment()
+
+	return nil
+}
+
+func (n *Actor) Update(payload []byte) error {
 	// Go throw and merge the blooms
 	bits := new(bloom.Bloom)
 	if _, err := bits.Read(bytes.NewReader(payload)); err != nil {
@@ -54,28 +65,31 @@ func (n *Node) Update(payload []byte) error {
 		return err
 	}
 
+	// Update the internal clock of an actor
+	n.clock.Increment()
+
 	return nil
 }
 
-type Nodes struct {
+type Actors struct {
 	mutex     sync.RWMutex
 	localHash uint32
-	remotes   map[string]*Node
-	hashes    map[uint32]*Node
+	remotes   map[string]*Actor
+	hashes    map[uint32]*Actor
 }
 
-func NewNodes(localHash uint32) *Nodes {
-	return &Nodes{
+func NewActors(localHash uint32) *Actors {
+	return &Actors{
 		mutex:     sync.RWMutex{},
 		localHash: localHash,
-		remotes:   make(map[string]*Node),
-		hashes:    make(map[uint32]*Node),
+		remotes:   make(map[string]*Actor),
+		hashes:    make(map[uint32]*Actor),
 	}
 }
 
-// Get the Node according to the address
+// Get the Actor according to the address
 // Returns the ok if the node is found.
-func (n *Nodes) Get(addr string) (*Node, bool) {
+func (n *Actors) Get(addr string) (*Actor, bool) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
@@ -83,9 +97,9 @@ func (n *Nodes) Get(addr string) (*Node, bool) {
 	return v, ok
 }
 
-// GetByHash returns a the Node according to the hash of the node
+// GetByHash returns a the Actor according to the hash of the node
 // Returns the ok if the node is found.
-func (n *Nodes) GetByHash(hash uint32) (*Node, bool) {
+func (n *Actors) GetByHash(hash uint32) (*Actor, bool) {
 	n.mutex.RLock()
 	defer n.mutex.RUnlock()
 
@@ -93,8 +107,8 @@ func (n *Nodes) GetByHash(hash uint32) (*Node, bool) {
 	return v, ok
 }
 
-// Set adds a Node to the nodes according to the address
-func (n *Nodes) Set(addr string, v *Node) {
+// Set adds a Actor to the nodes according to the address
+func (n *Actors) Set(addr string, v *Actor) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
@@ -102,8 +116,8 @@ func (n *Nodes) Set(addr string, v *Node) {
 	n.hashes[v.Hash()] = v
 }
 
-// Remove a Node via it's addr
-func (n *Nodes) Remove(addr string) {
+// Remove a Actor via it's addr
+func (n *Actors) Remove(addr string) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
@@ -112,12 +126,12 @@ func (n *Nodes) Remove(addr string) {
 }
 
 // LocalHash returns the current local node hash
-func (n *Nodes) LocalHash() uint32 {
+func (n *Actors) LocalHash() uint32 {
 	return n.localHash
 }
 
 // Hashes returns a slice of hashes in the nodeset
-func (n *Nodes) Hashes() []uint32 {
+func (n *Actors) Hashes() []uint32 {
 	var (
 		c   int
 		res = make([]uint32, len(n.hashes))
@@ -131,7 +145,7 @@ func (n *Nodes) Hashes() []uint32 {
 
 // Update the payload of a hash node
 // Return error if the writing to the bloom fails
-func (n *Nodes) Update(hash uint32, payload []byte) error {
+func (n *Actors) Update(hash uint32, payload []byte) error {
 	for _, v := range n.remotes {
 		if v.Hash() == hash {
 			if err := v.Update(payload); err != nil {
@@ -143,13 +157,13 @@ func (n *Nodes) Update(hash uint32, payload []byte) error {
 	return nil
 }
 
-func (n *Nodes) String() string {
+func (n *Actors) String() string {
 	buf := new(bytes.Buffer)
 	writer := tabwriter.NewWriter(buf, 0, 0, 1, ' ', tabwriter.Debug)
 
-	fmt.Fprintln(writer, "host\t hash\t bits\t")
+	fmt.Fprintln(writer, "host\t hash\t bits\t clock\t")
 	for k, v := range n.remotes {
-		fmt.Fprintf(writer, "%s\t %d\t %s\t\n", k, v.Hash(), v.bloom.String())
+		fmt.Fprintf(writer, "%s\t %d\t %s\t %d\t\n", k, v.Hash(), v.bloom.String(), v.clock.Now().Value())
 	}
 
 	writer.Flush()

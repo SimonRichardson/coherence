@@ -15,7 +15,7 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-func TestNodeSetRead(t *testing.T) {
+func TestClusterRead(t *testing.T) {
 	t.Parallel()
 
 	t.Run("snapshot", func(t *testing.T) {
@@ -25,8 +25,8 @@ func TestNodeSetRead(t *testing.T) {
 		peer := mocks.NewMockPeer(ctrl)
 		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
-		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodes := nodeSet.Read(selectors.Key("a"), selectors.Strong)
+		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
+		nodes := cluster.Read(selectors.Key("a"), selectors.Strong)
 
 		if expected, actual := 0, len(nodes); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -47,13 +47,13 @@ func TestNodeSetRead(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
-		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodeSet.updateNodes([]string{
+		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
+		cluster.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Read(selectors.Key("a"), selectors.Strong)
+		nodes := cluster.Read(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
@@ -76,17 +76,17 @@ func TestNodeSetRead(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
-		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodeSet.updateNodes([]string{
+		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
+		cluster.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
-		nodeSet.updateNodes([]string{
+		cluster.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
 
-		nodes := nodeSet.Read(selectors.Key("a"), selectors.Strong)
+		nodes := cluster.Read(selectors.Key("a"), selectors.Strong)
 		if expected, actual := []uint32{
 			murmur3.Sum32([]byte("0.0.0.0:8080")),
 			murmur3.Sum32([]byte("0.0.0.0:8081")),
@@ -96,7 +96,7 @@ func TestNodeSetRead(t *testing.T) {
 	})
 }
 
-func TestNodeSetWrite(t *testing.T) {
+func TestClusterWrite(t *testing.T) {
 	t.Parallel()
 
 	t.Run("snapshot", func(t *testing.T) {
@@ -106,8 +106,8 @@ func TestNodeSetWrite(t *testing.T) {
 		peer := mocks.NewMockPeer(ctrl)
 		strategy := apiMocks.NewMockTransportStrategy(ctrl)
 
-		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodes, _ := nodeSet.Write(selectors.Key("a"), selectors.Strong)
+		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
+		nodes, _ := cluster.Write(selectors.Key("a"), selectors.Strong)
 
 		if expected, actual := 0, len(nodes); expected != actual {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
@@ -130,8 +130,8 @@ func TestNodeSetWrite(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
-		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodeSet.updateNodes([]string{
+		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
+		cluster.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
@@ -141,7 +141,7 @@ func TestNodeSetWrite(t *testing.T) {
 			b,
 		}
 
-		nodes, finish := nodeSet.Write(selectors.Key("a"), selectors.Strong)
+		nodes, finish := cluster.Write(selectors.Key("a"), selectors.Strong)
 		if expected, actual := want, extractAddresses(nodes); !match(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
@@ -167,12 +167,12 @@ func TestNodeSetWrite(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8080").Return(transport)
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
-		nodeSet := NewNodeSet(peer, strategy, 3, log.NewNopLogger())
-		nodeSet.updateNodes([]string{
+		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
+		cluster.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
-		nodeSet.updateNodes([]string{
+		cluster.updateNodes([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
@@ -182,7 +182,7 @@ func TestNodeSetWrite(t *testing.T) {
 			b,
 		}
 
-		nodes, finish := nodeSet.Write(selectors.Key("a"), selectors.Strong)
+		nodes, finish := cluster.Write(selectors.Key("a"), selectors.Strong)
 		if expected, actual := want, extractAddresses(nodes); !match(expected, actual) {
 			t.Errorf("expected: %v, actual: %v", expected, actual)
 		}
