@@ -1,10 +1,12 @@
 package hashring
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
+	"text/tabwriter"
 
 	"github.com/SimonRichardson/coherence/pkg/api"
-	"github.com/SimonRichardson/coherence/pkg/api/transports"
 	"github.com/SimonRichardson/coherence/pkg/cluster/bloom"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/spaolacci/murmur3"
@@ -37,7 +39,6 @@ func (n *Node) Hash() uint32 {
 type Nodes struct {
 	mutex     sync.RWMutex
 	localHash uint32
-	local     *Node
 	remotes   map[string]*Node
 	hashes    map[uint32]*Node
 }
@@ -46,7 +47,6 @@ func NewNodes(localHash uint32) *Nodes {
 	return &Nodes{
 		mutex:     sync.RWMutex{},
 		localHash: localHash,
-		local:     NewNode(transports.Nop{}),
 		remotes:   make(map[string]*Node),
 		hashes:    make(map[uint32]*Node),
 	}
@@ -96,8 +96,14 @@ func (n *Nodes) LocalHash() uint32 {
 }
 
 // LocalBloom returns the current underlying bloom
-func (n *Nodes) LocalBloom() *bloom.Bloom {
-	return n.local.bloom
+func (n *Nodes) LocalBloom() (*bloom.Bloom, bool) {
+	for k, v := range n.remotes {
+		fmt.Println(k, v.Hash(), n.localHash, murmur3.Sum32([]byte(k)))
+		if v.Hash() == n.localHash {
+			return v.bloom, true
+		}
+	}
+	return nil, false
 }
 
 // Update the payload of a hash node
@@ -105,11 +111,31 @@ func (n *Nodes) LocalBloom() *bloom.Bloom {
 func (n *Nodes) Update(hash uint32, payload []byte) error {
 	for _, v := range n.remotes {
 		if v.Hash() == hash {
-			if err := v.bloom.Write(payload); err != nil {
+			// Go throw and merge the blooms
+			bits := new(bloom.Bloom)
+			if _, err := bits.Read(bytes.NewReader(payload)); err != nil {
+				return err
+			}
+
+			if err := v.bloom.Union(bits); err != nil {
 				return err
 			}
 		}
 	}
 
 	return nil
+}
+
+func (n *Nodes) String() string {
+	buf := new(bytes.Buffer)
+	writer := tabwriter.NewWriter(buf, 0, 0, 1, ' ', tabwriter.Debug)
+
+	fmt.Fprintln(writer, "host\t hash\t bits\t")
+	for k, v := range n.remotes {
+		fmt.Fprintf(writer, "%s\t %d\t %s\t\n", k, v.Hash(), v.bloom.String())
+	}
+
+	writer.Flush()
+
+	return fmt.Sprintf("\n%s", buf.String())
 }

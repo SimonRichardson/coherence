@@ -1,6 +1,12 @@
 package bloom
 
-import "github.com/spaolacci/murmur3"
+import (
+	"encoding/binary"
+	"fmt"
+	"io"
+
+	"github.com/spaolacci/murmur3"
+)
 
 type Bloom struct {
 	cap, recursions uint
@@ -24,6 +30,28 @@ func (b *Bloom) Add(data string) error {
 	for i := uint(0); i < b.recursions; i++ {
 		b.b.Set(location(h, b.cap, i))
 	}
+	return nil
+}
+
+// Clear data from the Bloom, returns an error if hashing fails.
+func (b *Bloom) Clear(data string) error {
+	h, err := hash(data)
+	if err != nil {
+		return err
+	}
+	for i := uint(0); i < b.recursions; i++ {
+		b.b.Clear(location(h, b.cap, i))
+	}
+	return nil
+}
+
+// Union two blooms in place together
+// Return error if the blooms can not be safely merged
+func (b *Bloom) Union(other *Bloom) error {
+	if b.cap != other.cap || b.recursions != other.recursions {
+		return fmt.Errorf("bloom properties don't match")
+	}
+	b.b.Union(other.b)
 	return nil
 }
 
@@ -51,13 +79,44 @@ func (b *Bloom) Cap() uint {
 
 // Write a series of underlying bytes to the bloom. This wipes out any previous
 // additions and starts from scratch.
-func (b *Bloom) Write(bits []byte) error {
-	return b.b.Write(bits)
+func (b *Bloom) Write(w io.Writer) (int, error) {
+	if err := binary.Write(w, binary.LittleEndian, uint64(b.cap)); err != nil {
+		return 0, err
+	}
+	if err := binary.Write(w, binary.LittleEndian, uint64(b.recursions)); err != nil {
+		return 0, err
+	}
+	n, err := b.b.Write(w)
+	return n + (2 * binary.Size(uint64(0))), err
 }
 
 // Read from the underlying bytes of the bloom.
-func (b *Bloom) Read() ([]byte, error) {
-	return b.b.Read()
+func (b *Bloom) Read(r io.Reader) (int, error) {
+	var cap, rec uint64
+	if err := binary.Read(r, binary.LittleEndian, &cap); err != nil {
+		return 0, err
+	}
+	if err := binary.Read(r, binary.LittleEndian, &rec); err != nil {
+		return 0, err
+	}
+
+	var (
+		set    = new(Bits)
+		n, err = set.Read(r)
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	b.cap = uint(cap)
+	b.recursions = uint(rec)
+	b.b = set
+
+	return n + (2 * binary.Size(uint64(0))), nil
+}
+
+func (b *Bloom) String() string {
+	return b.b.String()
 }
 
 func hash(data string) ([4]uint64, error) {

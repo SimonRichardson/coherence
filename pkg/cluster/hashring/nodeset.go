@@ -1,7 +1,9 @@
 package hashring
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -119,9 +121,6 @@ func (n *NodeSet) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Nod
 	// Once finished, we commit the key to the bloom.
 	return res, func(h []uint32) error {
 		k := key.String()
-
-		// Set the local bloom
-		n.nodes.LocalBloom().Add(k)
 
 		for _, v := range h {
 			if actor, ok := n.nodes.GetByHash(v); ok {
@@ -245,8 +244,13 @@ func (n *NodeSet) dispatchBloomEvent() {
 	// Every new addition to the node ring, send an bloom filter event.
 	// Note: under network issues we should throttle this so it doesn't become
 	// a run-a-way event
-	bits, err := n.nodes.LocalBloom().Read()
-	if err != nil {
+	local, ok := n.nodes.LocalBloom()
+	if !ok {
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	if _, err := local.Write(buf); err != nil {
 		level.Error(n.logger).Log("err", err)
 		return
 	}
@@ -254,7 +258,7 @@ func (n *NodeSet) dispatchBloomEvent() {
 	payload, err := json.Marshal(bloomEventPayload{
 		Name:  n.peer.Name(),
 		Hash:  n.nodes.LocalHash(),
-		Bloom: bits,
+		Bloom: buf.Bytes(),
 	})
 	if err != nil {
 		level.Error(n.logger).Log("err", err)
@@ -263,6 +267,8 @@ func (n *NodeSet) dispatchBloomEvent() {
 	if err := n.peer.DispatchEvent(members.NewUserEvent(BloomEventType, payload)); err != nil {
 		level.Error(n.logger).Log("err", err)
 	}
+
+	fmt.Println(n.nodes.String())
 }
 
 type bloomEventPayload struct {

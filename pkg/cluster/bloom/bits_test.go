@@ -1,6 +1,7 @@
 package bloom
 
 import (
+	"bytes"
 	"math/rand"
 	"testing"
 	"testing/quick"
@@ -71,6 +72,110 @@ func TestBits(t *testing.T) {
 		}
 	})
 
+	t.Run("clear", func(t *testing.T) {
+		fn := func(a uint) bool {
+			h := a % 512
+			bits := NewBits(512)
+			bits.Set(h)
+			bits.Clear(h)
+			return !bits.Contains(h)
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("string", func(t *testing.T) {
+		bits := NewBits(100)
+		if expected, actual := "{}", bits.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		bits.Set(10)
+
+		if expected, actual := "{10}", bits.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		bits.Set(12)
+
+		if expected, actual := "{10,12}", bits.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		bits.Set(54)
+
+		if expected, actual := "{10,12,54}", bits.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		bits.Clear(12)
+
+		if expected, actual := "{10,54}", bits.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+	})
+
+	t.Run("union", func(t *testing.T) {
+		a := NewBits(100)
+		b := NewBits(100)
+
+		a.Set(10)
+		b.Set(10)
+
+		a.Union(b)
+
+		if expected, actual := "{10}", a.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		b.Set(12)
+
+		a.Union(b)
+
+		if expected, actual := "{10,12}", a.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		b.Set(54)
+
+		a.Union(b)
+
+		if expected, actual := "{10,12,54}", a.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+
+		b.Clear(54)
+
+		a.Union(b)
+
+		if expected, actual := "{10,12,54}", a.String(); expected != actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
+		}
+	})
+
+	t.Run("read and write", func(t *testing.T) {
+		fn := func(a uint) bool {
+			h := a % 512
+			bits := NewBits(512)
+			bits.Set(h)
+
+			buf := new(bytes.Buffer)
+			if _, err := bits.Write(buf); err != nil {
+				t.Error(err)
+			}
+
+			other := new(Bits)
+			if _, err := other.Read(buf); err != nil {
+				t.Error(err)
+			}
+
+			return bits.String() == other.String()
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
 }
 
 func benchmarkBits(t *testing.B, amount int) {

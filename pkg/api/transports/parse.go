@@ -1,12 +1,10 @@
 package transports
 
 import (
-	"fmt"
-
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/api/client"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/pkg/errors"
 )
 
 // Strategy wraps a Transport protocol layer for querying requests.
@@ -27,8 +25,7 @@ func Parse(protocol string) (Strategy, error) {
 		pooledClient := cleanhttp.DefaultPooledClient()
 		return Strategy{
 			fn: func(host string) api.Transport {
-				url := fmt.Sprintf("http://%s", host)
-				return NewHTTPTransport(client.New(pooledClient, url))
+				return NewHTTPTransport(client.New(pooledClient, host))
 			},
 		}, nil
 	default:

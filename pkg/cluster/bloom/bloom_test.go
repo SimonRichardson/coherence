@@ -1,6 +1,7 @@
 package bloom
 
 import (
+	"bytes"
 	"testing"
 	"testing/quick"
 
@@ -21,6 +22,57 @@ func TestBloom(t *testing.T) {
 		fn := func(a uuid.UUID) bool {
 			bloom := New(256*2, 4)
 			return bloom.Add(a.String()) == nil
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("clear", func(t *testing.T) {
+		fn := func(a uuid.UUID) bool {
+			bloom := New(256*2, 4)
+			if err := bloom.Add(a.String()); err != nil {
+				t.Fatal(err)
+			}
+			return bloom.Clear(a.String()) == nil
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("clear after add", func(t *testing.T) {
+		fn := func(a uuid.UUID) bool {
+			bloom := New(256*2, 4)
+			if err := bloom.Add(a.String()); err != nil {
+				t.Fatal(err)
+			}
+			bloom.Clear(a.String())
+			return "{}" == bloom.String()
+		}
+		if err := quick.Check(fn, nil); err != nil {
+			t.Error(err)
+		}
+	})
+
+	t.Run("write and read", func(t *testing.T) {
+		fn := func(a uuid.UUID) bool {
+			bloom := New(256*2, 4)
+			if err := bloom.Add(a.String()); err != nil {
+				t.Error(err)
+			}
+
+			buf := new(bytes.Buffer)
+			if _, err := bloom.Write(buf); err != nil {
+				t.Error(err)
+			}
+
+			other := new(Bloom)
+			if _, err := other.Read(buf); err != nil {
+				t.Error(err)
+			}
+
+			return bloom.String() == other.String()
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
