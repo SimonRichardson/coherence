@@ -1,8 +1,11 @@
 package store
 
-import "testing"
-import "github.com/SimonRichardson/coherence/pkg/selectors"
-import "testing/quick"
+import (
+	"testing"
+	"testing/quick"
+
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+)
 
 func TestBucketInsertion(t *testing.T) {
 	t.Parallel()

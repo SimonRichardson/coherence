@@ -2,13 +2,13 @@ package store
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/SimonRichardson/coherence/pkg/api"
 	errs "github.com/SimonRichardson/coherence/pkg/api/http"
 	"github.com/SimonRichardson/coherence/pkg/metrics"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
@@ -145,14 +145,12 @@ func (a *API) handleInsertion(w http.ResponseWriter, r *http.Request) {
 	// Validate user input.
 	var qp KeyQueryParams
 	if err := qp.DecodeFrom(r.URL, r.Header, queryRequired); err != nil {
-		fmt.Println(">>>", err)
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
 
 	members, err := ingestMembers(r.Body)
 	if err != nil {
-		fmt.Println(">>>>", err)
 		a.errors.BadRequest(w, r, err.Error())
 		return
 	}
@@ -387,7 +385,7 @@ func ingestMembers(reader io.ReadCloser) ([]selectors.FieldValueScore, error) {
 		return nil, errors.New("no body content")
 	}
 
-	var input MembersInput
+	var input api.MembersInput
 	if err = json.Unmarshal(bytes, &input); err != nil {
 		return nil, err
 	}
@@ -402,15 +400,4 @@ func ingestMembers(reader io.ReadCloser) ([]selectors.FieldValueScore, error) {
 	}
 
 	return res, nil
-}
-
-// MembersInput defines a simple type for marshalling and unmarshalling members
-type MembersInput struct {
-	Members []FieldValueScore `json:"members"`
-}
-
-type FieldValueScore struct {
-	Field string `json:"field"`
-	Value []byte `json:"value"`
-	Score int64  `json:"score"`
 }

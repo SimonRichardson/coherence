@@ -3,6 +3,7 @@ package client
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"testing/quick"
 )
@@ -19,7 +20,7 @@ func TestClientGet(t *testing.T) {
 		server := httptest.NewServer(mux)
 
 		fn := func() bool {
-			client := New(http.DefaultClient, server.URL)
+			client := New(http.DefaultClient, "http", hostPort(server.URL))
 			_, err := client.Get("")
 			return err == nil
 		}
@@ -37,7 +38,7 @@ func TestClientGet(t *testing.T) {
 		server := httptest.NewServer(mux)
 
 		fn := func() bool {
-			client := New(http.DefaultClient, server.URL)
+			client := New(http.DefaultClient, "http", hostPort(server.URL))
 			_, err := client.Get("")
 			return err != nil
 		}
@@ -47,7 +48,7 @@ func TestClientGet(t *testing.T) {
 	})
 
 	t.Run("get with url failure", func(t *testing.T) {
-		client := New(http.DefaultClient, "")
+		client := New(http.DefaultClient, "http", "")
 		_, err := client.Get("!!")
 		if expected, actual := true, err != nil; expected != actual {
 			t.Errorf("expected: %t, actual: %t, err: %v", expected, actual, err)
@@ -67,7 +68,7 @@ func TestClientPost(t *testing.T) {
 		server := httptest.NewServer(mux)
 
 		fn := func(b []byte) bool {
-			client := New(http.DefaultClient, server.URL)
+			client := New(http.DefaultClient, "http", hostPort(server.URL))
 			_, err := client.Post("", b)
 			return err == nil
 		}
@@ -85,7 +86,7 @@ func TestClientPost(t *testing.T) {
 		server := httptest.NewServer(mux)
 
 		fn := func(b []byte) bool {
-			client := New(http.DefaultClient, server.URL)
+			client := New(http.DefaultClient, "http", hostPort(server.URL))
 			_, err := client.Post("", b)
 			return err != nil
 		}
@@ -95,10 +96,19 @@ func TestClientPost(t *testing.T) {
 	})
 
 	t.Run("post with url failure", func(t *testing.T) {
-		client := New(http.DefaultClient, "")
+		client := New(http.DefaultClient, "http", "")
 		_, err := client.Post("!!", nil)
 		if expected, actual := true, err != nil; expected != actual {
 			t.Errorf("expected: %t, actual: %t, err: %v", expected, actual, err)
 		}
 	})
+}
+
+func hostPort(path string) string {
+	u, err := url.Parse(path)
+	if err != nil {
+		panic(err)
+	}
+
+	return u.Host
 }

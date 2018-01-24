@@ -3,11 +3,10 @@ package store
 import (
 	"strings"
 
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-
 	"github.com/pkg/errors"
-	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 // TODO: We should run some sort of internal cleaning process to remove keys

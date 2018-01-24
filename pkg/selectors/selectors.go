@@ -174,8 +174,8 @@ func bytesEqual(a, b []byte) bool {
 
 // KeyField defines the union of both the Key and Field
 type KeyField struct {
-	Key   Key   `json:"key"`
-	Field Field `json:"field"`
+	Key   Key
+	Field Field
 }
 
 // Hash returns the hash (uint32) value of the KeyField union
@@ -185,9 +185,9 @@ func (k KeyField) Hash() uint32 {
 
 // KeyFieldValue defines the union of both the Key, Field and Value
 type KeyFieldValue struct {
-	Key   Key    `json:"key"`
-	Field Field  `json:"field"`
-	Value []byte `json:"value"`
+	Key   Key
+	Field Field
+	Value []byte
 }
 
 // Hash returns the hash (uint32) value of the KeyField union
@@ -200,21 +200,21 @@ func (k KeyFieldValue) Hash() uint32 {
 
 // FieldValue represents the union of both a Field and a Value
 type FieldValue struct {
-	Field Field  `json:"field"`
-	Value []byte `json:"value"`
+	Field Field
+	Value []byte
 }
 
 // FieldScore represents the union of both a Field and a Score
 type FieldScore struct {
-	Field Field `json:"field"`
-	Score int64 `json:"score"`
+	Field Field
+	Score int64
 }
 
 // ChangeSet defines success or failures when inserting into the storage. Each
 // member is attached accordingly
 type ChangeSet struct {
-	Success []Field `json:"success"`
-	Failure []Field `json:"failure"`
+	Success []Field
+	Failure []Field
 }
 
 // Equal checks to see if a ChangeSet matches another ChangeSet

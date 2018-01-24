@@ -72,18 +72,16 @@ func (n *Actor) Update(payload []byte) error {
 }
 
 type Actors struct {
-	mutex     sync.RWMutex
-	localHash uint32
-	remotes   map[string]*Actor
-	hashes    map[uint32]*Actor
+	mutex   sync.RWMutex
+	remotes map[string]*Actor
+	hashes  map[uint32]*Actor
 }
 
-func NewActors(localHash uint32) *Actors {
+func NewActors() *Actors {
 	return &Actors{
-		mutex:     sync.RWMutex{},
-		localHash: localHash,
-		remotes:   make(map[string]*Actor),
-		hashes:    make(map[uint32]*Actor),
+		mutex:   sync.RWMutex{},
+		remotes: make(map[string]*Actor),
+		hashes:  make(map[uint32]*Actor),
 	}
 }
 
@@ -123,11 +121,6 @@ func (n *Actors) Remove(addr string) {
 
 	delete(n.remotes, addr)
 	delete(n.hashes, murmur3.Sum32([]byte(addr)))
-}
-
-// LocalHash returns the current local node hash
-func (n *Actors) LocalHash() uint32 {
-	return n.localHash
 }
 
 // Hashes returns a slice of hashes in the nodeset

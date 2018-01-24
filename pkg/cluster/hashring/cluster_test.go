@@ -33,7 +33,7 @@ func TestClusterRead(t *testing.T) {
 		}
 	})
 
-	t.Run("updateNodes", func(t *testing.T) {
+	t.Run("updateRemoteActors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -48,7 +48,7 @@ func TestClusterRead(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
 		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
-		cluster.updateNodes([]string{
+		cluster.updateRemoteActors([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
@@ -62,7 +62,7 @@ func TestClusterRead(t *testing.T) {
 		}
 	})
 
-	t.Run("updateNodes twice, has no duplicates", func(t *testing.T) {
+	t.Run("updateRemoteActors twice, has no duplicates", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -77,11 +77,11 @@ func TestClusterRead(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
 		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
-		cluster.updateNodes([]string{
+		cluster.updateRemoteActors([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
-		cluster.updateNodes([]string{
+		cluster.updateRemoteActors([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
@@ -114,7 +114,7 @@ func TestClusterWrite(t *testing.T) {
 		}
 	})
 
-	t.Run("updateNodes", func(t *testing.T) {
+	t.Run("updateRemoteActors", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -131,7 +131,7 @@ func TestClusterWrite(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
 		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
-		cluster.updateNodes([]string{
+		cluster.updateRemoteActors([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
@@ -151,7 +151,7 @@ func TestClusterWrite(t *testing.T) {
 		}
 	})
 
-	t.Run("updateNodes twice, has no duplicates", func(t *testing.T) {
+	t.Run("updateRemoteActors twice, has no duplicates", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
@@ -168,11 +168,11 @@ func TestClusterWrite(t *testing.T) {
 		strategy.EXPECT().Apply("0.0.0.0:8081").Return(transport)
 
 		cluster := NewCluster(peer, strategy, 3, "0.0.0.0:9090", log.NewNopLogger())
-		cluster.updateNodes([]string{
+		cluster.updateRemoteActors([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})
-		cluster.updateNodes([]string{
+		cluster.updateRemoteActors([]string{
 			"0.0.0.0:8080",
 			"0.0.0.0:8081",
 		})

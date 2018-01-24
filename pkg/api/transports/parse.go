@@ -25,7 +25,13 @@ func Parse(protocol string) (Strategy, error) {
 		pooledClient := cleanhttp.DefaultPooledClient()
 		return Strategy{
 			fn: func(host string) api.Transport {
-				return NewHTTPTransport(client.New(pooledClient, host))
+				return NewHTTPTransport(client.New(pooledClient, protocol, host))
+			},
+		}, nil
+	case "nop":
+		return Strategy{
+			fn: func(host string) api.Transport {
+				return Nop{}
 			},
 		}, nil
 	default:

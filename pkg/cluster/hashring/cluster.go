@@ -3,7 +3,6 @@ package hashring
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/SimonRichardson/coherence/pkg/cluster/members"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/SimonRichardson/resilience/clock"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/spaolacci/murmur3"
@@ -35,8 +35,11 @@ type Cluster struct {
 	peer         cluster.Peer
 	transport    api.TransportStrategy
 	localAPIAddr string
+	localAPIHash uint32
 	ring         *HashRing
 	actors       *Actors
+	times        map[uint32]clock.Time
+	timesMutex   sync.RWMutex
 	stop         chan chan struct{}
 	logger       log.Logger
 }
@@ -52,8 +55,10 @@ func NewCluster(peer cluster.Peer,
 		peer:         peer,
 		transport:    transport,
 		localAPIAddr: localAPIAddr,
+		localAPIHash: murmur3.Sum32([]byte(localAPIAddr)),
 		ring:         NewHashRing(replicationFactor),
-		actors:       NewActors(murmur3.Sum32([]byte(localAPIAddr))),
+		actors:       NewActors(),
+		times:        make(map[uint32]clock.Time),
 		stop:         make(chan chan struct{}),
 		logger:       logger,
 	}
@@ -84,7 +89,7 @@ func (n *Cluster) Run() error {
 			if err != nil {
 				continue
 			}
-			if err := n.updateNodes(hosts); err != nil {
+			if err := n.updateRemoteActors(hosts); err != nil {
 				return err
 			}
 
@@ -209,7 +214,7 @@ func (n *Cluster) shuffle() (res []string) {
 	return
 }
 
-func (n *Cluster) updateNodes(hosts []string) error {
+func (n *Cluster) updateRemoteActors(hosts []string) error {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
@@ -236,7 +241,7 @@ func (n *Cluster) updateNodes(hosts []string) error {
 
 	if addition {
 		// Send the local hash, so people are aware
-		n.dispatchBloomEvent(n.actors.LocalHash())
+		n.dispatchBloomEvent(n.localAPIHash)
 	}
 
 	// Go through and make sure that we have all the nodes in the ring.
@@ -252,6 +257,11 @@ func (n *Cluster) dispatchBloomEvent(hash uint32) {
 		return
 	}
 
+	// Prevent the need to send updates if the actors clock hasn't changed
+	if !n.actorTimeIncremented(actor) {
+		return
+	}
+
 	buf := new(bytes.Buffer)
 	if _, err := actor.bloom.Write(buf); err != nil {
 		level.Error(n.logger).Log("err", err)
@@ -260,7 +270,7 @@ func (n *Cluster) dispatchBloomEvent(hash uint32) {
 
 	payload, err := json.Marshal(bloomEventPayload{
 		Name:  n.peer.Name(),
-		Hash:  n.actors.LocalHash(),
+		Hash:  hash,
 		Bloom: buf.Bytes(),
 	})
 	if err != nil {
@@ -270,8 +280,26 @@ func (n *Cluster) dispatchBloomEvent(hash uint32) {
 	if err := n.peer.DispatchEvent(members.NewUserEvent(BloomEventType, payload)); err != nil {
 		level.Error(n.logger).Log("err", err)
 	}
+}
 
-	fmt.Println(n.actors.String())
+func (n *Cluster) actorTimeIncremented(actor *Actor) bool {
+	n.timesMutex.RLock()
+	defer n.timesMutex.RUnlock()
+
+	now := actor.Time()
+	if t, ok := n.times[actor.Hash()]; ok && t.Value() == now.Value() {
+		return false
+	}
+
+	return true
+}
+
+func (n *Cluster) storeActorTime(hash uint32) {
+	if actor, ok := n.actors.GetByHash(hash); ok {
+		n.timesMutex.Lock()
+		n.times[hash] = actor.Time()
+		n.timesMutex.Unlock()
+	}
 }
 
 type bloomEventPayload struct {
@@ -302,11 +330,14 @@ func (h ClusterEventHandler) HandleEvent(e members.Event) error {
 				return err
 			}
 
-			level.Info(h.logger).Log("eventhandled", "bloom-event-type", "from", payload.Name)
+			hash := payload.Hash
+			level.Info(h.logger).Log("eventhandled", "bloom-event-type", "hash", hash, "from", payload.Name)
 
-			if err := h.cluster.actors.Update(payload.Hash, payload.Bloom); err != nil {
+			if err := h.cluster.actors.Update(hash, payload.Bloom); err != nil {
 				level.Error(h.logger).Log("err", err)
 			}
+
+			h.cluster.storeActorTime(hash)
 		}
 	}
 	return nil
