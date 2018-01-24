@@ -6,27 +6,35 @@ import (
 	"sync"
 	"text/tabwriter"
 
-	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/cluster/bloom"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/resilience/clock"
 	"github.com/spaolacci/murmur3"
 )
 
+type NodeStrategy func() nodes.Node
+
+// Actor represents a way to communicate to a node in the cluster.
+// The actor also has some knowledge of a potential key living inside
+// the underlying store.
 type Actor struct {
 	node  nodes.Node
 	bloom *bloom.Bloom
 	clock clock.Clock
 }
 
-func NewActor(transport api.Transport) *Actor {
+// NewActor creates a Actor with the correct Transport for communicating
+// to the various end point.
+func NewActor(strategy NodeStrategy) *Actor {
 	return &Actor{
-		node:  nodes.NewRemote(transport),
+		node:  strategy(),
 		bloom: bloom.New(defaultBloomCapacity, 4),
 		clock: clock.NewLamportClock(),
 	}
 }
 
+// Contains checks to see if there is any potential data in the
+// underlying store.
 func (n *Actor) Contains(data string) bool {
 	ok, err := n.bloom.Contains(data)
 	if err != nil {
@@ -35,14 +43,19 @@ func (n *Actor) Contains(data string) bool {
 	return ok
 }
 
+// Hash returns the unique hash of the actor node
 func (n *Actor) Hash() uint32 {
 	return n.node.Hash()
 }
 
+// Time returns the time of a last modification of the actor
 func (n *Actor) Time() clock.Time {
 	return n.clock.Now()
 }
 
+// Add adds a known piece of data to the actor to improve the potential of
+// finding the data with in the store. Consider this as a Hint to improve
+// various consensus algorithms.
 func (n *Actor) Add(data string) error {
 	err := n.bloom.Add(data)
 	if err != nil {
@@ -54,6 +67,10 @@ func (n *Actor) Add(data string) error {
 	return nil
 }
 
+// Update performs a union of the shared knowledge Hint. The update payload
+// will more or less come from other nodes in the cluster and a union is an
+// attempt to gather a much information as possible over time about what each
+// store holds.
 func (n *Actor) Update(payload []byte) error {
 	// Go throw and merge the blooms
 	bits := new(bloom.Bloom)
@@ -71,15 +88,17 @@ func (n *Actor) Update(payload []byte) error {
 	return nil
 }
 
+// Actors is a collection of the Actor Node allowing accessing the
+// actor via the host or via a hash.
 type Actors struct {
 	mutex   sync.RWMutex
 	remotes map[string]*Actor
 	hashes  map[uint32]*Actor
 }
 
+// NewActors creates a Actors with the correct dependencies
 func NewActors() *Actors {
 	return &Actors{
-		mutex:   sync.RWMutex{},
 		remotes: make(map[string]*Actor),
 		hashes:  make(map[uint32]*Actor),
 	}
@@ -150,6 +169,7 @@ func (n *Actors) Update(hash uint32, payload []byte) error {
 	return nil
 }
 
+// String returns a table view of the internal actor nodes
 func (n *Actors) String() string {
 	buf := new(bytes.Buffer)
 	writer := tabwriter.NewWriter(buf, 0, 0, 1, ' ', tabwriter.Debug)

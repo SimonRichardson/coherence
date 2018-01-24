@@ -5,14 +5,13 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/spaolacci/murmur3"
-
 	apiMocks "github.com/SimonRichardson/coherence/pkg/api/mocks"
 	"github.com/SimonRichardson/coherence/pkg/cluster/mocks"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/go-kit/kit/log"
 	"github.com/golang/mock/gomock"
+	"github.com/spaolacci/murmur3"
 )
 
 func TestClusterRead(t *testing.T) {

@@ -235,7 +235,9 @@ func (n *Cluster) updateRemoteActors(hosts []string) error {
 
 		if ok := n.ring.Add(v); ok {
 			addition = true
-			n.actors.Set(v, NewActor(n.transport.Apply(v)))
+			n.actors.Set(v, NewActor(func() nodes.Node {
+				return nodes.NewRemote(n.transport.Apply(v))
+			}))
 		}
 	}
 
