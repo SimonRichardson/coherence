@@ -123,3 +123,15 @@ func (m *MockStore) Size(arg0 selectors.Key) (int64, error) {
 func (mr *MockStoreMockRecorder) Size(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Size", reflect.TypeOf((*MockStore)(nil).Size), arg0)
 }
+
+// String mocks base method
+func (m *MockStore) String() string {
+	ret := m.ctrl.Call(m, "String")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// String indicates an expected call of String
+func (mr *MockStoreMockRecorder) String() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "String", reflect.TypeOf((*MockStore)(nil).String))
+}

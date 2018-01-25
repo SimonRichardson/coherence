@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	apiFarm "github.com/SimonRichardson/coherence/pkg/api/farm"
 	apiStore "github.com/SimonRichardson/coherence/pkg/api/store"
@@ -196,6 +198,23 @@ func runCache(args []string) error {
 			apiListener.Close()
 		})
 	}
+	{
+		cancel := make(chan struct{})
+		g.Add(func() error {
+			dst := make(chan struct{})
+			go func() {
+				for {
+					select {
+					case <-dst:
+						fmt.Println(persistence.String())
+					}
+				}
+			}()
+			return interrupt(cancel, dst)
+		}, func(error) {
+			close(cancel)
+		})
+	}
 	gexec.Interrupt(g)
 	return g.Run()
 }
@@ -270,6 +289,19 @@ type membersLogOutput struct {
 }
 
 func (m membersLogOutput) Write(b []byte) (int, error) {
-	//level.Debug(m.logger).Log("fwd_msg", string(b))
+	level.Debug(m.logger).Log("fwd_msg", string(b))
 	return len(b), nil
+}
+
+func interrupt(cancel <-chan struct{}, dst chan<- struct{}) error {
+	c := make(chan os.Signal)
+	signal.Notify(c, syscall.SIGUSR1)
+	for {
+		select {
+		case <-c:
+			dst <- struct{}{}
+		case <-cancel:
+			return errors.New("cancelled")
+		}
+	}
 }
