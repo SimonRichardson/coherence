@@ -6,8 +6,9 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/go-kit/kit/log"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/go-kit/kit/log"
+	"github.com/trussle/fsys"
 )
 
 func TestMemoryInsertion(t *testing.T) {
@@ -15,7 +16,10 @@ func TestMemoryInsertion(t *testing.T) {
 
 	t.Run("inserting key and value", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
 			changeSet, err := store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
@@ -47,7 +51,10 @@ func TestMemoryInsertion(t *testing.T) {
 					Score: member.Score - 1,
 				},
 			}
-			store := New(1, 1, log.NewNopLogger())
+			store, err := New(fsys.NewNopFilesystem(), 1, 1, log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
 			if _, err := store.Insert(key, members0); err != nil {
 				t.Fatal(err)
 			}
@@ -73,8 +80,11 @@ func TestMemoryInsertion(t *testing.T) {
 				member,
 			}
 
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
-			_, err := store.Insert(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -97,8 +107,11 @@ func TestMemoryInsertion(t *testing.T) {
 				return true
 			}
 
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
-			_, err := store.Insert(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -119,8 +132,11 @@ func TestMemoryInsertion(t *testing.T) {
 
 	t.Run("inserting members", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
-			_, err := store.Insert(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -153,8 +169,11 @@ func TestMemoryInsertion(t *testing.T) {
 				member,
 			}
 
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
-			_, err := store.Insert(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -181,7 +200,10 @@ func TestMemoryDeletion(t *testing.T) {
 
 	t.Run("deleting key and value", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
 			changeSet, err := store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
@@ -210,7 +232,10 @@ func TestMemoryDeletion(t *testing.T) {
 				},
 			}
 
-			store := New(1, 1, log.NewNopLogger())
+			store, err := New(fsys.NewNopFilesystem(), 1, 1, log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
 			if _, err := store.Delete(key, members0); err != nil {
 				t.Fatal(err)
 			}
@@ -238,8 +263,11 @@ func TestMemoryDeletion(t *testing.T) {
 				member,
 			}
 
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
-			_, err := store.Delete(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -254,9 +282,12 @@ func TestMemoryDeletion(t *testing.T) {
 
 	t.Run("deleting keys", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			_, err := store.Insert(key, members)
+			_, err = store.Insert(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -278,8 +309,11 @@ func TestMemoryDeletion(t *testing.T) {
 
 	t.Run("deleting members", func(t *testing.T) {
 		fn := func(key selectors.Key, members []selectors.FieldValueScore) bool {
-			store := New(1, uint(len(members)*2), log.NewNopLogger())
-			_, err := store.Delete(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, uint(len(members)*2), log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -302,8 +336,11 @@ func TestMemoryDeletion(t *testing.T) {
 				member,
 			}
 
-			store := New(1, 1, log.NewNopLogger())
-			_, err := store.Delete(key, members)
+			store, err := New(fsys.NewNopFilesystem(), 1, 1, log.NewNopLogger())
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = store.Delete(key, members)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -321,6 +358,21 @@ func TestMemoryDeletion(t *testing.T) {
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
+		}
+	})
+}
+
+func TestMemoryString(t *testing.T) {
+	t.Parallel()
+
+	t.Run("string", func(t *testing.T) {
+		store, err := New(fsys.NewNopFilesystem(), 1, 2, log.NewNopLogger())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if expected, actual := "", store.String(); expected == actual {
+			t.Errorf("expected: %s, actual: %s", expected, actual)
 		}
 	})
 }

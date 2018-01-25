@@ -25,6 +25,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/trussle/fsys"
 )
 
 const (
@@ -123,9 +124,14 @@ func runCache(args []string) error {
 		return err
 	}
 
+	fsys := fsys.NewNopFilesystem()
+	persistence, err := store.New(fsys, *cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
+	if err != nil {
+		return err
+	}
+
 	var (
-		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
-		cluster     = hashring.NewCluster(peer,
+		cluster = hashring.NewCluster(peer,
 			transport,
 			*nodeReplicationFactor,
 			apiAddress,

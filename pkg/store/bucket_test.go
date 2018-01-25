@@ -4,15 +4,23 @@ import (
 	"testing"
 	"testing/quick"
 
+	"github.com/trussle/fsys"
+
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/go-kit/kit/log"
 )
 
 func TestBucketInsertion(t *testing.T) {
 	t.Parallel()
 
 	t.Run("inserting field and value pair", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 			changeSet, err := bucket.Insert(field, value)
 			if err != nil {
 				t.Fatal(err)
@@ -31,9 +39,14 @@ func TestBucketInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting same field with a older score should be idempotent", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
-			_, err := bucket.Insert(field, value)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+			_, err = bucket.Insert(field, value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -58,9 +71,14 @@ func TestBucketInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting same field that was a delete with a older score should be idempotent", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
-			_, err := bucket.Delete(field, value)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+			_, err = bucket.Delete(field, value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -85,9 +103,14 @@ func TestBucketInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting then select should return field value and score", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
-			_, err := bucket.Insert(field, value)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+			_, err = bucket.Insert(field, value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -109,8 +132,13 @@ func TestBucketInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting expectations", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 
 			if _, err := bucket.Delete(field, value); err != nil {
 				t.Fatal(err)
@@ -147,8 +175,13 @@ func TestBucketInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting scores", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 
 			if _, err := bucket.Delete(field, value); err != nil {
 				t.Fatal(err)
@@ -182,8 +215,13 @@ func TestBucketInsertion(t *testing.T) {
 	})
 
 	t.Run("inserting after bucket size", func(t *testing.T) {
-		fn := func(field0, field1 selectors.Field, value0, value1 selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field0, field1 selectors.Field, value0, value1 selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 
 			if _, err := bucket.Insert(field0, value0); err != nil {
 				t.Fatal(err)
@@ -221,8 +259,14 @@ func TestBucketDeletion(t *testing.T) {
 	t.Parallel()
 
 	t.Run("deleting field and value pair", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+
 			changeSet, err := bucket.Delete(field, value)
 			if err != nil {
 				t.Fatal(err)
@@ -241,9 +285,15 @@ func TestBucketDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting same field with a older score should be idempotent", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
-			_, err := bucket.Delete(field, value)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+
+			_, err = bucket.Delete(field, value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -268,9 +318,15 @@ func TestBucketDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting same field that was a delete with a older score should be idempotent", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
-			_, err := bucket.Insert(field, value)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+
+			_, err = bucket.Insert(field, value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -295,9 +351,15 @@ func TestBucketDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting then select should return not found error", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
-			_, err := bucket.Delete(field, value)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
+
+			_, err = bucket.Delete(field, value)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -311,8 +373,13 @@ func TestBucketDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting expectations", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 
 			if _, err := bucket.Insert(field, value); err != nil {
 				t.Fatal(err)
@@ -349,8 +416,13 @@ func TestBucketDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting scores", func(t *testing.T) {
-		fn := func(field selectors.Field, value selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field selectors.Field, value selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 
 			if _, err := bucket.Insert(field, value); err != nil {
 				t.Fatal(err)
@@ -384,8 +456,13 @@ func TestBucketDeletion(t *testing.T) {
 	})
 
 	t.Run("deleting after bucket size", func(t *testing.T) {
-		fn := func(field0, field1 selectors.Field, value0, value1 selectors.ValueScore) bool {
-			bucket := NewBucket(1)
+		fn := func(filename string, field0, field1 selectors.Field, value0, value1 selectors.ValueScore) bool {
+			fsys := fsys.NewNopFilesystem()
+			file, err := fsys.Create(filename)
+			if err != nil {
+				t.Fatal(err)
+			}
+			bucket := NewBucket(file, 1, log.NewNopLogger())
 
 			if _, err := bucket.Delete(field0, value0); err != nil {
 				t.Fatal(err)

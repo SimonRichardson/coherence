@@ -11,6 +11,7 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/pkg/errors"
+	"github.com/trussle/fsys"
 )
 
 // TODO: We should run some sort of internal cleaning process to remove keys
@@ -18,6 +19,7 @@ import (
 
 type memory struct {
 	size    uint
+	fsys    fsys.Filesystem
 	buckets []*Bucket
 	keys    map[selectors.Key]struct{}
 	logger  log.Logger
@@ -25,10 +27,14 @@ type memory struct {
 
 // New creates a new in-memory Store according to the size required by
 // the value requested.
-func New(amountBuckets, amountPerBucket uint, logger log.Logger) Store {
+func New(fsys fsys.Filesystem, amountBuckets, amountPerBucket uint, logger log.Logger) (Store, error) {
 	buckets := make([]*Bucket, amountBuckets)
 	for k := range buckets {
-		buckets[k] = NewBucket(int(amountPerBucket))
+		file, err := fsys.Create(fmt.Sprintf("bucket-%d", k))
+		if err != nil {
+			return nil, err
+		}
+		buckets[k] = NewBucket(file, int(amountPerBucket), log.With(logger, "component", "bucket"))
 	}
 
 	return &memory{
@@ -36,7 +42,7 @@ func New(amountBuckets, amountPerBucket uint, logger log.Logger) Store {
 		buckets: buckets,
 		keys:    make(map[selectors.Key]struct{}),
 		logger:  logger,
-	}
+	}, nil
 }
 
 func (m *memory) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {

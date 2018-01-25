@@ -1,26 +1,36 @@
 package store
 
 import (
+	"bytes"
+	"encoding/binary"
 	"sync"
 
-	"github.com/pkg/errors"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/SimonRichardson/coherence/pkg/store/lru"
+	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
+	"github.com/pkg/errors"
+	"github.com/trussle/fsys"
 )
 
 // Bucket conforms to the Key/Val store interface and provides locking mechanism
 // for each bucket.
 type Bucket struct {
 	mutex  sync.RWMutex
+	file   fsys.File
 	insert *lru.LRU
 	delete *lru.LRU
+	logger log.Logger
 }
 
 // NewBucket creates a store from a singular bucket
-func NewBucket(amountPerBucket int) *Bucket {
-	b := &Bucket{}
-	b.insert = lru.NewLRU(amountPerBucket, b.onEviction)
-	b.delete = lru.NewLRU(amountPerBucket, b.onEviction)
+func NewBucket(file fsys.File, amountPerBucket int, logger log.Logger) *Bucket {
+	b := &Bucket{
+		file:   file,
+		logger: logger,
+	}
+	b.insert = lru.NewLRU(amountPerBucket, b.onInsertionEviction)
+	b.delete = lru.NewLRU(amountPerBucket, b.onDeletionEviction)
 	return b
 }
 
@@ -124,8 +134,36 @@ func (b *Bucket) Score(field selectors.Field) (selectors.Presence, error) {
 	return presence, nil
 }
 
-func (b *Bucket) onEviction(reason lru.EvictionReason, field selectors.Field, value selectors.ValueScore) {
-	// Do nothing here, we don't really care.
+func (b *Bucket) onInsertionEviction(reason lru.EvictionReason, field selectors.Field, value selectors.ValueScore) {
+	switch reason {
+	case lru.Popped:
+		// TODO (Simon): Store this in some sort of LSM, but for now just persist it.
+		buf := new(bytes.Buffer)
+		if _, err := buf.WriteString(field.String()); err != nil {
+			level.Error(b.logger).Log("err", err)
+			return
+		}
+
+		x := make([]byte, binary.MaxVarintLen64)
+		binary.PutVarint(x, value.Score)
+		if _, err := buf.Write(x); err != nil {
+			level.Error(b.logger).Log("err", err)
+			return
+		}
+
+		if _, err := buf.Write(value.Value); err != nil {
+			level.Error(b.logger).Log("err", err)
+			return
+		}
+
+		if _, err := b.file.Write(buf.Bytes()); err != nil {
+			level.Error(b.logger).Log("err", err)
+		}
+	}
+}
+
+func (b *Bucket) onDeletionEviction(reason lru.EvictionReason, field selectors.Field, value selectors.ValueScore) {
+	// Make sure we remove the value from the key
 }
 
 func successChangeSet(field selectors.Field, value selectors.ValueScore) selectors.ChangeSet {
