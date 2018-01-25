@@ -4,9 +4,20 @@ import (
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
+// NodeResource defines a hash and host
+type NodeResource interface {
+
+	// Hash returns the transport unique hash
+	Hash() uint32
+
+	// Host returns the transport underlying host
+	Host() string
+}
+
 // Node describes a type that can communicate with various node implementations
 // in a generic concurrent manor.
 type Node interface {
+	NodeResource
 
 	// Insert defines a way to insert some members into the store that's associated
 	// with the key
@@ -29,7 +40,4 @@ type Node interface {
 
 	// Score returns the value of the field in a key
 	Score(selectors.Key, selectors.Field) <-chan selectors.Element
-
-	// Hash returns a hash of the node
-	Hash() uint32
 }

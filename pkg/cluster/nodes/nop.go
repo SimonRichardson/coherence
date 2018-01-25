@@ -1,7 +1,6 @@
 package nodes
 
 import "github.com/SimonRichardson/coherence/pkg/selectors"
-import "github.com/spaolacci/murmur3"
 
 const (
 	defaultHash = 0
@@ -99,7 +98,11 @@ func (nop) Score(selectors.Key, selectors.Field) <-chan selectors.Element {
 }
 
 func (nop) Hash() uint32 {
-	return murmur3.Sum32([]byte("nop"))
+	return 0
+}
+
+func (nop) Host() string {
+	return ""
 }
 
 func extractFields(members []selectors.FieldValueScore) []selectors.Field {

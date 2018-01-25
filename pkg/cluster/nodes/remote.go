@@ -112,3 +112,7 @@ func (r *remote) Score(key selectors.Key, field selectors.Field) <-chan selector
 func (r *remote) Hash() uint32 {
 	return r.hash
 }
+
+func (r *remote) Host() string {
+	return r.transport.Host()
+}

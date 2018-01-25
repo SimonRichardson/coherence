@@ -46,3 +46,8 @@ func (Nop) Score(selectors.Key, selectors.Field) (selectors.Presence, error) {
 func (Nop) Hash() uint32 {
 	return 0
 }
+
+// Host returns the transport host
+func (Nop) Host() string {
+	return ""
+}

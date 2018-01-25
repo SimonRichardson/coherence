@@ -130,7 +130,7 @@ func (n *Cluster) Write(key selectors.Key, quorum selectors.Quorum) ([]nodes.Nod
 		k := key.String()
 
 		for _, v := range h {
-			if actor, ok := n.actors.GetByHash(v); ok {
+			if actor, ok := n.actors.Get(v); ok {
 				if err := actor.Add(k); err != nil {
 					level.Error(n.logger).Log("err", err)
 				}
@@ -175,7 +175,7 @@ func (n *Cluster) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 				if contains(hosts, v) {
 					continue
 				}
-				node, ok := n.actors.Get(k)
+				node, ok := n.actors.Get(hash(k))
 				if !ok {
 					continue
 				}
@@ -187,8 +187,8 @@ func (n *Cluster) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 	}
 
 	for _, v := range hosts {
-		if node, ok := n.actors.Get(v); ok {
-			nodes = append(nodes, node.node)
+		if actor, ok := n.actors.Get(hash(v)); ok {
+			nodes = append(nodes, actor.node)
 		}
 	}
 
@@ -197,8 +197,8 @@ func (n *Cluster) Read(key selectors.Key, quorum selectors.Quorum) (nodes []node
 
 func (n *Cluster) filter(hosts []string, key string) (res []string) {
 	for _, v := range hosts {
-		if node, ok := n.actors.Get(v); ok {
-			if ok := node.Contains(key); ok {
+		if actor, ok := n.actors.Get(hash(v)); ok {
+			if ok := actor.Contains(key); ok {
 				res = append(res, v)
 			}
 		}
@@ -222,7 +222,7 @@ func (n *Cluster) updateRemoteActors(hosts []string) error {
 	for k := range n.ring.hosts {
 		if !contains(hosts, k) {
 			n.ring.Remove(k)
-			n.actors.Remove(k)
+			n.actors.Remove(hash(k))
 		}
 	}
 
@@ -235,7 +235,7 @@ func (n *Cluster) updateRemoteActors(hosts []string) error {
 
 		if ok := n.ring.Add(v); ok {
 			addition = true
-			n.actors.Set(v, NewActor(func() nodes.Node {
+			n.actors.Set(NewActor(func() nodes.Node {
 				return nodes.NewRemote(n.transport.Apply(v))
 			}))
 		}
@@ -254,7 +254,7 @@ func (n *Cluster) dispatchBloomEvent(hash uint32) {
 	// Every new addition to the actor ring, send an bloom filter event.
 	// Note: under network issues we should throttle this so it doesn't become
 	// a run-a-way event
-	actor, ok := n.actors.GetByHash(hash)
+	actor, ok := n.actors.Get(hash)
 	if !ok {
 		return
 	}
@@ -297,7 +297,7 @@ func (n *Cluster) actorTimeIncremented(actor *Actor) bool {
 }
 
 func (n *Cluster) storeActorTime(hash uint32) {
-	if actor, ok := n.actors.GetByHash(hash); ok {
+	if actor, ok := n.actors.Get(hash); ok {
 		n.timesMutex.Lock()
 		n.times[hash] = actor.Time()
 		n.timesMutex.Unlock()
@@ -352,4 +352,8 @@ func contains(a []string, b string) bool {
 		}
 	}
 	return false
+}
+
+func hash(data string) uint32 {
+	return murmur3.Sum32([]byte(data))
 }

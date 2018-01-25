@@ -3,7 +3,6 @@ package nodes
 import (
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/SimonRichardson/coherence/pkg/store"
-	"github.com/spaolacci/murmur3"
 )
 
 type virtual struct {
@@ -12,9 +11,9 @@ type virtual struct {
 }
 
 // NewVirtual creates a local storage
-func NewVirtual(store store.Store) Node {
+func NewVirtual(hash uint32, store store.Store) Node {
 	return &virtual{
-		hash:  murmur3.Sum32([]byte("virtual")),
+		hash:  hash,
 		store: store,
 	}
 }
@@ -126,4 +125,8 @@ func (v *virtual) Score(key selectors.Key, field selectors.Field) <-chan selecto
 
 func (v *virtual) Hash() uint32 {
 	return v.hash
+}
+
+func (v *virtual) Host() string {
+	return ""
 }

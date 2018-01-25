@@ -57,6 +57,18 @@ func (mr *MockNodeMockRecorder) Hash() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hash", reflect.TypeOf((*MockNode)(nil).Hash))
 }
 
+// Host mocks base method
+func (m *MockNode) Host() string {
+	ret := m.ctrl.Call(m, "Host")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Host indicates an expected call of Host
+func (mr *MockNodeMockRecorder) Host() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Host", reflect.TypeOf((*MockNode)(nil).Host))
+}
+
 // Insert mocks base method
 func (m *MockNode) Insert(arg0 selectors.Key, arg1 []selectors.FieldValueScore) <-chan selectors.Element {
 	ret := m.ctrl.Call(m, "Insert", arg0, arg1)

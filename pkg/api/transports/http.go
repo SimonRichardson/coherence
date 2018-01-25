@@ -152,3 +152,7 @@ func (t *httpTransport) write(path string, key selectors.Key, fields []selectors
 func (t *httpTransport) Hash() uint32 {
 	return t.hash
 }
+
+func (t *httpTransport) Host() string {
+	return t.client.Host()
+}

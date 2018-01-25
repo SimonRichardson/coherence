@@ -9,7 +9,6 @@ import (
 	"github.com/SimonRichardson/coherence/pkg/cluster/bloom"
 	"github.com/SimonRichardson/coherence/pkg/cluster/nodes"
 	"github.com/SimonRichardson/resilience/clock"
-	"github.com/spaolacci/murmur3"
 )
 
 type NodeStrategy func() nodes.Node
@@ -46,6 +45,11 @@ func (n *Actor) Contains(data string) bool {
 // Hash returns the unique hash of the actor node
 func (n *Actor) Hash() uint32 {
 	return n.node.Hash()
+}
+
+// Host returns the host of the actor node
+func (n *Actor) Host() string {
+	return n.node.Host()
 }
 
 // Time returns the time of a last modification of the actor
@@ -91,55 +95,41 @@ func (n *Actor) Update(payload []byte) error {
 // Actors is a collection of the Actor Node allowing accessing the
 // actor via the host or via a hash.
 type Actors struct {
-	mutex   sync.RWMutex
-	remotes map[string]*Actor
-	hashes  map[uint32]*Actor
+	mutex  sync.RWMutex
+	hashes map[uint32]*Actor
 }
 
 // NewActors creates a Actors with the correct dependencies
 func NewActors() *Actors {
 	return &Actors{
-		remotes: make(map[string]*Actor),
-		hashes:  make(map[uint32]*Actor),
+		hashes: make(map[uint32]*Actor),
 	}
 }
 
-// Get the Actor according to the address
+// Get returns a the Actor according to the hash of the node
 // Returns the ok if the node is found.
-func (n *Actors) Get(addr string) (*Actor, bool) {
+func (n *Actors) Get(hash uint32) (*Actor, bool) {
 	n.mutex.RLock()
-	defer n.mutex.RUnlock()
-
-	v, ok := n.remotes[addr]
-	return v, ok
-}
-
-// GetByHash returns a the Actor according to the hash of the node
-// Returns the ok if the node is found.
-func (n *Actors) GetByHash(hash uint32) (*Actor, bool) {
-	n.mutex.RLock()
-	defer n.mutex.RUnlock()
-
 	v, ok := n.hashes[hash]
+	n.mutex.RUnlock()
+
 	return v, ok
 }
 
-// Set adds a Actor to the nodes according to the address
-func (n *Actors) Set(addr string, v *Actor) {
+// Set adds a Actor to the nodes according to the address hash
+// If a hash already exists, then it will over write the existing hash value
+func (n *Actors) Set(v *Actor) {
 	n.mutex.Lock()
-	defer n.mutex.Unlock()
-
-	n.remotes[addr] = v
 	n.hashes[v.Hash()] = v
+	n.mutex.Unlock()
 }
 
 // Remove a Actor via it's addr
-func (n *Actors) Remove(addr string) {
+func (n *Actors) Remove(hash uint32) {
 	n.mutex.Lock()
 	defer n.mutex.Unlock()
 
-	delete(n.remotes, addr)
-	delete(n.hashes, murmur3.Sum32([]byte(addr)))
+	delete(n.hashes, hash)
 }
 
 // Hashes returns a slice of hashes in the nodeset
@@ -158,14 +148,11 @@ func (n *Actors) Hashes() []uint32 {
 // Update the payload of a hash node
 // Return error if the writing to the bloom fails
 func (n *Actors) Update(hash uint32, payload []byte) error {
-	for _, v := range n.remotes {
-		if v.Hash() == hash {
-			if err := v.Update(payload); err != nil {
-				return err
-			}
+	if actor, ok := n.hashes[hash]; ok {
+		if err := actor.Update(payload); err != nil {
+			return err
 		}
 	}
-
 	return nil
 }
 
@@ -175,8 +162,8 @@ func (n *Actors) String() string {
 	writer := tabwriter.NewWriter(buf, 0, 0, 1, ' ', tabwriter.Debug)
 
 	fmt.Fprintln(writer, "host\t hash\t bits\t clock\t")
-	for k, v := range n.remotes {
-		fmt.Fprintf(writer, "%s\t %d\t %s\t %d\t\n", k, v.Hash(), v.bloom.String(), v.clock.Now().Value())
+	for _, v := range n.hashes {
+		fmt.Fprintf(writer, "%s\t %d\t %s\t %d\t\n", v.Host(), v.Hash(), v.bloom.String(), v.clock.Now().Value())
 	}
 
 	writer.Flush()
