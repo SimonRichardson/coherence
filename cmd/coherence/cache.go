@@ -43,6 +43,7 @@ func runCache(args []string) error {
 		flags = flagset.NewFlagSet("cache", flag.ExitOnError)
 
 		debug                  = flags.Bool("debug", false, "debug logging")
+		debugCluster           = flags.Bool("debug.cluster", false, "debug cluster logging")
 		apiAddr                = flags.String("api", defaultAPIAddr, "listen address for query API")
 		clusterBindAddr        = flags.String("cluster", defaultClusterAddr, "listen address for cluster")
 		clusterAdvertiseAddr   = flags.String("cluster.advertise-addr", "", "optional, explicit address to advertise in cluster")
@@ -108,7 +109,8 @@ func runCache(args []string) error {
 		return err
 	}
 
-	peer, err := configureRemoteCache(logger,
+	peer, err := configureRemoteCache(*debugCluster,
+		logger,
 		*cacheReplicationFactor,
 		clusterAPIAddress, clusterAPIPort,
 		*clusterBindAddr,
@@ -158,6 +160,7 @@ func runCache(args []string) error {
 	{
 		// Register the event handler on the nodeset
 		eh := EventHandler{
+			output: *debugCluster,
 			logger: logger,
 		}
 		g.Add(func() error {
@@ -226,15 +229,19 @@ func runCache(args []string) error {
 }
 
 type EventHandler struct {
+	output bool
 	logger log.Logger
 }
 
 func (e EventHandler) HandleEvent(event members.Event) error {
-	level.Debug(e.logger).Log("component", "cluster", "event", event)
+	if e.output {
+		level.Debug(e.logger).Log("component", "cluster", "event", event)
+	}
 	return nil
 }
 
-func configureRemoteCache(logger log.Logger,
+func configureRemoteCache(debugCluster bool,
+	logger log.Logger,
 	replicationFactor int,
 	apiAddr string, apiPort int,
 	bindAddr, advertiseAddr string,
@@ -275,6 +282,7 @@ func configureRemoteCache(logger log.Logger,
 		members.WithAdvertiseAddrPort(clusterAdvertiseHost, clusterAdvertisePort),
 		members.WithExisting(peers),
 		members.WithLogOutput(membersLogOutput{
+			output: debugCluster,
 			logger: log.With(logger, "component", "cluster"),
 		}),
 	)
@@ -291,12 +299,16 @@ func configureRemoteCache(logger log.Logger,
 }
 
 type membersLogOutput struct {
+	output bool
 	logger log.Logger
 }
 
 func (m membersLogOutput) Write(b []byte) (int, error) {
-	level.Debug(m.logger).Log("fwd_msg", string(b))
-	return len(b), nil
+	if m.output {
+		level.Debug(m.logger).Log("fwd_msg", string(b))
+		return len(b), nil
+	}
+	return 0, nil
 }
 
 func interrupt(cancel <-chan struct{}, dst chan<- struct{}) error {
