@@ -5,7 +5,6 @@
 package mocks
 
 import (
-	cluster "github.com/SimonRichardson/coherence/pkg/cluster"
 	members "github.com/SimonRichardson/coherence/pkg/cluster/members"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
@@ -81,6 +80,30 @@ func (mr *MockPeerMockRecorder) Current(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Current", reflect.TypeOf((*MockPeer)(nil).Current), arg0, arg1)
 }
 
+// DeregisterEventHandler mocks base method
+func (m *MockPeer) DeregisterEventHandler(arg0 members.EventHandler) error {
+	ret := m.ctrl.Call(m, "DeregisterEventHandler", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeregisterEventHandler indicates an expected call of DeregisterEventHandler
+func (mr *MockPeerMockRecorder) DeregisterEventHandler(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterEventHandler", reflect.TypeOf((*MockPeer)(nil).DeregisterEventHandler), arg0)
+}
+
+// DispatchEvent mocks base method
+func (m *MockPeer) DispatchEvent(arg0 members.Event) error {
+	ret := m.ctrl.Call(m, "DispatchEvent", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DispatchEvent indicates an expected call of DispatchEvent
+func (mr *MockPeerMockRecorder) DispatchEvent(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DispatchEvent", reflect.TypeOf((*MockPeer)(nil).DispatchEvent), arg0)
+}
+
 // Join mocks base method
 func (m *MockPeer) Join() (int, error) {
 	ret := m.ctrl.Call(m, "Join")
@@ -106,18 +129,6 @@ func (mr *MockPeerMockRecorder) Leave() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Leave", reflect.TypeOf((*MockPeer)(nil).Leave))
 }
 
-// Listen mocks base method
-func (m *MockPeer) Listen(arg0 func(cluster.Reason)) error {
-	ret := m.ctrl.Call(m, "Listen", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Listen indicates an expected call of Listen
-func (mr *MockPeerMockRecorder) Listen(arg0 interface{}) *gomock.Call {
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Listen", reflect.TypeOf((*MockPeer)(nil).Listen), arg0)
-}
-
 // Name mocks base method
 func (m *MockPeer) Name() string {
 	ret := m.ctrl.Call(m, "Name")
@@ -128,6 +139,18 @@ func (m *MockPeer) Name() string {
 // Name indicates an expected call of Name
 func (mr *MockPeerMockRecorder) Name() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockPeer)(nil).Name))
+}
+
+// RegisterEventHandler mocks base method
+func (m *MockPeer) RegisterEventHandler(arg0 members.EventHandler) error {
+	ret := m.ctrl.Call(m, "RegisterEventHandler", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterEventHandler indicates an expected call of RegisterEventHandler
+func (mr *MockPeerMockRecorder) RegisterEventHandler(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterEventHandler", reflect.TypeOf((*MockPeer)(nil).RegisterEventHandler), arg0)
 }
 
 // State mocks base method

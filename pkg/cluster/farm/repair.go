@@ -83,7 +83,7 @@ func (r *repairStrategy) readScoreRepair(key selectors.Key, fn func(nodes.Node) 
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, selectors.Strong)
+		nodes    = r.nodes.Read(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs      []error
@@ -148,10 +148,11 @@ func (r *repairStrategy) write(key selectors.Key, fn func(nodes.Node) <-chan sel
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, selectors.Strong)
-		elements = make(chan selectors.Element, len(nodes))
+		nodes, finish = r.nodes.Write(key, selectors.Strong)
+		elements      = make(chan selectors.Element, len(nodes))
 
 		errs    []error
+		hashes  []uint32
 		records = &changeSetRecords{}
 		wg      = &sync.WaitGroup{}
 	)
@@ -175,14 +176,17 @@ func (r *repairStrategy) write(key selectors.Key, fn func(nodes.Node) <-chan sel
 		changeSet := selectors.ChangeSetFromElement(element)
 		records.Add(changeSet)
 
-		// Bail out, if there is an error
-		if err := records.Err(); err != nil {
-			return errPartial{err}
-		}
+		hashes = append(hashes, element.Hash())
 	}
+
+	// Finish and close the snapshot back to the node set
+	go finish(hashes)
 
 	if len(errs) > 0 {
 		return errors.Wrapf(joinErrors(errs), "partial error")
+	}
+	if err := records.Err(); err != nil {
+		return errPartial{err}
 	}
 	return nil
 }

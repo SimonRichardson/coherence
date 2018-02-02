@@ -1,13 +1,17 @@
 package store
 
 import (
+	"bytes"
+	"encoding/hex"
+	"fmt"
 	"strings"
+	"text/tabwriter"
 
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-
 	"github.com/pkg/errors"
-	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/trussle/fsys"
 )
 
 // TODO: We should run some sort of internal cleaning process to remove keys
@@ -15,6 +19,7 @@ import (
 
 type memory struct {
 	size    uint
+	fsys    fsys.Filesystem
 	buckets []*Bucket
 	keys    map[selectors.Key]struct{}
 	logger  log.Logger
@@ -22,10 +27,14 @@ type memory struct {
 
 // New creates a new in-memory Store according to the size required by
 // the value requested.
-func New(amountBuckets, amountPerBucket uint, logger log.Logger) Store {
+func New(fsys fsys.Filesystem, amountBuckets, amountPerBucket uint, logger log.Logger) (Store, error) {
 	buckets := make([]*Bucket, amountBuckets)
 	for k := range buckets {
-		buckets[k] = NewBucket(int(amountPerBucket))
+		file, err := fsys.Create(fmt.Sprintf("bucket-%d", k))
+		if err != nil {
+			return nil, err
+		}
+		buckets[k] = NewBucket(file, int(amountPerBucket), log.With(logger, "component", "bucket"))
 	}
 
 	return &memory{
@@ -33,7 +42,7 @@ func New(amountBuckets, amountPerBucket uint, logger log.Logger) Store {
 		buckets: buckets,
 		keys:    make(map[selectors.Key]struct{}),
 		logger:  logger,
-	}
+	}, nil
 }
 
 func (m *memory) Insert(key selectors.Key, members []selectors.FieldValueScore) (selectors.ChangeSet, error) {
@@ -88,9 +97,9 @@ func (m *memory) Delete(key selectors.Key, members []selectors.FieldValueScore) 
 }
 
 func (m *memory) Select(key selectors.Key, field selectors.Field) (selectors.FieldValueScore, error) {
-	index := uint(key.Hash()) % m.size
-	level.Info(m.logger).Log("key", key, "index", index, "field", field)
-	return m.buckets[index].Select(field)
+	idx := index(key, m.size)
+	level.Info(m.logger).Log("key", key, "index", idx, "field", field)
+	return m.buckets[idx].Select(field)
 }
 
 func (m *memory) Keys() ([]selectors.Key, error) {
@@ -108,22 +117,43 @@ func (m *memory) Keys() ([]selectors.Key, error) {
 }
 
 func (m *memory) Size(key selectors.Key) (int64, error) {
-	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Len()
+	idx := index(key, m.size)
+	return m.buckets[idx].Len()
 }
 
 func (m *memory) Members(key selectors.Key) ([]selectors.Field, error) {
-	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Members()
+	idx := index(key, m.size)
+	return m.buckets[idx].Members()
 }
 
 func (m *memory) Score(key selectors.Key, field selectors.Field) (selectors.Presence, error) {
-	index := uint(key.Hash()) % m.size
-	return m.buckets[index].Score(field)
+	idx := index(key, m.size)
+	return m.buckets[idx].Score(field)
 }
 
 func (m *memory) Repair([]selectors.KeyFieldValue) error {
 	return nil
+}
+
+func (m *memory) String() string {
+	buf := new(bytes.Buffer)
+	writer := tabwriter.NewWriter(buf, 0, 0, 1, ' ', tabwriter.Debug)
+
+	fmt.Fprintln(writer, "bucket key\t field\t score\t value\t")
+	for k := range m.keys {
+		idx := index(k, m.size)
+		m.buckets[idx].insert.Walk(func(field selectors.Field, value selectors.ValueScore) error {
+			fmt.Fprintf(writer, "%s\t %s\t %d\t %s\t\n", k, field, value.Score, hex.EncodeToString(value.Value))
+			return nil
+		})
+	}
+	writer.Flush()
+
+	return fmt.Sprintf("\n%s", buf.String())
+}
+
+func index(key selectors.Key, size uint) uint {
+	return uint(key.Hash()) % size
 }
 
 func joinErrors(e []error) error {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -37,18 +36,6 @@ func (ss *stringslice) String() string {
 func parseAddr(addr string, defaultPort int) (network, address string, err error) {
 	u, err := url.Parse(strings.ToLower(addr))
 	if err != nil {
-		// It's possible that we're dealing with IPv6 localhost here!
-		if strings.HasPrefix(addr, "[::]") {
-			_, port, e := net.SplitHostPort(addr)
-			if e != nil {
-				return network, address, e
-			}
-			if port == "" {
-				port = strconv.Itoa(defaultPort)
-			}
-			return "tcp", fmt.Sprintf("0.0.0.0:%s", port), nil
-		}
-
 		return network, address, err
 	}
 

@@ -34,8 +34,6 @@ func TestParseAddr(t *testing.T) {
 		{"udp://foo", 123, "udp", "foo:123"},
 		{"udp://foo:8080", 123, "udp", "foo:8080"},
 		{"tcp+dnssrv://testing:7650", 7650, "tcp+dnssrv", "testing:7650"},
-		{"[::]:", 123, "tcp", "0.0.0.0:123"},
-		{"[::]:80", 123, "tcp", "0.0.0.0:80"},
 	} {
 		network, address, err := parseAddr(testcase.addr, testcase.defaultPort)
 		if err != nil {

@@ -59,6 +59,18 @@ func (mr *MockTransportMockRecorder) Hash() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hash", reflect.TypeOf((*MockTransport)(nil).Hash))
 }
 
+// Host mocks base method
+func (m *MockTransport) Host() string {
+	ret := m.ctrl.Call(m, "Host")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Host indicates an expected call of Host
+func (mr *MockTransportMockRecorder) Host() *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Host", reflect.TypeOf((*MockTransport)(nil).Host))
+}
+
 // Insert mocks base method
 func (m *MockTransport) Insert(arg0 selectors.Key, arg1 []selectors.FieldValueScore) (selectors.ChangeSet, error) {
 	ret := m.ctrl.Call(m, "Insert", arg0, arg1)

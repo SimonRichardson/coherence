@@ -1,12 +1,48 @@
-hash: 2ba38654377c6b9791eab984f9ecd5b6e5f9b6238d65b0e810fcb72081f47177
-updated: 2017-12-15T20:55:55.135837725Z
+hash: 95362e2219294170f5e53d15501a553aaa8dc68fa87e7ba42f52838fadb47d79
+updated: 2018-02-02T14:41:40.691580313Z
 imports:
+- name: github.com/armon/circbuf
+  version: bbbad097214e2918d8543d5201d12bfd7bca254d
 - name: github.com/armon/go-metrics
   version: f036747b9d0e8590f175a5d654a2194a7d9df4b5
+- name: github.com/armon/go-radix
+  version: 1fca145dffbcaa8fe914309b1ec0cfc67500fe61
+- name: github.com/aws/aws-sdk-go
+  version: c30658e062b4460a71ccb3514be7987149b39263
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/credentials/endpointcreds
+  - aws/credentials/stscreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer/v4
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
+  - service/sts
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
+- name: github.com/bgentry/speakeasy
+  version: 4aabc24848ce5fd31929f7d1e4ea74d3709c14cd
+- name: github.com/go-ini/ini
+  version: f280b3ba517bf5fc98922624f21fb0e7a92adaec
 - name: github.com/go-kit/kit
   version: d67bb4c202e3b91377d1079b110a6c9ce23ab2f8
   subpackages:
@@ -38,15 +74,32 @@ imports:
   version: 83588e72410abfbe4df460eeb6f30841ae47d4c4
 - name: github.com/hashicorp/go-sockaddr
   version: 9b4c5fa5b10a683339a270d664474b9f4aee62fc
+- name: github.com/hashicorp/go-syslog
+  version: 326bf4a7f709d263f964a6a96558676b103f3534
+- name: github.com/hashicorp/go.net
+  version: 104dcad90073cd8d1e6828b2af19185b60cf3e29
+  subpackages:
+  - internal/iana
+  - ipv4
+  - ipv6
+- name: github.com/hashicorp/logutils
+  version: 0dc08b1671f34c4250ce212759ebd880f743d883
+- name: github.com/hashicorp/mdns
+  version: 4e527d9d808175f132f949523e640c699e4253bb
 - name: github.com/hashicorp/memberlist
   version: 687988a0b5daaf7ed5051e5e374aef27f8254822
 - name: github.com/hashicorp/serf
   version: c20a0b1b1ea9eb8168bcdec0116688fa9254e449
   subpackages:
+  - cmd/serf/command/agent
   - coordinate
   - serf
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/mattn/go-isatty
+  version: 57fdcb988a5c543893cc61bce354a6e24ab70022
 - name: github.com/matttproud/golang_protobuf_extensions
   version: c12348ce28de40eed0136aa2b644d0ee0650e56c
   subpackages:
@@ -55,10 +108,20 @@ imports:
   version: a5852667e3c36e2e0b0a69ab43869e00e95aacdf
   subpackages:
   - internal/socket
+- name: github.com/mitchellh/cli
+  version: 518dc677a1e1222682f4e7db06721942cb8e9e4c
+- name: github.com/mitchellh/mapstructure
+  version: b4575eea38cca1123ec2dc90c26529b5c5acfcff
 - name: github.com/pborman/uuid
   version: 1b00554d822231195d1babd97ff4a781231955c9
 - name: github.com/pkg/errors
   version: c605e284fe17294bda444b34710735b29d1a9d90
+- name: github.com/posener/complete
+  version: cdc49b71388c2ab059f57997ef2575c9e8b4f146
+  subpackages:
+  - cmd
+  - cmd/install
+  - match
 - name: github.com/prometheus/client_golang
   version: 94ff84a9a6ebb5e6eb9172897c221a64df3443bc
   subpackages:
@@ -83,7 +146,7 @@ imports:
 - name: github.com/sean-/seed
   version: e2103e2c35297fb7e17febb81e49b312087a2372
 - name: github.com/SimonRichardson/betwixt
-  version: 6bf309fe8d963cc635eeabbf73d82430c72761e5
+  version: 852e987230c38072f469eac90e58e7f0d9e88374
 - name: github.com/SimonRichardson/flagset
   version: d8eb0e54974d098768a93de414d268bc2d0a334f
 - name: github.com/SimonRichardson/gexec
@@ -98,6 +161,10 @@ imports:
   version: 9f5d223c60793748f04a9d5b4b4eacddfc1f755d
 - name: github.com/trussle/fsys
   version: 182e67f78d3ce14f6ad30c95bbf7ac09393a8c2f
+  subpackages:
+  - ioext
+  - lock
+  - mmap
 - name: github.com/trussle/harness
   version: 2d32c1f9391a2d295c3fb6a769bf18e626251e4b
   subpackages:
@@ -105,4 +172,8 @@ imports:
   - matchers
 - name: github.com/trussle/uuid
   version: 23bc856a10519000ea4c17b77520ab48c3d3bbfd
+- name: golang.org/x/sys
+  version: 37707fdb30a5b38865cfb95e5aab41707daec7fd
+  subpackages:
+  - unix
 testImports: []

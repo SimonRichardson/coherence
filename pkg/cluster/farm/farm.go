@@ -1,6 +1,8 @@
 package farm
 
-import "github.com/SimonRichardson/coherence/pkg/selectors"
+import (
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+)
 
 // Farm represents a in-memory Key/Value implementation
 type Farm interface {

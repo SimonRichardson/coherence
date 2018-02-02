@@ -5,10 +5,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"testing"
 	"testing/quick"
 
+	"github.com/SimonRichardson/coherence/pkg/api"
 	"github.com/SimonRichardson/coherence/pkg/api/client"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
@@ -26,7 +28,7 @@ func TestRemoteInsert(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Insert(key, members)
 			return err != nil
@@ -47,7 +49,7 @@ func TestRemoteInsert(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Insert(key, members)
 			return err != nil
@@ -69,14 +71,14 @@ func TestRemoteInsert(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				var input struct {
-					Members []selectors.FieldValueScore `json:"members"`
-				}
+				var input api.MembersInput
 				if err := json.Unmarshal(bytes, &input); err != nil {
 					t.Fatal(err)
 				}
+
+				want := convertToInput(members)
 				for k, v := range input.Members {
-					if expected, actual := members[k], v; !expected.Equal(actual) {
+					if expected, actual := want[k], v; !fieldValueScoreEquality(expected, actual) {
 						t.Errorf("expected: %v, actual: %v", expected, actual)
 					}
 				}
@@ -95,7 +97,7 @@ func TestRemoteInsert(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Insert(key, members)
 			if err != nil {
@@ -130,7 +132,7 @@ func TestRemoteDelete(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Delete(key, members)
 			return err != nil
@@ -151,7 +153,7 @@ func TestRemoteDelete(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Delete(key, members)
 			return err != nil
@@ -173,14 +175,14 @@ func TestRemoteDelete(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				var input struct {
-					Members []selectors.FieldValueScore `json:"members"`
-				}
+				var input api.MembersInput
 				if err := json.Unmarshal(bytes, &input); err != nil {
 					t.Fatal(err)
 				}
+
+				want := convertToInput(members)
 				for k, v := range input.Members {
-					if expected, actual := members[k], v; !expected.Equal(actual) {
+					if expected, actual := want[k], v; !fieldValueScoreEquality(expected, actual) {
 						t.Errorf("expected: %v, actual: %v", expected, actual)
 					}
 				}
@@ -199,7 +201,7 @@ func TestRemoteDelete(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Delete(key, members)
 			if err != nil {
@@ -236,7 +238,7 @@ func TestRemoteSelect(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Select(key, field)
 			return err != nil
@@ -257,7 +259,7 @@ func TestRemoteSelect(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Select(key, field)
 			return err != nil
@@ -289,7 +291,7 @@ func TestRemoteSelect(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Select(key, field)
 			if err != nil {
@@ -326,7 +328,7 @@ func TestRemoteKeys(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Keys()
 			return err != nil
@@ -347,7 +349,7 @@ func TestRemoteKeys(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Keys()
 			return err != nil
@@ -375,7 +377,7 @@ func TestRemoteKeys(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Keys()
 			if err != nil {
@@ -406,7 +408,7 @@ func TestRemoteSize(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Size(key)
 			return err != nil
@@ -427,7 +429,7 @@ func TestRemoteSize(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Size(key)
 			return err != nil
@@ -455,7 +457,7 @@ func TestRemoteSize(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Size(key)
 			if err != nil {
@@ -486,7 +488,7 @@ func TestRemoteMembers(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Members(key)
 			return err != nil
@@ -507,7 +509,7 @@ func TestRemoteMembers(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Members(key)
 			return err != nil
@@ -535,7 +537,7 @@ func TestRemoteMembers(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Members(key)
 			if err != nil {
@@ -566,7 +568,7 @@ func TestRemoteScore(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Score(key, field)
 			return err != nil
@@ -587,7 +589,7 @@ func TestRemoteScore(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			_, err := node.Score(key, field)
 			return err != nil
@@ -619,7 +621,7 @@ func TestRemoteScore(t *testing.T) {
 			server := httptest.NewServer(mux)
 			defer server.Close()
 
-			client := client.New(http.DefaultClient, server.URL)
+			client := client.New(http.DefaultClient, "http", hostPort(server.URL))
 			node := NewHTTPTransport(client)
 			got, err := node.Score(key, field)
 			if err != nil {
@@ -650,4 +652,42 @@ func extractFields(members []selectors.FieldValueScore) []selectors.Field {
 		res[k] = v.Field
 	}
 	return res
+}
+
+func convertToInput(members []selectors.FieldValueScore) []api.FieldValueScore {
+	res := make([]api.FieldValueScore, len(members))
+	for k, v := range members {
+		res[k] = api.FieldValueScore{
+			Field: api.Field(v.Field.String()),
+			Value: v.Value,
+			Score: v.Score,
+		}
+	}
+	return res
+}
+
+func hostPort(path string) string {
+	u, err := url.Parse(path)
+	if err != nil {
+		panic(err)
+	}
+
+	return u.Host
+}
+
+func fieldValueScoreEquality(a, b api.FieldValueScore) bool {
+	return a.Field == b.Field && bytesEqual(a.Value, b.Value) && a.Score == b.Score
+}
+
+func bytesEqual(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	for k, v := range a {
+		if b[k] != v {
+			return false
+		}
+	}
+	return true
 }

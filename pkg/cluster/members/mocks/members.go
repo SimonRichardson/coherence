@@ -45,6 +45,30 @@ func (mr *MockMembersMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockMembers)(nil).Close))
 }
 
+// DeregisterEventHandler mocks base method
+func (m *MockMembers) DeregisterEventHandler(arg0 members.EventHandler) error {
+	ret := m.ctrl.Call(m, "DeregisterEventHandler", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeregisterEventHandler indicates an expected call of DeregisterEventHandler
+func (mr *MockMembersMockRecorder) DeregisterEventHandler(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterEventHandler", reflect.TypeOf((*MockMembers)(nil).DeregisterEventHandler), arg0)
+}
+
+// DispatchEvent mocks base method
+func (m *MockMembers) DispatchEvent(arg0 members.Event) error {
+	ret := m.ctrl.Call(m, "DispatchEvent", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DispatchEvent indicates an expected call of DispatchEvent
+func (mr *MockMembersMockRecorder) DispatchEvent(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DispatchEvent", reflect.TypeOf((*MockMembers)(nil).DispatchEvent), arg0)
+}
+
 // Join mocks base method
 func (m *MockMembers) Join() (int, error) {
 	ret := m.ctrl.Call(m, "Join")
@@ -80,6 +104,18 @@ func (m *MockMembers) MemberList() members.MemberList {
 // MemberList indicates an expected call of MemberList
 func (mr *MockMembersMockRecorder) MemberList() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MemberList", reflect.TypeOf((*MockMembers)(nil).MemberList))
+}
+
+// RegisterEventHandler mocks base method
+func (m *MockMembers) RegisterEventHandler(arg0 members.EventHandler) error {
+	ret := m.ctrl.Call(m, "RegisterEventHandler", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterEventHandler indicates an expected call of RegisterEventHandler
+func (mr *MockMembersMockRecorder) RegisterEventHandler(arg0 interface{}) *gomock.Call {
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterEventHandler", reflect.TypeOf((*MockMembers)(nil).RegisterEventHandler), arg0)
 }
 
 // Walk mocks base method

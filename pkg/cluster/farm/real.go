@@ -114,10 +114,11 @@ func (r *real) write(key selectors.Key,
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, quorum)
-		elements = make(chan selectors.Element, len(nodes))
+		nodes, finish = r.nodes.Write(key, quorum)
+		elements      = make(chan selectors.Element, len(nodes))
 
 		errs    []error
+		hashes  []uint32
 		records = &changeSetRecords{}
 		wg      = &sync.WaitGroup{}
 	)
@@ -140,7 +141,12 @@ func (r *real) write(key selectors.Key,
 		returned++
 		changeSet := selectors.ChangeSetFromElement(element)
 		records.Add(changeSet)
+
+		hashes = append(hashes, element.Hash())
 	}
+
+	// Finish and close the snapshot back to the node set
+	go finish(hashes)
 
 	// Handle how we meet consensus, if there is an error and we've still met
 	// consensus, then send back a partial error so it can handle read repairs.
@@ -170,7 +176,7 @@ func (r *real) read(key selectors.Key,
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, quorum)
+		nodes    = r.nodes.Read(key, quorum)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -216,7 +222,7 @@ func (r *real) readKeys(key selectors.Key, fn func(nodes.Node) <-chan selectors.
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, selectors.Strong)
+		nodes    = r.nodes.Read(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -260,7 +266,7 @@ func (r *real) readSize(key selectors.Key, fn func(nodes.Node) <-chan selectors.
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, selectors.Strong)
+		nodes    = r.nodes.Read(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -304,7 +310,7 @@ func (r *real) readMembers(key selectors.Key, fn func(nodes.Node) <-chan selecto
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, selectors.Strong)
+		nodes    = r.nodes.Read(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error
@@ -348,7 +354,7 @@ func (r *real) readScore(key selectors.Key, fn func(nodes.Node) <-chan selectors
 		retrieved = 0
 		returned  = 0
 
-		nodes    = r.nodes.Snapshot(key, selectors.Strong)
+		nodes    = r.nodes.Read(key, selectors.Strong)
 		elements = make(chan selectors.Element, len(nodes))
 
 		errs    []error

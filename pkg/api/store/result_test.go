@@ -10,9 +10,9 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/go-kit/kit/log"
 	errs "github.com/SimonRichardson/coherence/pkg/api/http"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
+	"github.com/go-kit/kit/log"
 )
 
 func TestChangeSetQueryResult(t *testing.T) {

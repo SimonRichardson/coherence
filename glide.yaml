@@ -32,3 +32,9 @@ import:
   - package: github.com/trussle/uuid
   - package: github.com/spaolacci/murmur3
   - package: github.com/hashicorp/go-cleanhttp
+  - package: github.com/armon/circbuf
+  - package: github.com/hashicorp/go-syslog
+  - package: github.com/hashicorp/logutils
+  - package: github.com/hashicorp/mdns
+  - package: github.com/mitchellh/cli
+  - package: github.com/mitchellh/mapstructure

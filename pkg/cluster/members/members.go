@@ -15,8 +15,28 @@ func (p PeerType) String() string {
 	return string(p)
 }
 
+// EventHandler is an alias for the event dispatcher
+type EventHandler interface {
+	HandleEvent(Event) error
+}
+
+// EventBus allows the distributing and receiving of events over the cluster
+type EventBus interface {
+
+	// RegisterEventHandler attaches a event listener to all the members events
+	// and broadcasts the event to the handler.
+	RegisterEventHandler(EventHandler) error
+
+	// DeregisterEventHandler removes the event listener.
+	DeregisterEventHandler(EventHandler) error
+
+	// DispatchEvent dispatches an event to all the members in the cluster.
+	DispatchEvent(Event) error
+}
+
 // Members represents a way of joining a members cluster
 type Members interface {
+	EventBus
 
 	// Join joins an existing members cluster. Returns the number of nodes
 	// successfully contacted. The returned error will be non-nil only in the
@@ -74,6 +94,8 @@ type Config struct {
 	bindPort         int
 	advertiseAddr    string
 	advertisePort    int
+	clientAddr       string
+	clientPort       int
 	existing         []string
 	logOutput        io.Writer
 	broadcastTimeout time.Duration
@@ -134,6 +156,15 @@ func WithAdvertiseAddrPort(addr string, port int) Option {
 	return func(config *Config) error {
 		config.advertiseAddr = addr
 		config.advertisePort = port
+		return nil
+	}
+}
+
+// WithClientAddrPort adds a ClientAddr and ClientPort to the configuration
+func WithClientAddrPort(addr string, port int) Option {
+	return func(config *Config) error {
+		config.clientAddr = addr
+		config.clientPort = port
 		return nil
 	}
 }

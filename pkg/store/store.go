@@ -2,8 +2,14 @@ package store
 
 import "github.com/SimonRichardson/coherence/pkg/selectors"
 
+// StoreContext holds the base of the store
+type StoreContext interface {
+	String() string
+}
+
 // Store represents a in-memory Key/Value implementation
 type Store interface {
+	StoreContext
 
 	// Insert takes a key and value and stores with in the underlying store.
 	// Returns ChangeSet of success and failure

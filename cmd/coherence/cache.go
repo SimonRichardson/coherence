@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	apiFarm "github.com/SimonRichardson/coherence/pkg/api/farm"
 	apiStore "github.com/SimonRichardson/coherence/pkg/api/store"
@@ -23,6 +25,7 @@ import (
 	"github.com/pborman/uuid"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/trussle/fsys"
 )
 
 const (
@@ -40,6 +43,7 @@ func runCache(args []string) error {
 		flags = flagset.NewFlagSet("cache", flag.ExitOnError)
 
 		debug                  = flags.Bool("debug", false, "debug logging")
+		debugCluster           = flags.Bool("debug.cluster", false, "debug cluster logging")
 		apiAddr                = flags.String("api", defaultAPIAddr, "listen address for query API")
 		clusterBindAddr        = flags.String("cluster", defaultClusterAddr, "listen address for cluster")
 		clusterAdvertiseAddr   = flags.String("cluster.advertise-addr", "", "optional, explicit address to advertise in cluster")
@@ -100,14 +104,15 @@ func runCache(args []string) error {
 	}
 	level.Debug(logger).Log("API", fmt.Sprintf("%s://%s", apiNetwork, apiAddress))
 
-	apiAddress, apiPort, err := parseClusterAddr(*apiAddr, defaultAPIPort)
+	clusterAPIAddress, clusterAPIPort, err := parseClusterAddr(*apiAddr, defaultAPIPort)
 	if err != nil {
 		return err
 	}
 
-	peer, err := configureRemoteCache(logger,
+	peer, err := configureRemoteCache(*debugCluster,
+		logger,
 		*cacheReplicationFactor,
-		apiAddress, apiPort,
+		clusterAPIAddress, clusterAPIPort,
 		*clusterBindAddr,
 		*clusterAdvertiseAddr,
 		clusterPeers.Slice(),
@@ -121,10 +126,20 @@ func runCache(args []string) error {
 		return err
 	}
 
+	fsys := fsys.NewNopFilesystem()
+	persistence, err := store.New(fsys, *cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
+	if err != nil {
+		return err
+	}
+
 	var (
-		persistence = store.New(*cacheBuckets, *cacheSize, log.With(logger, "component", "store"))
-		nodeSet     = hashring.NewNodeSet(peer, transport, *nodeReplicationFactor, log.With(logger, "component", "nodeset"))
-		supervisor  = farm.NewReal(nodeSet)
+		cluster = hashring.NewCluster(peer,
+			transport,
+			*nodeReplicationFactor,
+			apiAddress,
+			log.With(logger, "component", "cluster"),
+		)
+		supervisor = farm.NewReal(cluster)
 	)
 
 	// Execution group.
@@ -143,13 +158,17 @@ func runCache(args []string) error {
 		})
 	}
 	{
+		// Register the event handler on the nodeset
+		eh := EventHandler{
+			output: *debugCluster,
+			logger: logger,
+		}
 		g.Add(func() error {
-			nodeSet.Listen(func(reason hashring.Reason) {
-				level.Debug(logger).Log("component", "nodeset", "reason", reason.String())
-			})
-			return nodeSet.Run()
+			cluster.RegisterEventHandler(eh)
+			return cluster.Run()
 		}, func(error) {
-			nodeSet.Stop()
+			cluster.DeregisterEventHandler(eh)
+			cluster.Stop()
 		})
 	}
 	{
@@ -188,11 +207,41 @@ func runCache(args []string) error {
 			apiListener.Close()
 		})
 	}
+	{
+		cancel := make(chan struct{})
+		g.Add(func() error {
+			dst := make(chan struct{})
+			go func() {
+				for {
+					select {
+					case <-dst:
+						fmt.Println(persistence.String())
+					}
+				}
+			}()
+			return interrupt(cancel, dst)
+		}, func(error) {
+			close(cancel)
+		})
+	}
 	gexec.Interrupt(g)
 	return g.Run()
 }
 
-func configureRemoteCache(logger log.Logger,
+type EventHandler struct {
+	output bool
+	logger log.Logger
+}
+
+func (e EventHandler) HandleEvent(event members.Event) error {
+	if e.output {
+		level.Debug(e.logger).Log("component", "cluster", "event", event)
+	}
+	return nil
+}
+
+func configureRemoteCache(debugCluster bool,
+	logger log.Logger,
 	replicationFactor int,
 	apiAddr string, apiPort int,
 	bindAddr, advertiseAddr string,
@@ -233,6 +282,7 @@ func configureRemoteCache(logger log.Logger,
 		members.WithAdvertiseAddrPort(clusterAdvertiseHost, clusterAdvertisePort),
 		members.WithExisting(peers),
 		members.WithLogOutput(membersLogOutput{
+			output: debugCluster,
 			logger: log.With(logger, "component", "cluster"),
 		}),
 	)
@@ -249,10 +299,27 @@ func configureRemoteCache(logger log.Logger,
 }
 
 type membersLogOutput struct {
+	output bool
 	logger log.Logger
 }
 
 func (m membersLogOutput) Write(b []byte) (int, error) {
-	level.Debug(m.logger).Log("fwd_msg", string(b))
-	return len(b), nil
+	if m.output {
+		level.Debug(m.logger).Log("fwd_msg", string(b))
+		return len(b), nil
+	}
+	return 0, nil
+}
+
+func interrupt(cancel <-chan struct{}, dst chan<- struct{}) error {
+	c := make(chan os.Signal)
+	signal.Notify(c, syscall.SIGUSR1)
+	for {
+		select {
+		case <-c:
+			dst <- struct{}{}
+		case <-cancel:
+			return errors.New("cancelled")
+		}
+	}
 }

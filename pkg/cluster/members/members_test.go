@@ -17,6 +17,7 @@ func TestBuilding(t *testing.T) {
 		fn := func(peerType, nodeName string,
 			bindAddr string, bindPort int,
 			advertiseAddr string, advertisePort int,
+			clientAddr string, clientPort int,
 			existing []string,
 			broadcastTime time.Duration,
 		) bool {
@@ -25,6 +26,7 @@ func TestBuilding(t *testing.T) {
 				WithNodeName(nodeName),
 				WithBindAddrPort(bindAddr, bindPort),
 				WithAdvertiseAddrPort(advertiseAddr, advertisePort),
+				WithClientAddrPort(clientAddr, clientPort),
 				WithExisting(existing),
 				WithBroadcastTimeout(broadcastTime),
 				WithLogOutput(ioutil.Discard),

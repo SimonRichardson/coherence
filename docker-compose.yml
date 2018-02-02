@@ -2,7 +2,7 @@ version: '2'
 
 services:
   coherence:
-    image: golang:1.8-alpine
+    image: golang:1.9-alpine
     volumes:
       - ./:/go/src/github.com/SimonRichardson/coherence
     working_dir: /go/src/github.com/SimonRichardson/coherence

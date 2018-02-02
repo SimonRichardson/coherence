@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/SimonRichardson/resilience/breaker"
 	"github.com/pkg/errors"
-	"github.com/SimonRichardson/coherence/pkg/selectors"
 )
 
 const (
@@ -19,17 +19,18 @@ const (
 
 // Client represents a http client that has a one to one relationship with a url
 type Client struct {
-	circuit *breaker.CircuitBreaker
-	client  *http.Client
-	host    string
+	circuit        *breaker.CircuitBreaker
+	client         *http.Client
+	protocol, host string
 }
 
 // New creates a Client with the http.Client and url
-func New(client *http.Client, host string) *Client {
+func New(client *http.Client, protocol, host string) *Client {
 	return &Client{
-		circuit: breaker.New(defaultFailureRate, defaultFailureTimeout),
-		client:  client,
-		host:    host,
+		circuit:  breaker.New(defaultFailureRate, defaultFailureTimeout),
+		client:   client,
+		protocol: protocol,
+		host:     host,
 	}
 }
 
@@ -39,7 +40,7 @@ func New(client *http.Client, host string) *Client {
 func (c *Client) Get(u string) (b []byte, err error) {
 	err = c.circuit.Run(func() error {
 
-		resp, err := c.client.Get(fmt.Sprintf("%s%s", c.host, u))
+		resp, err := c.client.Get(fmt.Sprintf("%s://%s%s", c.protocol, c.host, u))
 		if err != nil {
 			return err
 		}
@@ -65,7 +66,7 @@ func (c *Client) Get(u string) (b []byte, err error) {
 func (c *Client) Post(u string, p []byte) (b []byte, err error) {
 	err = c.circuit.Run(func() error {
 
-		resp, err := c.client.Post(fmt.Sprintf("%s%s", c.host, u), "application/javascript", bytes.NewReader(p))
+		resp, err := c.client.Post(fmt.Sprintf("%s://%s%s", c.protocol, c.host, u), "application/json", bytes.NewReader(p))
 		if err != nil {
 			return err
 		}

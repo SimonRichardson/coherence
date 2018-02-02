@@ -21,6 +21,8 @@ func TestRealInsert(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			want := selectors.ChangeSet{
 				Success: make([]selectors.Field, 0),
 				Failure: extractFields(members),
@@ -29,19 +31,19 @@ func TestRealInsert(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
-				ch <- selectors.NewChangeSetElement(want)
-				ch <- selectors.NewChangeSetElement(want)
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
+				ch <- selectors.NewChangeSetElement(hash, want)
+				ch <- selectors.NewChangeSetElement(hash, want)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Insert(key, members).Return(ch).Times(2)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Insert(key, members, selectors.Strong)
@@ -58,6 +60,8 @@ func TestRealInsert(t *testing.T) {
 				return true
 			}
 
+			hash := key.Hash()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -73,8 +77,8 @@ func TestRealInsert(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewChangeSetElement(want0)
-				ch <- selectors.NewChangeSetElement(want1)
+				ch <- selectors.NewChangeSetElement(hash, want0)
+				ch <- selectors.NewChangeSetElement(hash, want1)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
@@ -82,10 +86,10 @@ func TestRealInsert(t *testing.T) {
 			node.EXPECT().Insert(key, members0).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Insert(key, members0, selectors.Strong)
@@ -102,19 +106,21 @@ func TestRealInsert(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Insert(key, members).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Insert(key, members, selectors.Strong)
@@ -130,6 +136,8 @@ func TestRealInsert(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			want := selectors.ChangeSet{
 				Success: make([]selectors.Field, 0),
 				Failure: extractFields(members),
@@ -138,16 +146,16 @@ func TestRealInsert(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewChangeSetElement(want)
+				ch <- selectors.NewChangeSetElement(hash, want)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Insert(key, members).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			changeSet, err := farm.Insert(key, members, selectors.Strong)
@@ -175,6 +183,8 @@ func TestRealDelete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			want := selectors.ChangeSet{
 				Success: make([]selectors.Field, 0),
 				Failure: extractFields(members),
@@ -183,19 +193,19 @@ func TestRealDelete(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
-				ch <- selectors.NewChangeSetElement(want)
-				ch <- selectors.NewChangeSetElement(want)
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
+				ch <- selectors.NewChangeSetElement(hash, want)
+				ch <- selectors.NewChangeSetElement(hash, want)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Delete(key, members).Return(ch).Times(2)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Delete(key, members, selectors.Strong)
@@ -211,6 +221,8 @@ func TestRealDelete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			want0 := selectors.ChangeSet{
 				Success: make([]selectors.Field, 0),
 				Failure: extractFields(members0),
@@ -223,8 +235,8 @@ func TestRealDelete(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewChangeSetElement(want0)
-				ch <- selectors.NewChangeSetElement(want1)
+				ch <- selectors.NewChangeSetElement(hash, want0)
+				ch <- selectors.NewChangeSetElement(hash, want1)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
@@ -232,10 +244,10 @@ func TestRealDelete(t *testing.T) {
 			node.EXPECT().Delete(key, members0).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Delete(key, members0, selectors.Strong)
@@ -252,19 +264,21 @@ func TestRealDelete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Delete(key, members).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			_, err := farm.Delete(key, members, selectors.Strong)
@@ -281,6 +295,8 @@ func TestRealDelete(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			want := selectors.ChangeSet{
 				Success: make([]selectors.Field, 0),
 				Failure: extractFields(members),
@@ -289,16 +305,16 @@ func TestRealDelete(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewChangeSetElement(want)
+				ch <- selectors.NewChangeSetElement(hash, want)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Delete(key, members).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Write(key, selectors.Strong).Return([]nodes.Node{
 				node,
-			})
+			}, func([]uint32) error { return nil })
 
 			farm := NewReal(nodeSet)
 			changeSet, err := farm.Delete(key, members, selectors.Strong)
@@ -327,17 +343,19 @@ func TestRealSelect(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Select(key, member.Field).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -356,17 +374,19 @@ func TestRealSelect(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewFieldValueScoreElement(member)
+				ch <- selectors.NewFieldValueScoreElement(hash, member)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Select(key, member.Field).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -397,17 +417,19 @@ func TestRealKeys(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := defaultAllKey.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Keys().Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(defaultAllKey, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(defaultAllKey, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -426,17 +448,19 @@ func TestRealKeys(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := defaultAllKey.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewKeysElement(keys)
+				ch <- selectors.NewKeysElement(hash, keys)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Keys().Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(defaultAllKey, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(defaultAllKey, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -467,17 +491,19 @@ func TestRealSize(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Size(key).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -496,17 +522,19 @@ func TestRealSize(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewInt64Element(member)
+				ch <- selectors.NewInt64Element(hash, member)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Size(key).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -537,17 +565,19 @@ func TestRealMembers(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Members(key).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -566,17 +596,19 @@ func TestRealMembers(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewFieldsElement(members)
+				ch <- selectors.NewFieldsElement(hash, members)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Members(key).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -607,17 +639,19 @@ func TestRealScore(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewErrorElement(errors.New("bad"))
+				ch <- selectors.NewErrorElement(hash, errors.New("bad"))
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Score(key, field).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 
@@ -636,6 +670,8 @@ func TestRealScore(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
+			hash := key.Hash()
+
 			want := selectors.Presence{
 				Inserted: true,
 				Present:  true,
@@ -645,14 +681,14 @@ func TestRealScore(t *testing.T) {
 			ch := make(chan selectors.Element)
 			go func() {
 				defer close(ch)
-				ch <- selectors.NewPresenceElement(want)
+				ch <- selectors.NewPresenceElement(hash, want)
 			}()
 
 			node := mocks.NewMockNode(ctrl)
 			node.EXPECT().Score(key, field).Return(ch)
 
 			nodeSet := hashringMocks.NewMockSnapshot(ctrl)
-			nodeSet.EXPECT().Snapshot(key, selectors.Strong).Return([]nodes.Node{
+			nodeSet.EXPECT().Read(key, selectors.Strong).Return([]nodes.Node{
 				node,
 			})
 

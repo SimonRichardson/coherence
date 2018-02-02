@@ -12,12 +12,13 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/go-kit/kit/log"
-	"github.com/golang/mock/gomock"
-	"github.com/pkg/errors"
+	objects "github.com/SimonRichardson/coherence/pkg/api"
 	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	storeMocks "github.com/SimonRichardson/coherence/pkg/store/mocks"
+	"github.com/go-kit/kit/log"
+	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/trussle/harness/matchers"
 )
 
@@ -46,8 +47,8 @@ func TestInsertAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/insert", "400").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -96,8 +97,8 @@ func TestInsertAPI(t *testing.T) {
 
 			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -145,8 +146,8 @@ func TestInsertAPI(t *testing.T) {
 				Failure: make([]selectors.Field, 0),
 			}, nil)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -221,8 +222,8 @@ func TestDeleteAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/delete", "400").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -271,8 +272,8 @@ func TestDeleteAPI(t *testing.T) {
 
 			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -320,8 +321,8 @@ func TestDeleteAPI(t *testing.T) {
 				Failure: make([]selectors.Field, 0),
 			}, nil)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -375,6 +376,18 @@ func extractFields(members []selectors.FieldValueScore) []selectors.Field {
 	res := make([]selectors.Field, len(members))
 	for k, v := range members {
 		res[k] = v.Field
+	}
+	return res
+}
+
+func convertToInput(members []selectors.FieldValueScore) []objects.FieldValueScore {
+	res := make([]objects.FieldValueScore, len(members))
+	for k, v := range members {
+		res[k] = objects.FieldValueScore{
+			Field: objects.Field(v.Field),
+			Value: v.Value,
+			Score: v.Score,
+		}
 	}
 	return res
 }

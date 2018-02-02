@@ -12,6 +12,7 @@ import (
 	"testing"
 	"testing/quick"
 
+	objects "github.com/SimonRichardson/coherence/pkg/api"
 	farmMocks "github.com/SimonRichardson/coherence/pkg/cluster/farm/mocks"
 	metricMocks "github.com/SimonRichardson/coherence/pkg/metrics/mocks"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
@@ -46,8 +47,8 @@ func TestInsertAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/insert", "400").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -96,8 +97,8 @@ func TestInsertAPI(t *testing.T) {
 
 			farm.EXPECT().Insert(key, members, MatchQuorum(selectors.Strong)).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -145,8 +146,8 @@ func TestInsertAPI(t *testing.T) {
 				Failure: make([]selectors.Field, 0),
 			}, nil)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -221,8 +222,8 @@ func TestDeleteAPI(t *testing.T) {
 			duration.EXPECT().WithLabelValues("POST", "/delete", "400").Return(observer).Times(1)
 			observer.EXPECT().Observe(matchers.MatchAnyFloat64()).Times(1)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -271,8 +272,8 @@ func TestDeleteAPI(t *testing.T) {
 
 			farm.EXPECT().Delete(key, members, MatchQuorum(selectors.Strong)).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -320,8 +321,8 @@ func TestDeleteAPI(t *testing.T) {
 				Failure: make([]selectors.Field, 0),
 			}, nil)
 
-			input := MembersInput{
-				Members: members,
+			input := objects.MembersInput{
+				Members: convertToInput(members),
 			}
 			b, err := json.Marshal(input)
 			if err != nil {
@@ -414,3 +415,15 @@ func (m quorumMatcher) String() string {
 
 // MatchQuorum checks to see if the value is the value quorum value
 func MatchQuorum(v selectors.Quorum) gomock.Matcher { return quorumMatcher{v} }
+
+func convertToInput(members []selectors.FieldValueScore) []objects.FieldValueScore {
+	res := make([]objects.FieldValueScore, len(members))
+	for k, v := range members {
+		res[k] = objects.FieldValueScore{
+			Field: objects.Field(v.Field),
+			Value: v.Value,
+			Score: v.Score,
+		}
+	}
+	return res
+}

@@ -2,19 +2,9 @@ package cluster
 
 import "github.com/SimonRichardson/coherence/pkg/cluster/members"
 
-// Reason defines a type of reason a peer will notify the callback
-type Reason string
-
-const (
-	// ReasonAlone represents a peer that is alone and an action is required.
-	ReasonAlone Reason = "alone"
-
-	// ReasonAccompanied represents a peer that is not alone, but accompanied.
-	ReasonAccompanied Reason = "accompanied"
-)
-
 // Peer represents the node with in the cluster.
 type Peer interface {
+	members.EventBus
 
 	// Join the cluster
 	Join() (int, error)
@@ -39,10 +29,6 @@ type Peer interface {
 	// Current API host:ports for the given type of node.
 	// Bool defines if you want to include the current local node.
 	Current(peerType members.PeerType, includeLocal bool) ([]string, error)
-
-	// Listen registers a callback for potential issues with the peer. For example
-	// if the peer is on it's own.
-	Listen(func(Reason)) error
 
 	// Close and shutdown the peer
 	Close()

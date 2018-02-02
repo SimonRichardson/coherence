@@ -9,11 +9,22 @@ type TransportStrategy interface {
 	Apply(string) Transport
 }
 
+// TransportNetwork defines a hash and host
+type TransportNetwork interface {
+
+	// Hash returns the transport unique hash
+	Hash() uint32
+
+	// Host returns the transport underlying host
+	Host() string
+}
+
 // Transport wraps the API transportation request to provide an agnostic
 // approach to the store.
 // As long as the API implements the following transportation service then
 // any protocol can be used; http, gRPC, raw udp
 type Transport interface {
+	TransportNetwork
 
 	// Insert takes a key and value and stores with in the underlying store.
 	// Returns ChangeSet of success and failure
@@ -38,7 +49,4 @@ type Transport interface {
 
 	// Score returns the specific score for the field with in the key.
 	Score(selectors.Key, selectors.Field) (selectors.Presence, error)
-
-	// Hash returns the transport unique hash
-	Hash() uint32
 }

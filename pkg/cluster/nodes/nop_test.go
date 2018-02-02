@@ -1,9 +1,12 @@
 package nodes
 
-import "testing"
-import "github.com/SimonRichardson/coherence/pkg/selectors"
-import "testing/quick"
-import "reflect"
+import (
+	"reflect"
+	"testing"
+	"testing/quick"
+
+	"github.com/SimonRichardson/coherence/pkg/selectors"
+)
 
 func TestNopInsert(t *testing.T) {
 	t.Parallel()

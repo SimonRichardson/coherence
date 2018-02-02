@@ -6,9 +6,9 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/golang/mock/gomock"
 	"github.com/SimonRichardson/coherence/pkg/selectors"
 	"github.com/SimonRichardson/coherence/pkg/store/mocks"
+	"github.com/golang/mock/gomock"
 )
 
 func TestVirtualInsert(t *testing.T) {
@@ -22,7 +22,7 @@ func TestVirtualInsert(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Insert(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Insert(key, members)
 
@@ -54,7 +54,7 @@ func TestVirtualInsert(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Insert(key, members).Return(want, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Insert(key, members)
 
@@ -90,7 +90,7 @@ func TestVirtualDelete(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Delete(key, members).Return(selectors.ChangeSet{}, errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Delete(key, members)
 
@@ -122,7 +122,7 @@ func TestVirtualDelete(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Delete(key, members).Return(want, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Delete(key, members)
 
@@ -158,7 +158,7 @@ func TestVirtualSelect(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Select(key, member.Field).Return(member, errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Select(key, member.Field)
 
@@ -184,7 +184,7 @@ func TestVirtualSelect(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Select(key, member.Field).Return(member, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Select(key, member.Field)
 
@@ -221,7 +221,7 @@ func TestVirtualKeys(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Keys().Return(nil, errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Keys()
 
@@ -247,7 +247,7 @@ func TestVirtualKeys(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Keys().Return(keys, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Keys()
 
@@ -284,7 +284,7 @@ func TestVirtualSize(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Size(key).Return(int64(0), errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Size(key)
 
@@ -310,7 +310,7 @@ func TestVirtualSize(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Size(key).Return(size, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Size(key)
 
@@ -347,7 +347,7 @@ func TestVirtualMembers(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Members(key).Return(nil, errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Members(key)
 
@@ -373,7 +373,7 @@ func TestVirtualMembers(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Members(key).Return(fields, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Members(key)
 
@@ -410,7 +410,7 @@ func TestVirtualScore(t *testing.T) {
 			store := mocks.NewMockStore(ctrl)
 			store.EXPECT().Score(key, field).Return(selectors.Presence{}, errors.New("bad"))
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Score(key, field)
 
@@ -440,7 +440,7 @@ func TestVirtualScore(t *testing.T) {
 				Score:    1,
 			}, nil)
 
-			node := NewVirtual(store)
+			node := NewVirtual(0, store)
 
 			ch := node.Score(key, field)
 

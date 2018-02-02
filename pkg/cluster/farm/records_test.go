@@ -44,7 +44,8 @@ func TestKeysRecords(t *testing.T) {
 			records := keysRecords{}
 			records.Add(values)
 			records.Add(values)
-			return records.Err() == nil && reflect.DeepEqual(values, records.Keys())
+
+			return records.Err() == nil && ((len(values) == 0 && len(records.Keys()) == 0) || reflect.DeepEqual(values, records.Keys()))
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
@@ -56,7 +57,7 @@ func TestKeysRecords(t *testing.T) {
 			records := keysRecords{}
 			records.Add(value0)
 			records.Add(value1)
-			return records.Err() != nil && reflect.DeepEqual(value0, records.Keys())
+			return records.Err() != nil && ((len(value0) == 0 && len(records.Keys()) == 0) || reflect.DeepEqual(value0, records.Keys()))
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
@@ -72,7 +73,7 @@ func TestFieldsRecords(t *testing.T) {
 			records := fieldsRecords{}
 			records.Add(values)
 			records.Add(values)
-			return records.Err() == nil && reflect.DeepEqual(values, records.Fields())
+			return records.Err() == nil && ((len(values) == 0 && len(records.Fields()) == 0) || reflect.DeepEqual(values, records.Fields()))
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
@@ -84,7 +85,7 @@ func TestFieldsRecords(t *testing.T) {
 			records := fieldsRecords{}
 			records.Add(value0)
 			records.Add(value1)
-			return records.Err() != nil && reflect.DeepEqual(value0, records.Fields())
+			return records.Err() != nil && ((len(value0) == 0 && len(records.Fields()) == 0) || reflect.DeepEqual(value0, records.Fields()))
 		}
 		if err := quick.Check(fn, nil); err != nil {
 			t.Error(err)
