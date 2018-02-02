@@ -322,6 +322,10 @@ func TestUpdateRemoteActors(t *testing.T) {
 
 	t.Run("update - remove old", func(t *testing.T) {
 		fn := func(host string, old string) bool {
+			if host == old {
+				return true
+			}
+
 			hosts := []string{host}
 
 			ctrl := gomock.NewController(t)
