@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/pprof"
@@ -12,18 +13,32 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type stringslice []string
+type peersSlice []string
 
-func (ss *stringslice) Set(s string) error {
-	(*ss) = append(*ss, s)
+func (ss *peersSlice) Set(s string) (err error) {
+	var (
+		host = s
+		port = defaultClusterPort
+	)
+	if strings.Index(s, ":") != -1 {
+		var portStr string
+		if host, portStr, err = net.SplitHostPort(s); err != nil {
+			return
+		}
+		if port, err = strconv.Atoi(portStr); err != nil {
+			return
+		}
+	}
+
+	(*ss) = append(*ss, fmt.Sprintf("%s:%d", strings.ToLower(host), port))
 	return nil
 }
 
-func (ss *stringslice) Slice() []string {
+func (ss *peersSlice) Slice() []string {
 	return []string(*ss)
 }
 
-func (ss *stringslice) String() string {
+func (ss *peersSlice) String() string {
 	if len(*ss) <= 0 {
 		return "..."
 	}
@@ -79,7 +94,7 @@ func hasNonlocal(peers []string) bool {
 		}
 		if ip := net.ParseIP(peer); ip != nil && !ip.IsLoopback() {
 			return true
-		} else if ip == nil && strings.ToLower(peer) != "localhost" {
+		} else if ip == nil && strings.Index(strings.ToLower(peer), "localhost") != 0 {
 			return true
 		}
 	}

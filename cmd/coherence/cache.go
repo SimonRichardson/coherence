@@ -53,7 +53,7 @@ func runCache(args []string) error {
 		nodeReplicationFactor  = flags.Int("node.replication.factor", defaultNodeReplicationFactor, "replication factor for node configuration")
 		transportProtocol      = flags.String("transport.protocol", defaultTransportProtocol, "protocol used to talk to remote nodes (http)")
 		metricsRegistration    = flags.Bool("metrics.registration", defaultMetricsRegistration, "Registration of metrics on launch")
-		clusterPeers           = stringslice{}
+		clusterPeers           = peersSlice{}
 	)
 
 	flags.Var(&clusterPeers, "peer", "cluster peer host:port (repeatable)")
@@ -215,7 +215,7 @@ func runCache(args []string) error {
 				for {
 					select {
 					case <-dst:
-						fmt.Println(persistence.String())
+						fmt.Fprintln(os.Stdout, persistence.String())
 					}
 				}
 			}()
